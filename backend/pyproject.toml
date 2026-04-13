@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "trainerhub-backend"
+version = "0.1.0"
+description = "TrainerHub backend modular monolith"
+authors = ["OpenAI <support@openai.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+Django = "^5.1"
+djangorestframework = "^3.15"
+djangorestframework-simplejwt = "^5.3"
+django-filter = "^24.3"
+django-cors-headers = "^4.4"
+psycopg = {extras = ["binary"], version = "^3.2"}
+redis = "^5.0"
+celery = "^5.4"
+gunicorn = "^23.0"
+boto3 = "^1.35"
+python-dotenv = "^1.0"
+dj-database-url = "^2.2"
+structlog = "^24.4"
+argon2-cffi = "^23.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+pytest-django = "^4.9"
+ruff = "^0.7"
+mypy = "^1.11"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"

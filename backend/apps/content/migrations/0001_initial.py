@@ -1,0 +1,118 @@
+import django.db.models.deletion
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = [
+        ('trainer_profiles', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='PublishedVideo',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('source_draft_id', models.UUIDField(unique=True)),
+                ('slug', models.SlugField(max_length=255, unique=True)),
+                ('title', models.CharField(max_length=255)),
+                ('description', models.TextField(blank=True)),
+                ('category', models.CharField(default='fitness', max_length=64)),
+                ('difficulty', models.CharField(choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')], default='beginner', max_length=32)),
+                ('visibility', models.CharField(choices=[('public', 'Public'), ('unlisted', 'Unlisted'), ('private', 'Private')], default='public', max_length=32)),
+                ('cover_asset_id', models.UUIDField(blank=True, null=True)),
+                ('video_asset_id', models.UUIDField(blank=True, null=True)),
+                ('price_amount', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
+                ('currency', models.CharField(default='EUR', max_length=3)),
+                ('duration_minutes', models.PositiveIntegerField(default=0)),
+                ('version_number', models.PositiveIntegerField(default=1)),
+                ('published_at', models.DateTimeField(auto_now_add=True)),
+                ('is_featured', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(default=True)),
+                ('trainer_profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='videos', to='trainer_profiles.trainerpublicprofile')),
+            ],
+            options={'db_table': 'content_published_video', 'ordering': ['-published_at', '-created_at']},
+        ),
+        migrations.CreateModel(
+            name='PublishedProgram',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('source_draft_id', models.UUIDField(unique=True)),
+                ('slug', models.SlugField(max_length=255, unique=True)),
+                ('title', models.CharField(max_length=255)),
+                ('description', models.TextField(blank=True)),
+                ('category', models.CharField(default='fitness', max_length=64)),
+                ('difficulty', models.CharField(choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')], default='beginner', max_length=32)),
+                ('visibility', models.CharField(choices=[('public', 'Public'), ('unlisted', 'Unlisted'), ('private', 'Private')], default='public', max_length=32)),
+                ('price_amount', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
+                ('currency', models.CharField(default='EUR', max_length=3)),
+                ('duration_minutes', models.PositiveIntegerField(default=0)),
+                ('version_number', models.PositiveIntegerField(default=1)),
+                ('published_at', models.DateTimeField(auto_now_add=True)),
+                ('is_featured', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(default=True)),
+                ('trainer_profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='programs', to='trainer_profiles.trainerpublicprofile')),
+            ],
+            options={'db_table': 'content_published_program', 'ordering': ['-published_at', '-created_at']},
+        ),
+        migrations.CreateModel(
+            name='PublishedLesson',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('source_draft_id', models.UUIDField(unique=True)),
+                ('slug', models.SlugField(max_length=255, unique=True)),
+                ('title', models.CharField(max_length=255)),
+                ('description', models.TextField(blank=True)),
+                ('position', models.PositiveIntegerField(default=1)),
+                ('video_asset_id', models.UUIDField(blank=True, null=True)),
+                ('is_preview', models.BooleanField(default=False)),
+                ('duration_minutes', models.PositiveIntegerField(default=0)),
+                ('program', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lessons', to='content.publishedprogram')),
+            ],
+            options={'db_table': 'content_published_lesson', 'ordering': ['position', 'created_at']},
+        ),
+        migrations.CreateModel(
+            name='PublishedBundle',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('source_draft_id', models.UUIDField(unique=True)),
+                ('slug', models.SlugField(max_length=255, unique=True)),
+                ('title', models.CharField(max_length=255)),
+                ('description', models.TextField(blank=True)),
+                ('category', models.CharField(default='fitness', max_length=64)),
+                ('difficulty', models.CharField(choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')], default='beginner', max_length=32)),
+                ('visibility', models.CharField(choices=[('public', 'Public'), ('unlisted', 'Unlisted'), ('private', 'Private')], default='public', max_length=32)),
+                ('price_amount', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
+                ('currency', models.CharField(default='EUR', max_length=3)),
+                ('duration_minutes', models.PositiveIntegerField(default=0)),
+                ('version_number', models.PositiveIntegerField(default=1)),
+                ('published_at', models.DateTimeField(auto_now_add=True)),
+                ('is_featured', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(default=True)),
+                ('trainer_profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='bundles', to='trainer_profiles.trainerpublicprofile')),
+            ],
+            options={'db_table': 'content_published_bundle', 'ordering': ['-published_at', '-created_at']},
+        ),
+        migrations.CreateModel(
+            name='PublishedBundleItem',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('item_type', models.CharField(choices=[('video', 'Video'), ('program', 'Program')], max_length=32)),
+                ('target_slug', models.SlugField(max_length=255)),
+                ('position', models.PositiveIntegerField(default=1)),
+                ('bundle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='content.publishedbundle')),
+            ],
+            options={'db_table': 'content_published_bundle_item', 'ordering': ['position', 'created_at']},
+        ),
+    ]

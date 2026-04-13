@@ -1,0 +1,18 @@
+# Add to backend settings
+
+INSTALLED_APPS += [
+    # existing apps.finance_documents,
+]
+
+# PDF renderer
+FINANCE_DOCUMENTS_PDF_BACKEND = "weasyprint"
+
+# VK Cloud Object Storage
+VK_CLOUD_S3_BUCKET = env("VK_CLOUD_S3_BUCKET")
+VK_CLOUD_S3_ENDPOINT_URL = env("VK_CLOUD_S3_ENDPOINT_URL")
+VK_CLOUD_S3_REGION = env("VK_CLOUD_S3_REGION", default="ru-msk")
+VK_CLOUD_S3_ACCESS_KEY = env("VK_CLOUD_S3_ACCESS_KEY")
+VK_CLOUD_S3_SECRET_KEY = env("VK_CLOUD_S3_SECRET_KEY")
+
+# Signed URL ttl
+FINANCE_DOCUMENTS_SIGNED_URL_TTL_MINUTES = 15

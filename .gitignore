@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+.env
+.env.*
+.venv/
+venv/
+
+# Django
+staticfiles/
+media/
+celerybeat-schedule
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env.*
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Misc
+coverage/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
