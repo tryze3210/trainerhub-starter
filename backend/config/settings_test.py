@@ -1,9 +1,13 @@
-from config.settings import *  # noqa: F401,F403
+from config.settings.base import *  # noqa: F401,F403
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'test.sqlite3',
+        'NAME': ':memory:',
+        'TEST': {
+            'NAME': ':memory:',
+            'SERIALIZE': False,
+        },
     }
 }
 CACHES = {

@@ -25,5 +25,5 @@ class MediaAssetViewSet(viewsets.GenericViewSet):
     def upload_session(self, request):
         serializer = CreateUploadSessionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        payload = self.service.create_upload_session(trainer_id=self._trainer_uuid(), **serializer.validated_data)
+        payload = self.service.create_upload_session(trainer_id=self._trainer_uuid(), user=request.user, **serializer.validated_data)
         return response.Response(payload, status=status.HTTP_201_CREATED)

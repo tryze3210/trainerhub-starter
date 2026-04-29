@@ -10,6 +10,7 @@ from apps.analytics.api.views import (
     TrafficAttributionView,
     TrafficTimeSeriesView,
     TrafficTopPathsView,
+    TrainerRevenueDashboardView,
     WarehouseHealthView,
 )
 
@@ -25,4 +26,5 @@ urlpatterns = [
     path('traffic-timeseries/', TrafficTimeSeriesView.as_view(), name='admin-analytics-traffic-timeseries'),
     path('traffic-top-paths/', TrafficTopPathsView.as_view(), name='admin-analytics-traffic-top-paths'),
     path('traffic-attribution/', TrafficAttributionView.as_view(), name='admin-analytics-traffic-attribution'),
+    path('trainer-dashboard/', TrainerRevenueDashboardView.as_view(), name='trainer-analytics-dashboard'),
 ]

@@ -28,3 +28,15 @@ class RuntimeService:
             'backend': 'redis',
             'key': 'runtime:ping',
         }
+
+
+def get_health_status() -> dict:
+    return RuntimeService().health()
+
+
+def get_readiness_status() -> dict:
+    return RuntimeService().readiness()
+
+
+def get_runtime_config() -> dict:
+    return RuntimeService().config()

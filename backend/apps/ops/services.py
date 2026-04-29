@@ -43,3 +43,11 @@ class DiagnosticsService:
             'run': asdict(run),
             'status': 'accepted',
         }
+
+
+def get_diagnostics_snapshot() -> dict:
+    return DiagnosticsService().snapshot()
+
+
+def run_diagnostics(*, suite_key: str, triggered_by: str = 'admin_console') -> dict:
+    return DiagnosticsService().run(suite_key=suite_key, triggered_by=triggered_by)

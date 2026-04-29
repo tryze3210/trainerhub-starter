@@ -1,80 +1,138 @@
-import Link from "next/link";
-import { accountApi, onboardingApi } from "@/lib/api";
-import { RoleSwitcher } from "./role-switcher";
+'use client';
 
-export const metadata = {
-  title: "Cabinet | TrainerHub",
-  description: "Unified authenticated entrypoint for current account role.",
-};
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { ProtectedPage } from '@/components/protected-page';
+import { useAuthSession } from '@/components/auth-provider';
+import { authApi } from '@/lib/api';
+import type { SessionPayload } from '@/types/api';
 
-export default async function CabinetPage() {
-  const [cabinet, onboarding] = await Promise.all([
-    accountApi.cabinet(),
-    onboardingApi.status(),
-  ]);
+export default function CabinetPage() {
+  const { user, isAuthenticated, isLoading: sessionLoading } = useAuthSession();
+  const [data, setData] = useState<SessionPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      setData(null);
+      setMsg('');
+      return;
+    }
+
+    void (async () => {
+      try {
+        setLoading(true);
+        setMsg('');
+        setData(await authApi.me());
+      } catch (err) {
+        setMsg(err instanceof Error ? err.message : 'Не удалось загрузить кабинет');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [isAuthenticated, sessionLoading]);
+
+  const activeUser = data?.user || user;
+  const isTrainer = activeUser?.active_role === 'trainer';
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 p-8">
-      <section className="space-y-3">
-        <h1 className="text-4xl font-bold">Cabinet</h1>
-        <p className="text-slate-600">Role-aware entrypoint for authenticated user flows.</p>
-        <div className="text-sm">
-          Active role: <b>{cabinet.account.active_role}</b>
+    <ProtectedPage title="Личный кабинет" description="Личный кабинет доступен только авторизованным пользователям.">
+      <section className="stack" style={{ gap: 24 }}>
+        <div className="stack" style={{ gap: 10 }}>
+          <span className="badge">Кабинет</span>
+          <h1>{isTrainer ? 'Личный кабинет тренера' : 'Личный кабинет'}</h1>
+          <p className="lead">
+            Базовый customer-кабинет сохранён. Для trainer-ролей добавлен отдельный shell и отдельный onboarding flow.
+          </p>
         </div>
-        <RoleSwitcher roles={cabinet.account.available_roles ?? []} activeRole={cabinet.account.active_role ?? "user"} />
-      </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border p-4">
-          <div className="text-sm text-slate-500">Favorites</div>
-          <div className="text-3xl font-semibold">{cabinet.stats.favorites_count}</div>
-        </div>
-        <div className="rounded-2xl border p-4">
-          <div className="text-sm text-slate-500">Access rights</div>
-          <div className="text-3xl font-semibold">{cabinet.stats.active_entitlements_count}</div>
-        </div>
-        <div className="rounded-2xl border p-4">
-          <div className="text-sm text-slate-500">Draft content</div>
-          <div className="text-3xl font-semibold">{cabinet.stats.draft_content_count}</div>
-        </div>
-        <div className="rounded-2xl border p-4">
-          <div className="text-sm text-slate-500">Unread notifications</div>
-          <div className="text-3xl font-semibold">{cabinet.stats.unread_notifications_count}</div>
-        </div>
-      </section>
+        {loading ? <div className="card"><p className="muted">Загружаем данные пользователя…</p></div> : null}
+        {msg ? <div className="card error">{msg}</div> : null}
 
-      <section className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border p-5">
-          <h2 className="text-xl font-semibold">Capabilities</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {cabinet.role_capabilities.map((item) => (
-              <span key={item} className="rounded-full border px-3 py-1 text-sm">{item}</span>
-            ))}
+        {activeUser ? (
+          <div className="grid-3">
+            <div className="card dark hero">
+              <div className="stack" style={{ gap: 12 }}>
+                <span className="badge secondary">Профиль</span>
+                <h2 className="title-lg" style={{ margin: 0 }}>{activeUser.full_name || activeUser.email}</h2>
+                <p>{activeUser.email}</p>
+                <div className="inline">
+                  <span className="badge success">Роль: {activeUser.active_role}</span>
+                  <span className="badge">Язык: {activeUser.preferred_language || '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="kpi">
+                <span className="muted">Город</span>
+                <strong>{activeUser.city || '—'}</strong>
+              </div>
+              <div className="divider" />
+              <div className="kpi">
+                <span className="muted">Страна</span>
+                <strong>{activeUser.country || '—'}</strong>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="kpi">
+                <span className="muted">Доступные роли</span>
+                <strong>{(activeUser.available_roles || []).join(', ') || '—'}</strong>
+              </div>
+              <div className="divider" />
+              <div className="kpi">
+                <span className="muted">Телефон</span>
+                <strong>{activeUser.phone || '—'}</strong>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="rounded-2xl border p-5">
-          <h2 className="text-xl font-semibold">Onboarding</h2>
-          <div className="mt-2 text-sm text-slate-600">
-            {onboarding.summary.completed_steps}/{onboarding.summary.total_steps} complete · {onboarding.summary.completion_percent}%
+        {isTrainer ? (
+          <div className="card success">
+            <div className="stack" style={{ gap: 12 }}>
+              <strong>Для trainer-ролей кабинет вынесен в отдельный контур.</strong>
+              <p className="muted">Здесь оставлен общий аккаунт-блок, а управление профилем тренера, onboarding и upload flow перенесены в отдельный trainer dashboard shell.</p>
+              <div className="inline">
+                <Link href="/trainer/onboarding" className="button">Открыть onboarding</Link>
+                <Link href="/trainer/dashboard" className="button secondary">Открыть dashboard</Link>
+                <Link href="/trainer/videos" className="button ghost">Открыть upload flow</Link>
+              </div>
+            </div>
           </div>
-          <div className="mt-3 text-sm">
-            Next step: <b>{onboarding.summary.next_step ?? "done"}</b>
-          </div>
-          <Link href="/onboarding" className="mt-4 inline-block text-sm underline">Open onboarding</Link>
+        ) : null}
+
+        <div className="grid-4">
+          <Link href="/customer/hub" className="card">
+            <h3 className="title-md">Customer hub</h3>
+            <p>Библиотека, заказы, подписки, избранное и рекомендации.</p>
+          </Link>
+          <Link href="/customer/access" className="card">
+            <h3 className="title-md">Access center</h3>
+            <p>Коммерческие доступы, библиотека и entitlement readiness.</p>
+          </Link>
+          <Link href="/orders" className="card">
+            <h3 className="title-md">Заказы</h3>
+            <p>История checkout и order flow.</p>
+          </Link>
+          <Link href="/payments" className="card">
+            <h3 className="title-md">Платежи</h3>
+            <p>Платёжные записи и статусы provider flow.</p>
+          </Link>
+          <Link href="/subscriptions" className="card">
+            <h3 className="title-md">Подписки</h3>
+            <p>Подписочные продукты и жизненный цикл.</p>
+          </Link>
+          <Link href="/entitlements" className="card">
+            <h3 className="title-md">Доступы</h3>
+            <p>Выданные права доступа к контенту.</p>
+          </Link>
         </div>
       </section>
-
-      <section className="rounded-2xl border p-5">
-        <h2 className="text-xl font-semibold">Quick links</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {cabinet.quick_links.map((link) => (
-            <Link key={link.href} href={link.href} className="rounded-xl border p-4 text-sm hover:bg-slate-50">
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      </section>
-    </main>
+    </ProtectedPage>
   );
 }

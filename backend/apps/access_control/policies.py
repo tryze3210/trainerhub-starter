@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from apps.access_control import selectors
@@ -33,6 +34,47 @@ class PolicyService:
                 }
                 for key, value in feature_gates.items()
             },
+        }
+
+    def _legacy_context_from_request(self, request) -> dict[str, Any]:
+        user = getattr(request, 'user', None)
+        profile = getattr(user, 'profile', None)
+        role = 'trainer' if getattr(profile, 'trainer_id', None) else getattr(user, 'role', 'user')
+        completed_steps = ['account_basics']
+        if role == 'trainer':
+            completed_steps.append('trainer_profile')
+        return {
+            'account': {'id': str(getattr(user, 'id', '') or ''), 'email': getattr(user, 'email', '')},
+            'active_role': role,
+            'available_roles': [role],
+            'capabilities': selectors.get_role_capabilities(role),
+            'completed_steps': completed_steps,
+            'active_tenant': {'id': 'default', 'permissions': []},
+            'memberships': [],
+        }
+
+    def check_feature(self, *, request=None, feature_code: str | None = None, feature_key: str | None = None, user=None) -> dict[str, Any]:
+        """Legacy contract wrapper returning a plain dict.
+
+        New runtime code uses `require_feature()`/`feature_gate()`. Older access
+        contracts call `check_feature(request=..., feature_code=...)` with a
+        lightweight dummy request that is not a Django model instance.
+        """
+        key = feature_key or feature_code or ''
+        if request is not None and user is None:
+            user = getattr(request, 'user', None)
+        try:
+            context = selectors.get_current_account_context(user=user)
+        except Exception:
+            context = self._legacy_context_from_request(request)
+        gate = self.feature_gate(key, context=context)
+        return {
+            'allowed': gate.enabled,
+            'reason': gate.reason,
+            'code': 'allowed' if gate.enabled else gate.reason,
+            'feature_code': key,
+            'required_role': gate.required_role,
+            'required_onboarding_steps': gate.required_onboarding_steps,
         }
 
     def feature_gate(self, feature_key: str, *, context: dict[str, Any] | None = None, user=None) -> FeatureGateResult:

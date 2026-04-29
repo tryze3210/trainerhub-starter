@@ -24,6 +24,8 @@ class TrainerPublicProfile(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            base = slugify(self.display_name or self.user.username or self.user.email.split('@')[0]) or 'trainer'
+            email_prefix = self.user.email.split('@')[0] if getattr(self.user, 'email', '') else 'trainer'
+            full_name = (self.display_name or getattr(getattr(self.user, 'account_profile', None), 'display_name', '') or getattr(getattr(self.user, 'account_profile', None), 'full_name', '') or self.user.get_full_name() or email_prefix)
+            base = slugify(full_name) or 'trainer'
             self.slug = base
         super().save(*args, **kwargs)

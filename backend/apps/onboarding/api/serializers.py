@@ -20,6 +20,7 @@ class OnboardingSummarySerializer(serializers.Serializer):
 class OnboardingStatusSerializer(serializers.Serializer):
     steps = OnboardingStepSerializer(many=True)
     summary = OnboardingSummarySerializer()
+    trainer_application_status = serializers.CharField(allow_null=True, required=False)
 
 
 class CompleteStepSerializer(serializers.Serializer):

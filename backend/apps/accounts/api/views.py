@@ -56,3 +56,8 @@ class CabinetView(APIView):
     def get(self, request):
         payload = services.get_cabinet(user=request.user)
         return Response(CabinetSerializer(payload).data)
+
+
+AccountProfileView = ProfileView
+AccountSettingsView = SettingsView
+SwitchRoleView = RoleSwitchView

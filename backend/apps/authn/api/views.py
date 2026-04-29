@@ -4,7 +4,6 @@ from rest_framework.views import APIView
 
 from apps.authn import services
 from apps.authn.api.serializers import (
-    AuthUserSerializer,
     LoginSerializer,
     LogoutSerializer,
     RefreshSerializer,
@@ -21,7 +20,7 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = services.register_user(**serializer.validated_data)
-        return Response(AuthUserSerializer(payload).data, status=201)
+        return Response(payload, status=201)
 
 
 class LoginView(APIView):
@@ -31,7 +30,7 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = services.login_user(**serializer.validated_data)
-        return Response(AuthUserSerializer(payload).data)
+        return Response(payload)
 
 
 class RefreshView(APIView):

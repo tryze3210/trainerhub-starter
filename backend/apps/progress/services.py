@@ -39,7 +39,7 @@ class ProgressService:
     def mark_lesson_completed(cls, *, user, lesson_id: str, request=None):
         if not user_has_lesson_access(user=user, lesson_id=lesson_id):
             raise PermissionError('No lesson entitlement')
-        lesson = get_lesson_detail(lesson_id=lesson_id)
+        lesson = get_lesson_detail(lesson_id=lesson_id, user=user)
         obj, _ = LessonProgress.objects.update_or_create(
             user=user,
             lesson_id=lesson_id,

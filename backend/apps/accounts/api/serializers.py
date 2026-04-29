@@ -42,10 +42,10 @@ class QuickLinkSerializer(serializers.Serializer):
 
 
 class CabinetStatsSerializer(serializers.Serializer):
-    favorites_count = serializers.IntegerField()
-    active_entitlements_count = serializers.IntegerField()
-    draft_content_count = serializers.IntegerField()
-    unread_notifications_count = serializers.IntegerField()
+    favorites_count = serializers.IntegerField(required=False, default=0)
+    active_entitlements_count = serializers.IntegerField(required=False, default=0)
+    draft_content_count = serializers.IntegerField(required=False, default=0)
+    unread_notifications_count = serializers.IntegerField(required=False, default=0)
 
 
 class CabinetSerializer(serializers.Serializer):
@@ -53,3 +53,9 @@ class CabinetSerializer(serializers.Serializer):
     quick_links = QuickLinkSerializer(many=True)
     role_capabilities = serializers.ListField(child=serializers.CharField())
     stats = CabinetStatsSerializer()
+
+
+# Compatibility aliases used by existing views/imports.
+ProfileSerializer = AccountProfileSerializer
+SettingsSerializer = AccountSettingsSerializer
+RoleSwitchResultSerializer = SwitchRoleResponseSerializer

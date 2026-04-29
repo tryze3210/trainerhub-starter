@@ -1,3 +1,9 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = []
+from apps.payouts.api.views import AdminPayoutViewSet, MyPayoutViewSet
+
+router = DefaultRouter()
+router.register(r'my', MyPayoutViewSet, basename='my-payouts')
+router.register(r'admin', AdminPayoutViewSet, basename='admin-payouts')
+
+urlpatterns = router.urls

@@ -65,3 +65,28 @@ class WorkflowService:
             },
             'status': 'started',
         }
+
+
+def list_workflow_definitions() -> list[dict]:
+    return WorkflowService().list_definitions()
+
+
+def list_workflow_runs() -> list[dict]:
+    return WorkflowService().list_runs()
+
+
+def start_workflow(
+    *,
+    workflow_key: str,
+    subject_type: str,
+    subject_id: str,
+    tenant_id: str | None = None,
+    context: dict | None = None,
+) -> dict:
+    return WorkflowService().start(
+        workflow_key=workflow_key,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        tenant_id=tenant_id,
+        context=context,
+    )

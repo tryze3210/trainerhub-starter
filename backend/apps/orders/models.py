@@ -35,11 +35,18 @@ class Order(UUIDModel):
     paid_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
+    # Legacy aliases kept for older tests/services.
+    Status = OrderStatus
+    Type = OrderType
+    ItemType = PurchasedItemType
+
 
 class OrderItem(UUIDModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     item_type = models.CharField(max_length=32, choices=PurchasedItemType.choices)
-    item_id = models.UUIDField()
+    # Public content can be addressed by UUID/source_draft_id, slug, integer legacy id,
+    # or synthetic fixture ids. Store polymorphic ids as text.
+    item_id = models.CharField(max_length=64)
     title_snapshot = models.CharField(max_length=255)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)

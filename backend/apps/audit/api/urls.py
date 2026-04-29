@@ -1,3 +1,8 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = []
+from apps.audit.api.views import AuditAdminViewSet
+
+router = DefaultRouter()
+router.register(r"admin/events", AuditAdminViewSet, basename="admin-audit-events")
+
+urlpatterns = router.urls

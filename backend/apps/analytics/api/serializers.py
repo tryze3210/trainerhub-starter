@@ -137,3 +137,36 @@ class AttributionRowSerializer(serializers.Serializer):
     sessions = serializers.IntegerField()
     page_views = serializers.IntegerField()
     purchases = serializers.IntegerField()
+
+
+class TrainerRevenueSeriesPointSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    accrual_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    payout_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    orders_count = serializers.IntegerField()
+
+
+class TrainerTopProductSerializer(serializers.Serializer):
+    item_type = serializers.CharField()
+    title = serializers.CharField()
+    revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
+    orders_count = serializers.IntegerField()
+
+
+class TrainerRevenueSummarySerializer(serializers.Serializer):
+    currency = serializers.CharField()
+    available_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    reserved_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    lifetime_earned_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    revenue_last_30_days = serializers.DecimalField(max_digits=14, decimal_places=2)
+    payouts_last_30_days = serializers.DecimalField(max_digits=14, decimal_places=2)
+    paid_orders_count = serializers.IntegerField()
+    payout_requests_count = serializers.IntegerField()
+    pending_payout_requests_count = serializers.IntegerField()
+    avg_order_value = serializers.DecimalField(max_digits=14, decimal_places=2)
+
+
+class TrainerRevenueDashboardSerializer(serializers.Serializer):
+    summary = TrainerRevenueSummarySerializer()
+    revenue_series = TrainerRevenueSeriesPointSerializer(many=True)
+    top_products = TrainerTopProductSerializer(many=True)

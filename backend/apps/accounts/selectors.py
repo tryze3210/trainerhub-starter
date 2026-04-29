@@ -7,12 +7,23 @@ from apps.accounts.models import AccountProfile, AccountRoleAssignment, AccountS
 User = get_user_model()
 
 
+def _fallback_name(user) -> str:
+    full_name = (user.get_full_name() or '').strip()
+    if full_name:
+        return full_name
+    email = (getattr(user, 'email', '') or '').strip()
+    if email and '@' in email:
+        return email.split('@', 1)[0]
+    return 'User'
+
+
 def _get_or_create_profile(user):
+    fallback_name = _fallback_name(user)
     profile, _ = AccountProfile.objects.get_or_create(
         user=user,
         defaults={
-            'full_name': user.get_full_name() or user.username,
-            'display_name': user.first_name or '',
+            'full_name': fallback_name,
+            'display_name': getattr(user, 'first_name', '') or fallback_name,
         },
     )
     return profile

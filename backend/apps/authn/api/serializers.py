@@ -4,7 +4,18 @@ from rest_framework import serializers
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    full_name = serializers.CharField(max_length=255)
+    role = serializers.ChoiceField(choices=['user', 'trainer'], required=False, default='user')
+    full_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        full_name = (attrs.get('full_name') or '').strip()
+        first_name = (attrs.get('first_name') or '').strip()
+        last_name = (attrs.get('last_name') or '').strip()
+        if not full_name and not first_name and not last_name:
+            attrs['full_name'] = attrs['email'].split('@', 1)[0]
+        return attrs
 
 
 class LoginSerializer(serializers.Serializer):

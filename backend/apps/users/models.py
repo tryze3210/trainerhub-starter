@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -7,7 +9,21 @@ from apps.core.models import UUIDModel, TimeStampedModel
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
-    def _create_user(self, email, password, **extra_fields):
+    def _normalize_legacy_username(self, email, extra_fields: dict):
+        """Accept legacy Django tests/callers that still pass username.
+
+        Runtime auth is email-first (`USERNAME_FIELD = "email"`), but older
+        contracts use `create(username=...)` and `create_user(username=..., email=...)`.
+        The username value is only a compatibility input; it is not persisted as
+        a separate login column.
+        """
+        username = extra_fields.pop('username', None)
+        if not email and username:
+            email = f'{username}@example.invalid'
+        return email
+
+    def _create_user(self, email=None, password=None, **extra_fields):
+        email = self._normalize_legacy_username(email, extra_fields)
         if not email:
             raise ValueError("The given email must be set")
         email = self.normalize_email(email)
@@ -16,12 +32,12 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email=None, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, email, password=None, **extra_fields):
+    def create_superuser(self, email=None, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("role", User.Roles.ADMIN)
@@ -30,6 +46,12 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
         return self._create_user(email, password, **extra_fields)
+
+    def create(self, **kwargs):
+        username = kwargs.pop('username', None)
+        if username and not kwargs.get('email'):
+            kwargs['email'] = f'{username}@example.invalid'
+        return super().create(**kwargs)
 
 
 class User(UUIDModel, TimeStampedModel, AbstractUser):
@@ -46,6 +68,12 @@ class User(UUIDModel, TimeStampedModel, AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    def __init__(self, *args, **kwargs):
+        username = kwargs.pop('username', None)
+        if username and not kwargs.get('email'):
+            kwargs['email'] = f'{username}@example.invalid'
+        super().__init__(*args, **kwargs)
 
     def __str__(self) -> str:
         return self.email

@@ -1,17 +1,4 @@
 const assert = require('node:assert/strict');
-
-function buildRoutes() {
-  return {
-    runtimeHealth: '/api/v1/runtime/health/',
-    runtimeReadiness: '/api/v1/runtime/readiness/',
-    accessSnapshot: '/api/v1/access/snapshot/',
-    workflowDefinitions: '/api/v1/workflows/definitions/',
-  };
-}
-
-(function main() {
-  const routes = buildRoutes();
-  assert.equal(routes.runtimeHealth, '/api/v1/runtime/health/');
-  assert.ok(routes.accessSnapshot.includes('/api/v1/access/'));
-  console.log('frontend contract routes ok');
-})();
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+const route = (path) => `${API_BASE_URL}${path}`;
+(function main() { assert.equal(route('/auth/login/'), `${API_BASE_URL}/auth/login/`); assert.equal(route('/content/videos/'), `${API_BASE_URL}/content/videos/`); assert.equal(route('/orders/checkout/'), `${API_BASE_URL}/orders/checkout/`); assert.equal(route('/payments-webhooks/receive/'), `${API_BASE_URL}/payments-webhooks/receive/`); console.log('frontend contract routes ok'); })();

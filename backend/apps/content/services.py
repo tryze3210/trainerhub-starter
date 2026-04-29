@@ -90,10 +90,22 @@ class ContentPublishingService:
         )
         bundle.items.all().delete()
         for item in draft.items.all().order_by('position', 'created_at'):
+            if item.item_type == BundleItemDraft.ItemType.VIDEO:
+                target = PublishedVideo.objects.filter(source_draft_id=item.target_id, is_active=True).first()
+                if not target:
+                    raise ValueError('bundle can include only published videos')
+                target_slug = target.slug
+            elif item.item_type == BundleItemDraft.ItemType.PROGRAM:
+                target = PublishedProgram.objects.filter(source_draft_id=item.target_id, is_active=True).first()
+                if not target:
+                    raise ValueError('bundle can include only published programs')
+                target_slug = target.slug
+            else:
+                raise ValueError('unsupported bundle item type')
             PublishedBundleItem.objects.create(
                 bundle=bundle,
                 item_type=item.item_type,
-                target_slug=str(item.target_id),
+                target_slug=target_slug,
                 position=item.position,
             )
         return bundle
