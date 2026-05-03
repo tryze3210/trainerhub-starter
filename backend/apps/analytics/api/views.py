@@ -239,3 +239,25 @@ class TrainerRevenueDashboardView(APIView):
             'top_products': top_products,
         }
         return Response(TrainerRevenueDashboardSerializer(payload).data)
+
+
+from apps.analytics.api.serializers import AnalyticsProjectionHealthSerializer, AnalyticsProjectionRunSerializer
+from apps.analytics.projections import analytics_projection_service
+from apps.events.services import DomainEventService
+
+
+class AnalyticsProjectionHealthView(AdminAnalyticsBaseView):
+    def get(self, request, *args, **kwargs):
+        data = analytics_projection_service.projection_health()
+        serializer = AnalyticsProjectionHealthSerializer(data)
+        return Response(serializer.data)
+
+
+class AnalyticsProjectOutboxView(AdminAnalyticsBaseView):
+    def post(self, request, *args, **kwargs):
+        serializer = AnalyticsProjectionRunSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        result = DomainEventService().dispatch_pending_batch(
+            batch_size=serializer.validated_data['batch_size'],
+        )
+        return Response(result, status=status.HTTP_202_ACCEPTED)

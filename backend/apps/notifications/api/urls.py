@@ -9,6 +9,8 @@ from apps.notifications.api.views import (
     AdminNotificationDeliveryOverviewView,
     AdminNotificationTemplateDetailView,
     AdminNotificationTemplateListCreateView,
+    AdminNotificationProjectionHealthView,
+    AdminNotificationProjectOutboxView,
     UserNotificationInboxView,
     UserNotificationMarkAllReadView,
     UserNotificationMarkReadView,
@@ -28,4 +30,6 @@ urlpatterns = [
     path('admin/templates/<int:pk>/', AdminNotificationTemplateDetailView.as_view(), name='admin-notification-template-detail'),
     path('admin/deliveries/', AdminNotificationDeliveryListView.as_view(), name='admin-notification-delivery-list'),
     path('admin/deliveries/overview/', AdminNotificationDeliveryOverviewView.as_view(), name='admin-notification-delivery-overview'),
+    path('admin/projection-health/', AdminNotificationProjectionHealthView.as_view(), name='admin-notification-projection-health'),
+    path('admin/project-outbox/', AdminNotificationProjectOutboxView.as_view(), name='admin-notification-project-outbox'),
 ]

@@ -1,16 +1,8 @@
 from __future__ import annotations
 
-import os
+# Backward-compatible Celery app module. Existing commands that use
+# `celery -A config.celery_app ...` continue to work, while the canonical app is
+# now `config.celery`.
+from config.celery import app
 
-from celery import Celery
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-
-app = Celery('trainerhub')
-app.config_from_object('django.conf:settings', namespace='CELERY')
-app.autodiscover_tasks()
-
-
-@app.task(bind=True)
-def debug_task(self):
-    return {'task_id': self.request.id, 'name': self.name}
+__all__ = ['app']

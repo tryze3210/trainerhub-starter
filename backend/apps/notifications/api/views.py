@@ -162,3 +162,29 @@ class AdminNotificationDeliveryOverviewView(APIView):
             'email': qs.filter(channel='email').count(),
             'in_app_linked': qs.filter(notification__isnull=False).count(),
         })
+
+
+from apps.events.services import DomainEventService
+from apps.notifications.api.serializers import (
+    NotificationProjectionHealthSerializer,
+    NotificationProjectionRunSerializer,
+)
+from apps.notifications.projections import notification_projection_service
+
+
+class AdminNotificationProjectionHealthView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        serializer = NotificationProjectionHealthSerializer(notification_projection_service.projection_health())
+        return Response(serializer.data)
+
+
+class AdminNotificationProjectOutboxView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
+    def post(self, request):
+        serializer = NotificationProjectionRunSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        result = DomainEventService().dispatch_pending_batch(batch_size=serializer.validated_data['batch_size'])
+        return Response(result, status=status.HTTP_202_ACCEPTED)

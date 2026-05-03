@@ -1,0 +1,45 @@
+# Optional overlay for local/dev event-outbox workers.
+# Run from project root together with your base compose file, for example:
+# docker compose -f docker-compose.yml -f docker-compose.outbox.yml up -d celery-outbox-worker celery-beat
+services:
+  celery-outbox-worker:
+    build:
+      context: ./backend
+      dockerfile: docker/celery/Dockerfile
+    command: >
+      celery -A config.celery worker
+      --loglevel=INFO
+      --queues=outbox,default
+      --concurrency=${CELERY_OUTBOX_WORKER_CONCURRENCY:-2}
+      --hostname=outbox-worker@%h
+    env_file:
+      - ./backend/.env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.local}
+      CELERY_OUTBOX_QUEUE: ${CELERY_OUTBOX_QUEUE:-outbox}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: docker/celery/Dockerfile
+    command: celery -A config.celery beat --loglevel=INFO
+    env_file:
+      - ./backend/.env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.local}
+      CELERY_OUTBOX_QUEUE: ${CELERY_OUTBOX_QUEUE:-outbox}
+      CELERY_OUTBOX_DISPATCH_EVERY_SECONDS: ${CELERY_OUTBOX_DISPATCH_EVERY_SECONDS:-5}
+      CELERY_OUTBOX_REQUEUE_EVERY_SECONDS: ${CELERY_OUTBOX_REQUEUE_EVERY_SECONDS:-60}
+      CELERY_OUTBOX_HEALTH_EVERY_SECONDS: ${CELERY_OUTBOX_HEALTH_EVERY_SECONDS:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped

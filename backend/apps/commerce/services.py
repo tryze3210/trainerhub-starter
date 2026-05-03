@@ -5,11 +5,72 @@ from django.utils import timezone
 
 from apps.entitlements.models import EntitlementSourceType, EntitlementTargetType
 from apps.entitlements.services import EntitlementService
+from apps.events.services import DomainEventService
 from apps.orders.models import Order, OrderStatus, PurchasedItemType
 from apps.subscriptions.models import Subscription, SubscriptionStatus, SubscriptionPlan
 
 
 class CommerceFinalizationService:
+    @staticmethod
+    def _emit_order_completed(*, order: Order, payment=None) -> None:
+        DomainEventService().emit(
+            event_type='order.completed',
+            aggregate_type='order',
+            aggregate_id=str(order.id),
+            idempotency_key=f'order:{order.id}:completed',
+            payload={
+                'order_id': str(order.id),
+                'payment_id': str(payment.id) if payment else '',
+                'user_id': str(order.user_id),
+                'order_type': order.order_type,
+                'status': order.status,
+                'currency': order.currency,
+                'total_amount': str(order.total_amount),
+                'completed_at': order.completed_at.isoformat() if order.completed_at else None,
+            },
+        )
+
+    @staticmethod
+    def _emit_entitlement_granted(*, entitlement, order: Order, payment=None, first_item=None) -> None:
+        DomainEventService().emit(
+            event_type='entitlement.granted',
+            aggregate_type='entitlement',
+            aggregate_id=str(entitlement.id),
+            idempotency_key=f'entitlement:{entitlement.id}:granted',
+            payload={
+                'entitlement_id': str(entitlement.id),
+                'user_id': str(entitlement.user_id),
+                'order_id': str(order.id),
+                'payment_id': str(payment.id) if payment else '',
+                'source_type': entitlement.source_type,
+                'target_type': entitlement.target_type,
+                'target_id': str(entitlement.target_id or ''),
+                'status': entitlement.status,
+                'item_type': getattr(first_item, 'item_type', ''),
+                'item_id': str(getattr(first_item, 'item_id', '') or ''),
+            },
+        )
+
+    @staticmethod
+    def _emit_subscription_activated(*, subscription: Subscription, order: Order, payment=None, plan=None) -> None:
+        DomainEventService().emit(
+            event_type='subscription.activated',
+            aggregate_type='subscription',
+            aggregate_id=str(subscription.id),
+            idempotency_key=f'subscription:{subscription.id}:activated',
+            payload={
+                'subscription_id': str(subscription.id),
+                'user_id': str(subscription.user_id),
+                'order_id': str(order.id),
+                'payment_id': str(payment.id) if payment else '',
+                'plan_id': str(subscription.plan_id),
+                'plan_code': getattr(plan or subscription.plan, 'code', ''),
+                'status': subscription.status,
+                'starts_at': subscription.starts_at.isoformat() if subscription.starts_at else None,
+                'ends_at': subscription.ends_at.isoformat() if subscription.ends_at else None,
+            },
+        )
+
     @staticmethod
     @transaction.atomic
     def finalize_paid_order(*, order: Order, payment=None) -> None:
@@ -41,7 +102,7 @@ class CommerceFinalizationService:
                     'auto_renew': False,
                 },
             )
-            EntitlementService.grant(
+            entitlement = EntitlementService.grant(
                 user=order.user,
                 source_type=EntitlementSourceType.SUBSCRIPTION,
                 source_subscription=subscription,
@@ -51,8 +112,10 @@ class CommerceFinalizationService:
                 ends_at=subscription.ends_at,
                 metadata={'plan_code': plan.code, 'title': plan.title, **metadata},
             )
+            CommerceFinalizationService._emit_subscription_activated(subscription=subscription, order=order, payment=payment, plan=plan)
+            CommerceFinalizationService._emit_entitlement_granted(entitlement=entitlement, order=order, payment=payment, first_item=first_item)
         else:
-            EntitlementService.grant(
+            entitlement = EntitlementService.grant(
                 user=order.user,
                 source_type=EntitlementSourceType.ORDER,
                 source_order=order,
@@ -68,7 +131,9 @@ class CommerceFinalizationService:
                     **metadata,
                 },
             )
+            CommerceFinalizationService._emit_entitlement_granted(entitlement=entitlement, order=order, payment=payment, first_item=first_item)
 
         order.status = OrderStatus.COMPLETED
         order.completed_at = now
         order.save(update_fields=['status', 'completed_at', 'updated_at'])
+        CommerceFinalizationService._emit_order_completed(order=order, payment=payment)

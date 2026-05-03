@@ -170,3 +170,19 @@ class TrainerRevenueDashboardSerializer(serializers.Serializer):
     summary = TrainerRevenueSummarySerializer()
     revenue_series = TrainerRevenueSeriesPointSerializer(many=True)
     top_products = TrainerTopProductSerializer(many=True)
+
+
+class AnalyticsProjectionRunSerializer(serializers.Serializer):
+    batch_size = serializers.IntegerField(required=False, min_value=1, max_value=500, default=100)
+
+
+class AnalyticsProjectionHealthSerializer(serializers.Serializer):
+    consumer = serializers.CharField()
+    status = serializers.CharField()
+    projected_messages = serializers.IntegerField()
+    skipped_messages = serializers.IntegerField()
+    failed_messages = serializers.IntegerField()
+    latest_processed_at = serializers.DateTimeField(allow_null=True)
+    latest_message_key = serializers.CharField(allow_blank=True)
+    latest_payload = serializers.DictField()
+    analytics_event_counts = serializers.ListField(child=serializers.DictField())

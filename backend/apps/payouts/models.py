@@ -59,29 +59,64 @@ class TrainerWallet(models.Model):
         return f"Wallet<{self.trainer_id}> {self.currency}"
 
 
+def _normalize_uuidish(value):
+    """Normalize legacy UUID-like values for source_id lookups."""
+    return str(value) if value is not None else value
+
+
 class BalanceEntryQuerySet(models.QuerySet):
-    @staticmethod
-    def _translate(kwargs: dict) -> dict:
-        translated = dict(kwargs)
-        if 'trainer_id' in translated:
-            translated['wallet__trainer_id'] = translated.pop('trainer_id')
-        if 'payment_id' in translated:
-            translated['source_type'] = 'payment'
-            translated['source_id'] = translated.pop('payment_id')
-        if 'payout_request_id' in translated:
-            translated['source_type'] = 'payout_request'
-            translated['source_id'] = translated.pop('payout_request_id')
-        return translated
+    """
+    Compatibility layer for old payout ledger code/tests.
+
+    Canonical ledger rows use source_type/source_id and wallet -> trainer joins.
+    Older code still queries virtual fields like payment_id or trainer_id. This
+    queryset rewrites those filters without adding fake database columns.
+    """
+
+    LEGACY_SOURCE_FILTERS = {
+        "payment_id": "payment",
+        "payout_request_id": "payout_request",
+        "refund_payment_id": "payment_refund",
+        "chargeback_payment_id": "payment_chargeback",
+    }
+
+    def _rewrite_legacy_kwargs(self, kwargs):
+        rewritten = dict(kwargs)
+
+        trainer_id = rewritten.pop("trainer_id", None)
+        if trainer_id is not None:
+            rewritten.setdefault("wallet__trainer_id", trainer_id)
+
+        trainer_user_id = rewritten.pop("trainer_user_id", None)
+        if trainer_user_id is not None:
+            rewritten.setdefault("wallet__trainer__user_id", trainer_user_id)
+
+        for legacy_key, source_type in self.LEGACY_SOURCE_FILTERS.items():
+            value = rewritten.pop(legacy_key, None)
+            if value is not None:
+                rewritten.setdefault("source_id", _normalize_uuidish(value))
+                rewritten.setdefault("source_type", source_type)
+
+        return rewritten
 
     def filter(self, *args, **kwargs):
-        return super().filter(*args, **self._translate(kwargs))
+        return super().filter(*args, **self._rewrite_legacy_kwargs(kwargs))
+
+    def exclude(self, *args, **kwargs):
+        return super().exclude(*args, **self._rewrite_legacy_kwargs(kwargs))
 
     def get(self, *args, **kwargs):
-        return super().get(*args, **self._translate(kwargs))
+        return super().get(*args, **self._rewrite_legacy_kwargs(kwargs))
 
+    def get_or_create(self, defaults=None, **kwargs):
+        return super().get_or_create(defaults=defaults, **self._rewrite_legacy_kwargs(kwargs))
 
-class BalanceEntryManager(models.Manager.from_queryset(BalanceEntryQuerySet)):
-    pass
+    def update_or_create(self, defaults=None, create_defaults=None, **kwargs):
+        return super().update_or_create(
+            defaults=defaults,
+            create_defaults=create_defaults,
+            **self._rewrite_legacy_kwargs(kwargs),
+        )
 
 
 class BalanceEntry(models.Model):
@@ -92,6 +127,12 @@ class BalanceEntry(models.Model):
         PAYOUT = "payout"
         ADJUSTMENT = "adjustment"
         SALE_CREDIT = "sale_credit"
+        REVERSAL = "reversal"
+        RISK_HOLD = "risk_hold"
+        RISK_HOLD_RELEASE = "risk_hold_release"
+        RISK_HOLD_CONSUMED = "risk_hold_consumed"
+
+    objects = BalanceEntryQuerySet.as_manager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -103,8 +144,6 @@ class BalanceEntry(models.Model):
     status = models.CharField(max_length=32, default="pending")
     source_type = models.CharField(max_length=32)
     source_id = models.UUIDField()
-
-    objects = BalanceEntryManager()
     wallet = models.ForeignKey(
         TrainerWallet,
         on_delete=django.db.models.deletion.CASCADE,

@@ -5,8 +5,10 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from django.db import transaction
 from django.db.models import Q
 
+from apps.events.services import DomainEventService
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderType, PurchasedItemType
 from apps.subscriptions.models import SubscriptionPlan
 
@@ -30,6 +32,26 @@ def _uuid_or_none(value: Any) -> UUID | None:
 
 def _is_intish(value: Any) -> bool:
     return str(value).isdigit()
+
+
+def _emit_order_event(*, event_type: str, order: Order, extra_payload: dict[str, Any] | None = None) -> None:
+    """Emit an idempotent order lifecycle event without making order writes depend on delivery."""
+    payload = {
+        'order_id': str(order.id),
+        'user_id': str(order.user_id),
+        'order_type': order.order_type,
+        'status': order.status,
+        'currency': order.currency,
+        'total_amount': str(order.total_amount),
+        **(extra_payload or {}),
+    }
+    DomainEventService().emit(
+        event_type=event_type,
+        aggregate_type='order',
+        aggregate_id=str(order.id),
+        payload=payload,
+        idempotency_key=f'order:{order.id}:{event_type}',
+    )
 
 
 class CheckoutCatalogResolver:
@@ -111,6 +133,7 @@ class CheckoutCatalogResolver:
 
 class OrderService:
     @staticmethod
+    @transaction.atomic
     def create_one_time_order(*, user, item_type: str, item_id, title: str | None = None, amount: Decimal | None = None, currency: str = 'RUB') -> Order:
         snapshot = CheckoutCatalogResolver.resolve_one_time_item(
             item_type=item_type,
@@ -136,9 +159,20 @@ class OrderService:
             total_price=snapshot.amount,
             metadata=snapshot.metadata,
         )
+        _emit_order_event(
+            event_type='order.awaiting_payment',
+            order=order,
+            extra_payload={
+                'item_type': snapshot.item_type,
+                'item_id': snapshot.item_id,
+                'title': snapshot.title,
+                'price_source': snapshot.metadata.get('price_source'),
+            },
+        )
         return order
 
     @staticmethod
+    @transaction.atomic
     def create_or_reuse_pending_order(*, user, item_type: str, item_id, title: str | None = None, amount: Decimal | None = None, currency: str = 'RUB') -> Order:
         item_type = str(item_type)
         item_id_text = str(item_id)
@@ -154,6 +188,11 @@ class OrderService:
             .first()
         )
         if existing:
+            _emit_order_event(
+                event_type='order.reused_pending',
+                order=existing,
+                extra_payload={'item_type': item_type, 'item_id': item_id_text},
+            )
             return existing
         return OrderService.create_one_time_order(
             user=user,
@@ -165,6 +204,7 @@ class OrderService:
         )
 
     @staticmethod
+    @transaction.atomic
     def create_subscription_order(*, user, plan: SubscriptionPlan) -> Order:
         order = Order.objects.create(
             user=user,
@@ -182,5 +222,15 @@ class OrderService:
             unit_price=plan.price,
             total_price=plan.price,
             metadata={'plan_code': plan.code, 'title': plan.title, 'trainer_id': getattr(plan, 'trainer_id', '')},
+        )
+        _emit_order_event(
+            event_type='order.awaiting_payment',
+            order=order,
+            extra_payload={
+                'item_type': PurchasedItemType.SUBSCRIPTION_PLAN,
+                'item_id': str(plan.id),
+                'plan_code': plan.code,
+                'title': plan.title,
+            },
         )
         return order

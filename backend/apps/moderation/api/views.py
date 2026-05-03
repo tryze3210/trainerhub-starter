@@ -183,3 +183,46 @@ class TrainerModerationStatusView(views.APIView):
                 "risk_flags": TrainerRiskFlagSerializer(flags, many=True).data,
             }
         )
+
+
+from apps.events.services import DomainEventService
+from apps.moderation.projections import PAYMENT_RISK_QUEUE, moderation_risk_projection_service
+
+
+class AdminPaymentRiskDashboardView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        return response.Response(moderation_risk_projection_service.projection_health())
+
+
+class AdminPaymentRiskCasesView(generics.ListAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = ModerationCaseSerializer
+
+    def get_queryset(self):
+        qs = ModerationCase.objects.select_related('trainer', 'assigned_to').filter(queue=PAYMENT_RISK_QUEUE)
+        status_value = self.request.query_params.get('status')
+        trainer_id = self.request.query_params.get('trainer_id')
+        search = self.request.query_params.get('search')
+        if status_value:
+            qs = qs.filter(status=status_value)
+        if trainer_id:
+            qs = qs.filter(trainer_id=trainer_id)
+        if search:
+            qs = qs.filter(Q(title__icontains=search) | Q(summary__icontains=search) | Q(target_id__icontains=search))
+        return qs.order_by('priority', '-opened_at')
+
+
+class AdminPaymentRiskProjectOutboxView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        batch_size = request.data.get('batch_size', 100)
+        try:
+            batch_size = int(batch_size)
+        except (TypeError, ValueError):
+            batch_size = 100
+        batch_size = max(1, min(batch_size, 500))
+        result = DomainEventService().dispatch_pending_batch(batch_size=batch_size)
+        return response.Response(result, status=status.HTTP_200_OK)

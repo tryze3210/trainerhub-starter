@@ -2,6 +2,8 @@ from django.urls import path
 
 from apps.analytics.api.views import (
     AnalyticsEventCollectView,
+    AnalyticsProjectionHealthView,
+    AnalyticsProjectOutboxView,
     FunnelTimeSeriesView,
     KPIOverviewView,
     RetentionCohortsView,
@@ -17,6 +19,8 @@ from apps.analytics.api.views import (
 
 urlpatterns = [
     path('events/collect/', AnalyticsEventCollectView.as_view(), name='analytics-event-collect'),
+    path('events/projection-health/', AnalyticsProjectionHealthView.as_view(), name='analytics-events-projection-health'),
+    path('events/project-outbox/', AnalyticsProjectOutboxView.as_view(), name='analytics-events-project-outbox'),
     path('overview/', KPIOverviewView.as_view(), name='admin-analytics-overview'),
     path('revenue-timeseries/', RevenueTimeSeriesView.as_view(), name='admin-analytics-revenue-timeseries'),
     path('top-trainers/', TopTrainersView.as_view(), name='admin-analytics-top-trainers'),

@@ -7,17 +7,26 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
+from apps.audit.services import AuditService
+from apps.events.services import DomainEventService
 from apps.payouts.api.serializers import (
     AdminPayoutBulkTransitionSerializer,
     AdminPayoutDecisionSerializer,
     AdminPayoutOverviewSerializer,
     AdminPayoutRepairSerializer,
     CreatePayoutRequestSerializer,
+    PayoutProjectionHealthSerializer,
+    PayoutProjectionRunSerializer,
     PayoutRequestDetailSerializer,
+    PayoutRiskHoldReportSerializer,
+    PayoutRiskHoldSerializer,
+    ManualPaymentHoldReleaseSerializer,
     PayoutRequestSerializer,
     TrainerBalanceSerializer,
 )
-from apps.payouts.models import PayoutRequest
+from apps.payments.models import Payment
+from apps.payouts.models import BalanceEntry, PayoutRequest
+from apps.payouts.projections import payout_revenue_projection_service
 from apps.payouts.selectors import (
     get_admin_payout_operations_overview,
     get_balance_for_trainer,
@@ -125,6 +134,73 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
                 results.append({"id": payout_id, "ok": False, "error": exc.detail})
         return Response({"results": results})
 
+
+    @action(methods=["get"], detail=False, url_path="projection-health")
+    def projection_health(self, request):
+        payload = payout_revenue_projection_service.projection_health()
+        return Response(PayoutProjectionHealthSerializer(payload).data)
+
+    @action(methods=["post"], detail=False, url_path="project-outbox")
+    def project_outbox(self, request):
+        serializer = PayoutProjectionRunSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        result = DomainEventService().dispatch_pending_batch(batch_size=serializer.validated_data["batch_size"])
+        AuditService.log_admin_action(
+            request=request,
+            action="payouts.project_outbox",
+            target_type="outbox_batch",
+            target_id="payouts_project_outbox",
+            context={"input": serializer.validated_data, "result": result},
+        )
+        return Response(result, status=status.HTTP_202_ACCEPTED)
+
+
+    @action(methods=["get"], detail=False, url_path="risk-holds")
+    def risk_holds(self, request):
+        queryset = (
+            BalanceEntry.objects.select_related("wallet", "wallet__trainer", "wallet__trainer__user")
+            .filter(entry_type=BalanceEntry.EntryType.RISK_HOLD, source_type="payment_dispute_hold")
+            .order_by("-created_at")
+        )
+        status_filter = (request.query_params.get("status") or "").strip()
+        trainer_filter = (request.query_params.get("trainer_id") or "").strip()
+        payment_filter = (request.query_params.get("payment_id") or "").strip()
+        limit = min(int(request.query_params.get("limit") or 100), 500)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if trainer_filter:
+            queryset = queryset.filter(Q(wallet__trainer__user_id=trainer_filter) | Q(wallet__trainer_id=trainer_filter))
+        if payment_filter:
+            queryset = queryset.filter(source_id=payment_filter)
+        return Response(PayoutRiskHoldSerializer(queryset[:limit], many=True).data)
+
+    @action(methods=["get"], detail=False, url_path="risk-holds/summary")
+    def risk_holds_summary(self, request):
+        limit = min(int(request.query_params.get("limit") or 50), 500)
+        payload = PayoutService.build_risk_hold_report(limit=limit)
+        return Response(PayoutRiskHoldReportSerializer(payload).data)
+
+    @action(methods=["post"], detail=False, url_path="risk-holds/release")
+    def release_risk_hold(self, request):
+        serializer = ManualPaymentHoldReleaseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payment = Payment.objects.get(id=serializer.validated_data["payment_id"])
+        reason = serializer.validated_data.get("reason") or "manual_ops_release"
+        result = PayoutService.release_payment_hold(
+            payment=payment,
+            reason=reason,
+        )
+        AuditService.log_admin_action(
+            request=request,
+            action="payout_risk_hold.release",
+            target_type="payment",
+            target_id=str(payment.id),
+            reason=reason,
+            context={"result": result},
+        )
+        return Response(result, status=status.HTTP_202_ACCEPTED)
+
+
     @action(methods=["get"], detail=False, url_path="reconciliation")
     def reconciliation(self, request):
         return Response(PayoutService.build_reconciliation_report())
@@ -137,5 +213,12 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
             actor=request.user,
             request=request,
             dry_run=serializer.validated_data["dry_run"],
+        )
+        AuditService.log_admin_action(
+            request=request,
+            action="payouts.reconciliation_repair",
+            target_type="payout_reconciliation",
+            target_id="repair",
+            context={"input": serializer.validated_data, "result": payload},
         )
         return Response(payload)

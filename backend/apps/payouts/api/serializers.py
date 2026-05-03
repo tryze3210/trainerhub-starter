@@ -145,3 +145,90 @@ class AdminPayoutOverviewSerializer(serializers.Serializer):
     balances = PayoutBalanceTotalsSerializer()
     ops = PayoutOpsSummarySerializer()
     recent_requests = PayoutRequestSerializer(many=True)
+
+
+class PayoutProjectionRunSerializer(serializers.Serializer):
+    batch_size = serializers.IntegerField(required=False, min_value=1, max_value=500, default=100)
+
+
+class PayoutLedgerCountSerializer(serializers.Serializer):
+    entry_type = serializers.CharField()
+    currency = serializers.CharField()
+    count = serializers.IntegerField()
+    amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+
+
+class PayoutProjectionHealthSerializer(serializers.Serializer):
+    consumer = serializers.CharField()
+    status = serializers.CharField()
+    projected_messages = serializers.IntegerField()
+    skipped_messages = serializers.IntegerField()
+    failed_messages = serializers.IntegerField()
+    latest_processed_at = serializers.DateTimeField(allow_null=True)
+    latest_message_key = serializers.CharField(allow_blank=True)
+    latest_payload = serializers.DictField()
+    ledger_accrual_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    ledger_counts = PayoutLedgerCountSerializer(many=True)
+
+
+class PayoutRiskHoldSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    payment_id = serializers.SerializerMethodField()
+    trainer_id = serializers.SerializerMethodField()
+    wallet_id = serializers.SerializerMethodField()
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    currency = serializers.CharField()
+    status = serializers.CharField()
+    source_type = serializers.CharField()
+    released_amount = serializers.SerializerMethodField()
+    consumed_amount = serializers.SerializerMethodField()
+    active_amount = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+
+    def _sum_related(self, obj: BalanceEntry, *, entry_type: str) -> Decimal:
+        total = Decimal("0.00")
+        entries = BalanceEntry.objects.filter(
+            wallet=obj.wallet,
+            source_id=obj.source_id,
+            entry_type=entry_type,
+        )
+        for entry in entries:
+            total += entry.amount
+        return total
+
+    def get_payment_id(self, obj: BalanceEntry):
+        return str(obj.source_id)
+
+    def get_trainer_id(self, obj: BalanceEntry):
+        return str(obj.wallet.trainer.user_id)
+
+    def get_wallet_id(self, obj: BalanceEntry):
+        return str(obj.wallet_id)
+
+    def get_released_amount(self, obj: BalanceEntry):
+        return self._sum_related(obj, entry_type=BalanceEntry.EntryType.RISK_HOLD_RELEASE)
+
+    def get_consumed_amount(self, obj: BalanceEntry):
+        return self._sum_related(obj, entry_type=BalanceEntry.EntryType.RISK_HOLD_CONSUMED)
+
+    def get_active_amount(self, obj: BalanceEntry):
+        return max(
+            obj.amount - self.get_released_amount(obj) - self.get_consumed_amount(obj),
+            Decimal("0.00"),
+        )
+
+
+class PayoutRiskHoldReportSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    active_hold_count = serializers.IntegerField()
+    active_hold_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    released_hold_count = serializers.IntegerField()
+    consumed_hold_count = serializers.IntegerField()
+    shortfall_count = serializers.IntegerField()
+    recent_holds = PayoutRiskHoldSerializer(many=True)
+
+
+class ManualPaymentHoldReleaseSerializer(serializers.Serializer):
+    payment_id = serializers.UUIDField()
+    reason = serializers.CharField(required=False, allow_blank=True, default="manual_ops_release")

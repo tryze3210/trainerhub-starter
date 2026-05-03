@@ -11,6 +11,8 @@ class OrderStatus(models.TextChoices):
     CANCELLED = 'cancelled', 'Cancelled'
     FAILED = 'failed', 'Failed'
     REFUNDED = 'refunded', 'Refunded'
+    DISPUTED = 'disputed', 'Disputed'
+    CHARGED_BACK = 'charged_back', 'Charged back'
 
 
 class OrderType(models.TextChoices):

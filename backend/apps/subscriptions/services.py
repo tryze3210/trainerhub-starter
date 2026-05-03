@@ -8,6 +8,7 @@ from django.utils import timezone
 from apps.audit.services import AuditService
 from apps.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTargetType
 from apps.entitlements.services import EntitlementService
+from apps.events.services import DomainEventService
 from apps.subscriptions.models import Subscription, SubscriptionPlan, SubscriptionStatus
 
 
@@ -17,6 +18,26 @@ class SubscriptionService:
     @staticmethod
     def _period_delta(plan: SubscriptionPlan) -> timedelta:
         return timedelta(days=plan.period_days or 30)
+
+    @staticmethod
+    def _emit_subscription_event(*, event_type: str, subscription: Subscription, extra_payload: dict | None = None) -> None:
+        DomainEventService().emit(
+            event_type=event_type,
+            aggregate_type='subscription',
+            aggregate_id=str(subscription.id),
+            idempotency_key=f'subscription:{subscription.id}:{event_type}',
+            payload={
+                'subscription_id': str(subscription.id),
+                'user_id': str(subscription.user_id),
+                'plan_id': str(subscription.plan_id),
+                'source_order_id': str(subscription.source_order_id or ''),
+                'status': subscription.status,
+                'starts_at': subscription.starts_at.isoformat() if subscription.starts_at else None,
+                'ends_at': subscription.ends_at.isoformat() if subscription.ends_at else None,
+                'auto_renew': subscription.auto_renew,
+                **(extra_payload or {}),
+            },
+        )
 
     @classmethod
     @transaction.atomic
@@ -60,6 +81,15 @@ class SubscriptionService:
                 **(metadata or {}),
             },
         )
+        cls._emit_subscription_event(
+            event_type='subscription.activated',
+            subscription=subscription,
+            extra_payload={
+                'plan_code': plan.code,
+                'title': plan.title,
+                'trainer_id': getattr(plan, 'trainer_id', ''),
+            },
+        )
         return subscription
 
     @classmethod
@@ -86,6 +116,11 @@ class SubscriptionService:
             entity_id=str(subscription.id),
             context={'user_id': str(subscription.user_id), 'plan_id': str(subscription.plan_id), 'reason': reason},
             request=request,
+        )
+        cls._emit_subscription_event(
+            event_type='subscription.cancelled',
+            subscription=subscription,
+            extra_payload={'reason': reason, 'cancelled_at': now.isoformat()},
         )
         return subscription
 
@@ -124,6 +159,7 @@ class SubscriptionService:
             context={'user_id': str(subscription.user_id), 'plan_id': str(subscription.plan_id)},
             request=request,
         )
+        cls._emit_subscription_event(event_type='subscription.reactivated', subscription=subscription)
         return subscription
 
     @classmethod
@@ -154,6 +190,17 @@ class SubscriptionService:
                 context={'expired_by_maintenance': True},
                 request=request,
             )
+        DomainEventService().emit(
+            event_type='subscription.expired_due',
+            aggregate_type='subscription_batch',
+            aggregate_id=now.date().isoformat(),
+            idempotency_key=f'subscription:expired_due:{now.date().isoformat()}',
+            payload={
+                'expired_at': now.isoformat(),
+                'updated_count': updated,
+                'subscription_ids': [str(value) for value in due_ids[:500]],
+            },
+        )
         return updated
 
     @classmethod
@@ -171,5 +218,10 @@ class SubscriptionService:
             entity_id=str(subscription.id),
             context={'user_id': str(subscription.user_id), 'reason': reason},
             request=request,
+        )
+        cls._emit_subscription_event(
+            event_type='subscription.past_due',
+            subscription=subscription,
+            extra_payload={'reason': reason},
         )
         return subscription

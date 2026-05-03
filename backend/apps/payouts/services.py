@@ -547,3 +547,375 @@ class PayoutService:
             "before": report,
             "after": cls.build_reconciliation_report() if not dry_run else report,
         }
+
+
+
+    @classmethod
+    @transaction.atomic
+    def hold_payment_accrual(
+        cls,
+        *,
+        payment,
+        source_type: str = "payment_dispute_hold",
+        reason: str = "payment_dispute_opened",
+    ) -> dict:
+        """
+        Move trainer revenue for a payment from available balance to locked
+        risk-hold balance while a dispute/chargeback is open.
+
+        The operation is idempotent by (wallet, payment, source_type,
+        entry_type=risk_hold). It intentionally holds only currently available
+        funds; if the trainer already requested/received payout, the returned
+        payload exposes a shortfall for payout ops/risk review.
+        """
+        accruals = list(
+            BalanceEntry.objects.select_related("wallet", "wallet__trainer")
+            .select_for_update()
+            .filter(
+                source_type="payment",
+                source_id=payment.id,
+                entry_type=BalanceEntry.EntryType.ACCRUAL,
+                direction="credit",
+            )
+            .order_by("created_at")
+        )
+        if not accruals:
+            return {
+                "status": "skipped",
+                "reason": "No payment accrual ledger entry was found.",
+                "payment_id": str(payment.id),
+                "source_type": source_type,
+                "held_amount": "0.00",
+                "shortfall_amount": "0.00",
+            }
+
+        wallet = TrainerWallet.objects.select_for_update().get(id=accruals[0].wallet_id)
+        existing_hold = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type=source_type,
+            source_id=payment.id,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD,
+        ).first()
+        total_amount = sum((entry.amount for entry in accruals), Decimal("0.00"))
+
+        if existing_hold:
+            shortfall = max(total_amount - existing_hold.amount, Decimal("0.00"))
+            return {
+                "status": "already_held",
+                "payment_id": str(payment.id),
+                "source_type": source_type,
+                "wallet_id": str(wallet.id),
+                "trainer_id": str(wallet.trainer.user_id),
+                "hold_entry_id": str(existing_hold.id),
+                "held_amount": str(existing_hold.amount),
+                "shortfall_amount": str(shortfall),
+                "currency": existing_hold.currency,
+            }
+
+        hold_amount = min(wallet.available_amount, total_amount)
+        shortfall_amount = max(total_amount - hold_amount, Decimal("0.00"))
+        if hold_amount == total_amount:
+            hold_status = "held"
+        elif hold_amount > Decimal("0.00"):
+            hold_status = "partially_held"
+        else:
+            hold_status = "hold_shortfall"
+
+        wallet.available_amount -= hold_amount
+        wallet.locked_amount += hold_amount
+        wallet.save(update_fields=["available_amount", "locked_amount", "updated_at"])
+
+        hold_entry = BalanceEntry.objects.create(
+            wallet=wallet,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD,
+            direction="debit",
+            amount=hold_amount,
+            currency=payment.currency,
+            status=hold_status,
+            source_type=source_type,
+            source_id=payment.id,
+        )
+
+        return {
+            "status": hold_status,
+            "reason": reason,
+            "payment_id": str(payment.id),
+            "source_type": source_type,
+            "wallet_id": str(wallet.id),
+            "trainer_id": str(wallet.trainer.user_id),
+            "hold_entry_id": str(hold_entry.id),
+            "held_amount": str(hold_amount),
+            "shortfall_amount": str(shortfall_amount),
+            "currency": payment.currency,
+        }
+
+    @classmethod
+    @transaction.atomic
+    def release_payment_hold(
+        cls,
+        *,
+        payment,
+        hold_source_type: str = "payment_dispute_hold",
+        release_source_type: str = "payment_dispute_release",
+        release_status: str = "released",
+        reason: str = "payment_dispute_won",
+    ) -> dict:
+        """
+        Release a previously-created dispute hold back to available balance.
+
+        Used when a chargeback/dispute is won. Idempotent by release ledger
+        entry and safe if no hold exists.
+        """
+        accrual = (
+            BalanceEntry.objects.select_related("wallet", "wallet__trainer")
+            .select_for_update()
+            .filter(
+                source_type="payment",
+                source_id=payment.id,
+                entry_type=BalanceEntry.EntryType.ACCRUAL,
+                direction="credit",
+            )
+            .order_by("created_at")
+            .first()
+        )
+        if not accrual:
+            return {
+                "status": "skipped",
+                "reason": "No payment accrual ledger entry was found.",
+                "payment_id": str(payment.id),
+                "released_amount": "0.00",
+            }
+
+        wallet = TrainerWallet.objects.select_for_update().get(id=accrual.wallet_id)
+        hold_entry = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type=hold_source_type,
+            source_id=payment.id,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD,
+        ).first()
+        if not hold_entry:
+            return {
+                "status": "skipped",
+                "reason": "No active dispute hold was found.",
+                "payment_id": str(payment.id),
+                "wallet_id": str(wallet.id),
+                "trainer_id": str(wallet.trainer.user_id),
+                "released_amount": "0.00",
+                "currency": payment.currency,
+            }
+
+        existing_consumed = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type__endswith="_hold_consumed",
+            source_id=payment.id,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD_CONSUMED,
+        ).first()
+        if existing_consumed:
+            return {
+                "status": "already_consumed",
+                "payment_id": str(payment.id),
+                "wallet_id": str(wallet.id),
+                "trainer_id": str(wallet.trainer.user_id),
+                "consumed_entry_id": str(existing_consumed.id),
+                "released_amount": "0.00",
+                "currency": payment.currency,
+            }
+
+        existing_release = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type=release_source_type,
+            source_id=payment.id,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD_RELEASE,
+        ).first()
+        if existing_release:
+            return {
+                "status": "already_released",
+                "payment_id": str(payment.id),
+                "wallet_id": str(wallet.id),
+                "trainer_id": str(wallet.trainer.user_id),
+                "release_entry_id": str(existing_release.id),
+                "released_amount": str(existing_release.amount),
+                "currency": existing_release.currency,
+            }
+
+        release_amount = min(hold_entry.amount, wallet.locked_amount)
+        wallet.locked_amount -= release_amount
+        wallet.available_amount += release_amount
+        wallet.save(update_fields=["available_amount", "locked_amount", "updated_at"])
+
+        release_entry = BalanceEntry.objects.create(
+            wallet=wallet,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD_RELEASE,
+            direction="credit",
+            amount=release_amount,
+            currency=payment.currency,
+            status=release_status,
+            source_type=release_source_type,
+            source_id=payment.id,
+        )
+
+        return {
+            "status": release_status,
+            "reason": reason,
+            "payment_id": str(payment.id),
+            "wallet_id": str(wallet.id),
+            "trainer_id": str(wallet.trainer.user_id),
+            "hold_entry_id": str(hold_entry.id),
+            "release_entry_id": str(release_entry.id),
+            "released_amount": str(release_amount),
+            "currency": payment.currency,
+        }
+
+    @classmethod
+    def build_risk_hold_report(cls, *, limit: int = 50) -> dict[str, Any]:
+        holds = list(
+            BalanceEntry.objects.select_related("wallet", "wallet__trainer", "wallet__trainer__user")
+            .filter(entry_type=BalanceEntry.EntryType.RISK_HOLD, source_type="payment_dispute_hold")
+            .order_by("-created_at")[:limit]
+        )
+        all_holds = list(
+            BalanceEntry.objects.select_related("wallet")
+            .filter(entry_type=BalanceEntry.EntryType.RISK_HOLD, source_type="payment_dispute_hold")
+        )
+        release_keys = set(
+            BalanceEntry.objects.filter(
+                entry_type=BalanceEntry.EntryType.RISK_HOLD_RELEASE,
+                source_type="payment_dispute_release",
+            ).values_list("source_id", flat=True)
+        )
+        consumed_keys = set(
+            BalanceEntry.objects.filter(
+                entry_type=BalanceEntry.EntryType.RISK_HOLD_CONSUMED,
+                source_type__endswith="_hold_consumed",
+            ).values_list("source_id", flat=True)
+        )
+
+        active_holds = [
+            hold for hold in all_holds
+            if hold.source_id not in release_keys and hold.source_id not in consumed_keys
+        ]
+        active_amount = sum((hold.amount for hold in active_holds), Decimal("0.00"))
+        shortfall_count = sum(1 for hold in active_holds if hold.status in {"partially_held", "hold_shortfall"})
+
+        return {
+            "status": "attention" if active_holds else "ok",
+            "active_hold_count": len(active_holds),
+            "active_hold_amount": active_amount,
+            "released_hold_count": len(release_keys),
+            "consumed_hold_count": len(consumed_keys),
+            "shortfall_count": shortfall_count,
+            "recent_holds": holds,
+        }
+
+
+    @classmethod
+    @transaction.atomic
+    def reverse_payment_accrual(cls, *, payment, source_type: str = 'payment_refund', reversal_status: str = 'available_reversed') -> dict:
+        """
+        Reverse trainer revenue created for a payment.
+
+        This is idempotent and ledger-first: if a reversal entry already exists
+        for the payment, the wallet is not touched again. Negative available
+        balances are allowed because a trainer may have already requested or
+        received a payout before a refund/chargeback arrived.
+        """
+        accruals = list(
+            BalanceEntry.objects.select_related("wallet", "wallet__trainer")
+            .select_for_update()
+            .filter(
+                source_type="payment",
+                source_id=payment.id,
+                entry_type=BalanceEntry.EntryType.ACCRUAL,
+                direction="credit",
+            )
+            .order_by("created_at")
+        )
+        if not accruals:
+            return {
+                "status": "skipped",
+                "reason": "No payment accrual ledger entry was found.",
+                "payment_id": str(payment.id),
+                "source_type": source_type,
+                "reversed_amount": "0.00",
+            }
+
+        wallet = TrainerWallet.objects.select_for_update().get(id=accruals[0].wallet_id)
+        existing_reversal = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type=source_type,
+            source_id=payment.id,
+            entry_type="reversal",
+        ).first()
+        total_amount = sum((entry.amount for entry in accruals), Decimal("0.00"))
+
+        if existing_reversal:
+            return {
+                "status": "already_reversed",
+                "payment_id": str(payment.id),
+                "source_type": source_type,
+                "wallet_id": str(wallet.id),
+                "trainer_id": str(wallet.trainer.user_id),
+                "reversal_entry_id": str(existing_reversal.id),
+                "reversed_amount": str(existing_reversal.amount),
+                "currency": existing_reversal.currency,
+            }
+
+        hold_entry = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type="payment_dispute_hold",
+            source_id=payment.id,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD,
+        ).first()
+        existing_hold_consumed = BalanceEntry.objects.filter(
+            wallet=wallet,
+            source_type=f"{source_type}_hold_consumed",
+            source_id=payment.id,
+            entry_type=BalanceEntry.EntryType.RISK_HOLD_CONSUMED,
+        ).first()
+
+        consumed_hold_amount = Decimal("0.00")
+        hold_consumed_entry = None
+        if hold_entry and not existing_hold_consumed:
+            consumed_hold_amount = min(hold_entry.amount, wallet.locked_amount)
+            if consumed_hold_amount > Decimal("0.00"):
+                wallet.locked_amount -= consumed_hold_amount
+                hold_consumed_entry = BalanceEntry.objects.create(
+                    wallet=wallet,
+                    entry_type=BalanceEntry.EntryType.RISK_HOLD_CONSUMED,
+                    direction="debit",
+                    amount=consumed_hold_amount,
+                    currency=payment.currency,
+                    status="consumed",
+                    source_type=f"{source_type}_hold_consumed",
+                    source_id=payment.id,
+                )
+
+        remaining_available_reversal = total_amount - consumed_hold_amount
+        wallet.available_amount -= remaining_available_reversal
+        wallet.save(update_fields=["available_amount", "locked_amount", "updated_at"])
+
+        reversal = BalanceEntry.objects.create(
+            wallet=wallet,
+            entry_type=BalanceEntry.EntryType.REVERSAL,
+            direction="debit",
+            amount=total_amount,
+            currency=payment.currency,
+            status=reversal_status,
+            source_type=source_type,
+            source_id=payment.id,
+        )
+
+        return {
+            "status": "reversed",
+            "payment_id": str(payment.id),
+            "source_type": source_type,
+            "wallet_id": str(wallet.id),
+            "trainer_id": str(wallet.trainer.user_id),
+            "reversal_entry_id": str(reversal.id),
+            "hold_consumed_entry_id": str(hold_consumed_entry.id) if hold_consumed_entry else "",
+            "reversed_amount": str(total_amount),
+            "consumed_hold_amount": str(consumed_hold_amount),
+            "available_reversed_amount": str(remaining_available_reversal),
+            "currency": payment.currency,
+        }
+

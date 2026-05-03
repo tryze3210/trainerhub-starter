@@ -129,3 +129,20 @@ class AdminAnnouncementCreateSerializer(serializers.Serializer):
         if attrs.get('ends_at') and attrs.get('starts_at') and attrs['ends_at'] <= attrs['starts_at']:
             raise serializers.ValidationError({'ends_at': 'ends_at must be later than starts_at.'})
         return attrs
+
+
+class NotificationProjectionRunSerializer(serializers.Serializer):
+    batch_size = serializers.IntegerField(required=False, min_value=1, max_value=500, default=100)
+
+
+class NotificationProjectionHealthSerializer(serializers.Serializer):
+    consumer = serializers.CharField()
+    status = serializers.CharField()
+    projected_messages = serializers.IntegerField()
+    skipped_messages = serializers.IntegerField()
+    failed_messages = serializers.IntegerField()
+    created_notifications = serializers.IntegerField()
+    latest_processed_at = serializers.DateTimeField(allow_null=True)
+    latest_message_key = serializers.CharField(allow_blank=True)
+    latest_payload = serializers.DictField()
+    notification_counts = serializers.ListField(child=serializers.DictField())
