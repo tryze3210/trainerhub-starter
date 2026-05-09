@@ -27,6 +27,18 @@ class AdminReconciliationRepairSerializer(serializers.Serializer):
     entity_id = serializers.CharField(max_length=128)
     reason = serializers.CharField(max_length=1000)
     force = serializers.BooleanField(required=False, default=False)
+    dry_run = serializers.BooleanField(required=False, default=False)
+    confirm_token = serializers.CharField(required=False, allow_blank=True, max_length=64)
+
+
+class AdminReconciliationRepairPolicySerializer(serializers.Serializer):
+    ACTION_CHOICES = AdminReconciliationRepairSerializer.ACTION_CHOICES
+    ENTITY_CHOICES = (('', 'Any'),) + AdminReconciliationRepairSerializer.ENTITY_CHOICES
+
+    action = serializers.ChoiceField(choices=ACTION_CHOICES)
+    entity_type = serializers.ChoiceField(required=False, allow_blank=True, choices=ENTITY_CHOICES, default='')
+    entity_id = serializers.CharField(required=False, allow_blank=True, max_length=128, default='')
+    force = serializers.BooleanField(required=False, default=False)
 
 
 class AdminReconciliationRepairResultSerializer(serializers.Serializer):
@@ -42,3 +54,15 @@ class AdminReconciliationRepairResultSerializer(serializers.Serializer):
     entity_href = serializers.CharField(required=False, allow_blank=True)
     reconciliation_href = serializers.CharField(required=False, allow_blank=True)
     audit = serializers.DictField(required=False)
+
+    repair_policy = serializers.DictField(required=False)
+    workflow = serializers.DictField(required=False)
+
+    reconciliation_snapshot_id = serializers.CharField(required=False, allow_blank=True)
+    reconciliation_snapshot_href = serializers.CharField(required=False, allow_blank=True)
+    reconciliation_snapshot_source = serializers.CharField(required=False, allow_blank=True)
+    previous_problem_count = serializers.IntegerField(required=False, allow_null=True)
+    current_problem_count = serializers.IntegerField(required=False, allow_null=True)
+    problem_delta = serializers.IntegerField(required=False, allow_null=True)
+    improved = serializers.BooleanField(required=False)
+    repair_snapshot = serializers.DictField(required=False)

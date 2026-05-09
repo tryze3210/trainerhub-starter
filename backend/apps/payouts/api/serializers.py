@@ -8,12 +8,17 @@ from apps.payouts.models import BalanceEntry, PayoutRequest, TrainerWallet
 
 
 class TrainerBalanceSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
     trainer_id = serializers.SerializerMethodField()
     currency = serializers.CharField()
     available_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    pending_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    locked_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     reserved_amount = serializers.SerializerMethodField()
     lifetime_earned_amount = serializers.SerializerMethodField()
     updated_at = serializers.DateTimeField()
+    minimum_payout_amount = serializers.SerializerMethodField()
+    can_request_payout = serializers.SerializerMethodField()
 
     def get_trainer_id(self, obj: TrainerWallet):
         return str(obj.trainer.user_id)
@@ -23,6 +28,12 @@ class TrainerBalanceSerializer(serializers.Serializer):
 
     def get_lifetime_earned_amount(self, obj: TrainerWallet):
         return obj.lifetime_earned_amount or Decimal("0.00")
+
+    def get_minimum_payout_amount(self, obj: TrainerWallet):
+        return Decimal("100.00")
+
+    def get_can_request_payout(self, obj: TrainerWallet):
+        return Decimal(obj.available_amount or 0) >= Decimal("100.00")
 
 
 class PayoutLedgerEntrySerializer(serializers.Serializer):
@@ -49,6 +60,7 @@ class PayoutLedgerEntrySerializer(serializers.Serializer):
 class PayoutRequestSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     trainer_id = serializers.SerializerMethodField()
+    wallet_id = serializers.SerializerMethodField()
     amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     currency = serializers.CharField()
     status = serializers.SerializerMethodField()
@@ -64,8 +76,11 @@ class PayoutRequestSerializer(serializers.Serializer):
     def get_trainer_id(self, obj: PayoutRequest):
         return str(obj.trainer.user_id)
 
+    def get_wallet_id(self, obj: PayoutRequest):
+        return str(obj.wallet_id)
+
     def get_status(self, obj: PayoutRequest):
-        # Normalize the original v1 status for the new admin UI.
+        # Normalize the original v1 status for the trainer/admin UI.
         return PayoutRequest.Status.PENDING if obj.status == PayoutRequest.Status.REQUESTED else obj.status
 
     def get_destination_masked(self, obj: PayoutRequest):
@@ -93,13 +108,37 @@ class PayoutRequestDetailSerializer(PayoutRequestSerializer):
 
 
 class CreatePayoutRequestSerializer(serializers.Serializer):
-    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
-    destination_masked = serializers.CharField(max_length=128)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    destination_masked = serializers.CharField(max_length=128, allow_blank=False, trim_whitespace=True)
+
+    def validate_destination_masked(self, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 4:
+            raise serializers.ValidationError("Payout destination must be masked and human-readable.")
+        return normalized
 
 
 class AdminPayoutDecisionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["approve", "processing", "paid", "reject"])
     reason = serializers.CharField(required=False, allow_blank=True, default="")
+    external_reference = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def validate(self, attrs):
+        action = attrs.get("action")
+        reason = (attrs.get("reason") or "").strip()
+        if action == "reject" and not reason:
+            raise serializers.ValidationError({"reason": "Reject reason is required."})
+        attrs["reason"] = reason
+        attrs["external_reference"] = (attrs.get("external_reference") or "").strip()
+        return attrs
+
+
+class AdminPayoutReferenceSerializer(serializers.Serializer):
+    external_reference = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class AdminPayoutRejectSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=True, allow_blank=False, trim_whitespace=True)
     external_reference = serializers.CharField(required=False, allow_blank=True, default="")
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Q
+
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -9,22 +10,24 @@ from rest_framework.response import Response
 
 from apps.audit.services import AuditService
 from apps.events.services import DomainEventService
+from apps.payments.models import Payment
 from apps.payouts.api.serializers import (
     AdminPayoutBulkTransitionSerializer,
     AdminPayoutDecisionSerializer,
     AdminPayoutOverviewSerializer,
+    AdminPayoutReferenceSerializer,
+    AdminPayoutRejectSerializer,
     AdminPayoutRepairSerializer,
     CreatePayoutRequestSerializer,
+    ManualPaymentHoldReleaseSerializer,
     PayoutProjectionHealthSerializer,
     PayoutProjectionRunSerializer,
     PayoutRequestDetailSerializer,
+    PayoutRequestSerializer,
     PayoutRiskHoldReportSerializer,
     PayoutRiskHoldSerializer,
-    ManualPaymentHoldReleaseSerializer,
-    PayoutRequestSerializer,
     TrainerBalanceSerializer,
 )
-from apps.payments.models import Payment
 from apps.payouts.models import BalanceEntry, PayoutRequest
 from apps.payouts.projections import payout_revenue_projection_service
 from apps.payouts.selectors import (
@@ -68,7 +71,14 @@ class MyPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             destination_masked=serializer.validated_data["destination_masked"],
             request=request,
         )
-        return Response(PayoutRequestDetailSerializer(payout).data, status=status.HTTP_201_CREATED)
+        balance = get_balance_for_trainer(self._trainer_id()) or payout.wallet
+        return Response(
+            {
+                "payout": PayoutRequestDetailSerializer(payout).data,
+                "wallet": TrainerBalanceSerializer(balance).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -88,6 +98,22 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
             queryset = queryset.filter(Q(trainer__user_id=trainer_filter) | Q(trainer_id=trainer_filter))
         return queryset
 
+    def _transition_response(self, *, request, payout: PayoutRequest, action: str, reason: str = "", external_reference: str = ""):
+        try:
+            updated = PayoutService.transition(
+                payout=payout,
+                action=action,
+                actor=request.user,
+                request=request,
+                reason=reason,
+                external_reference=external_reference,
+            )
+        except ValidationError:
+            raise
+        except Exception as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(PayoutRequestDetailSerializer(updated).data)
+
     @action(methods=["get"], detail=False, url_path="overview")
     def overview(self, request):
         payload = get_admin_payout_operations_overview()
@@ -98,15 +124,71 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
         payout = self.get_object()
         serializer = AdminPayoutDecisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        payout = PayoutService.transition(
+        return self._transition_response(
+            request=request,
             payout=payout,
             action=serializer.validated_data["action"],
-            actor=request.user,
-            request=request,
             reason=serializer.validated_data.get("reason", ""),
             external_reference=serializer.validated_data.get("external_reference", ""),
         )
-        return Response(PayoutRequestDetailSerializer(payout).data)
+
+    @action(methods=["post"], detail=True, url_path="approve")
+    def approve(self, request, pk=None):
+        payout = self.get_object()
+        serializer = AdminPayoutReferenceSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        return self._transition_response(
+            request=request,
+            payout=payout,
+            action="approve",
+            external_reference=serializer.validated_data.get("external_reference", ""),
+        )
+
+    @action(methods=["post"], detail=True, url_path="processing")
+    def processing(self, request, pk=None):
+        payout = self.get_object()
+        serializer = AdminPayoutReferenceSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        return self._transition_response(
+            request=request,
+            payout=payout,
+            action="processing",
+            external_reference=serializer.validated_data.get("external_reference", ""),
+        )
+
+    @action(methods=["post"], detail=True, url_path="mark-paid")
+    def mark_paid(self, request, pk=None):
+        payout = self.get_object()
+        serializer = AdminPayoutReferenceSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        external_reference = serializer.validated_data.get("external_reference", "")
+        if payout.status == PayoutRequest.Status.APPROVED:
+            payout = PayoutService.transition(
+                payout=payout,
+                action="processing",
+                actor=request.user,
+                request=request,
+                external_reference=external_reference,
+            )
+        return self._transition_response(
+            request=request,
+            payout=payout,
+            action="paid",
+            external_reference=external_reference,
+        )
+
+    @action(methods=["post"], detail=True, url_path="reject")
+    def reject(self, request, pk=None):
+        payout = self.get_object()
+        serializer = AdminPayoutRejectSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        return self._transition_response(
+            request=request,
+            payout=payout,
+            action="reject",
+            reason=serializer.validated_data["reason"],
+            external_reference=serializer.validated_data.get("external_reference", ""),
+        )
 
     @action(methods=["post"], detail=False, url_path="bulk-transition")
     def bulk_transition(self, request):
@@ -134,7 +216,6 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
                 results.append({"id": payout_id, "ok": False, "error": exc.detail})
         return Response({"results": results})
 
-
     @action(methods=["get"], detail=False, url_path="projection-health")
     def projection_health(self, request):
         payload = payout_revenue_projection_service.projection_health()
@@ -153,7 +234,6 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
             context={"input": serializer.validated_data, "result": result},
         )
         return Response(result, status=status.HTTP_202_ACCEPTED)
-
 
     @action(methods=["get"], detail=False, url_path="risk-holds")
     def risk_holds(self, request):
@@ -186,10 +266,7 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
         serializer.is_valid(raise_exception=True)
         payment = Payment.objects.get(id=serializer.validated_data["payment_id"])
         reason = serializer.validated_data.get("reason") or "manual_ops_release"
-        result = PayoutService.release_payment_hold(
-            payment=payment,
-            reason=reason,
-        )
+        result = PayoutService.release_payment_hold(payment=payment, reason=reason)
         AuditService.log_admin_action(
             request=request,
             action="payout_risk_hold.release",
@@ -199,7 +276,6 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
             context={"result": result},
         )
         return Response(result, status=status.HTTP_202_ACCEPTED)
-
 
     @action(methods=["get"], detail=False, url_path="reconciliation")
     def reconciliation(self, request):

@@ -1,10 +1,11 @@
 import { apiRequest } from '@/lib/api-client';
 
-export type OperationsStatus = 'ok' | 'degraded' | 'critical' | string;
+export type JsonRecord = Record<string, unknown>;
+export type OperationsStatus = 'ok' | 'degraded' | 'critical' | 'missing' | 'unavailable' | string;
 
 export type OperationsIssue = {
   code: string;
-  severity: 'warning' | 'critical' | string;
+  severity: 'warning' | 'critical' | 'info' | string;
   count?: number;
   amount?: string;
 };
@@ -76,10 +77,10 @@ export type OperationsRecentModerationCase = {
 
 export type OperationsSection = {
   status: OperationsStatus;
-  issues: OperationsIssue[];
-  counts?: Record<string, string | number | null | undefined>;
-  amounts?: Record<string, string | number | null | undefined>;
-  risk_amounts?: Record<string, string | number | null | undefined>;
+  issues?: OperationsIssue[];
+  counts?: JsonRecord;
+  amounts?: JsonRecord;
+  risk_amounts?: JsonRecord;
   by_status?: OperationsBucket[];
   payout_request_by_status?: OperationsBucket[];
   case_by_status?: OperationsBucket[];
@@ -89,6 +90,7 @@ export type OperationsSection = {
   recent_risk_payments?: OperationsRecentRiskPayment[];
   recent_risk_ledger_entries?: OperationsRecentLedgerEntry[];
   recent_payment_risk_cases?: OperationsRecentModerationCase[];
+  [key: string]: unknown;
 };
 
 export type AdminOperationsDashboard = {
@@ -109,6 +111,137 @@ export type AdminOperationsDashboard = {
     warning_items?: OperationsIssue[];
     [key: string]: unknown;
   };
+};
+
+export type OperationsHubAction = {
+  key: string;
+  title: string;
+  method: string;
+  api_href: string;
+  risk: 'low' | 'medium' | 'high' | 'critical' | string;
+  description?: string;
+};
+
+export type OperationsHubNavigationItem = {
+  key: string;
+  title: string;
+  href: string;
+  api_href?: string;
+  description?: string;
+};
+
+export type OperationsHubPayload = {
+  status: OperationsStatus;
+  generated_at: string;
+  filters?: JsonRecord;
+  summary: {
+    status?: OperationsStatus;
+    operations_critical_count?: number;
+    operations_warning_count?: number;
+    reconciliation_total_issues?: number;
+    reconciliation_critical_count?: number;
+    reconciliation_repairable_issues?: number;
+    reconciliation_alert_count?: number;
+    scheduled_snapshot_due?: boolean;
+    latest_reconciliation_snapshot_id?: string | null;
+    latest_reconciliation_status?: OperationsStatus;
+    latest_reconciliation_direction?: string;
+    [key: string]: unknown;
+  };
+  sections: {
+    async_infra?: {
+      status: OperationsStatus;
+      outbox?: OperationsSection;
+      webhooks?: OperationsSection;
+      [key: string]: unknown;
+    };
+    money_risk?: {
+      status: OperationsStatus;
+      payments?: OperationsSection;
+      payouts?: OperationsSection;
+      moderation?: OperationsSection;
+      [key: string]: unknown;
+    };
+    reconciliation?: {
+      status: OperationsStatus;
+      metrics?: JsonRecord;
+      schedule?: JsonRecord;
+      alerts?: JsonRecord;
+      issue_registry?: {
+        status?: OperationsStatus;
+        summary?: JsonRecord;
+        issues?: Array<JsonRecord>;
+        [key: string]: unknown;
+      };
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  raw_operations_dashboard?: AdminOperationsDashboard;
+  quick_actions: OperationsHubAction[];
+  navigation: OperationsHubNavigationItem[];
+};
+
+
+export type OperationsReadinessCheck = {
+  key: string;
+  category: string;
+  title: string;
+  status: OperationsStatus;
+  detail?: string;
+  version?: string;
+  description?: string;
+  expected_path?: string;
+  actual_path?: string;
+  [key: string]: unknown;
+};
+
+export type OperationsReadinessPayload = {
+  status: OperationsStatus;
+  generated_at: string;
+  version: string;
+  scope: string;
+  summary: {
+    total_checks?: number;
+    ok_count?: number;
+    warning_count?: number;
+    degraded_count?: number;
+    critical_count?: number;
+    by_status?: JsonRecord;
+    by_category?: JsonRecord;
+    [key: string]: unknown;
+  };
+  checks: OperationsReadinessCheck[];
+  api_surface: Array<JsonRecord>;
+  frontend_surface: Array<JsonRecord>;
+  environment_flags: Array<JsonRecord>;
+  smoke_commands?: Array<JsonRecord>;
+  management_commands?: Array<JsonRecord>;
+  recommendations?: Array<JsonRecord>;
+};
+
+
+export type CommerceReadinessPayload = {
+  status: OperationsStatus;
+  generated_at: string;
+  version: string;
+  scope: string;
+  summary: {
+    total_checks?: number;
+    ok_count?: number;
+    warning_count?: number;
+    degraded_count?: number;
+    critical_count?: number;
+    by_status?: JsonRecord;
+    by_category?: JsonRecord;
+    [key: string]: unknown;
+  };
+  checks: OperationsReadinessCheck[];
+  api_surface: Array<JsonRecord>;
+  frontend_surface?: Array<JsonRecord>;
+  smoke_commands?: Array<JsonRecord>;
+  management_commands?: Array<JsonRecord>;
+  recommendations?: Array<JsonRecord>;
 };
 
 export type OutboxActionResult = {
@@ -143,11 +276,54 @@ export type ReleaseRiskHoldResult = {
   [key: string]: unknown;
 };
 
+function query(params: Record<string, unknown>) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    search.set(key, String(value));
+  });
+  const rendered = search.toString();
+  return rendered ? `?${rendered}` : '';
+}
+
 export const adminOperationsApi = {
   getDashboard: () =>
     apiRequest<AdminOperationsDashboard>('/ops/admin/operations-dashboard/', {
       auth: true,
     }),
+
+  getHub: (params: { snapshot_limit?: number; issue_limit?: number; source?: string; include_issues?: boolean; include_alerts?: boolean } = {}) =>
+    apiRequest<OperationsHubPayload>(
+      `/ops/admin/operations-hub/${query({
+        snapshot_limit: params.snapshot_limit ?? 30,
+        issue_limit: params.issue_limit ?? 20,
+        source: params.source ?? '',
+        include_issues: params.include_issues ?? true,
+        include_alerts: params.include_alerts ?? true,
+      })}`,
+      { auth: true }
+    ),
+
+  getReadiness: (params: { include_commands?: boolean; include_recommendations?: boolean } = {}) =>
+    apiRequest<OperationsReadinessPayload>(
+      `/ops/admin/operations-readiness/${query({
+        include_commands: params.include_commands ?? true,
+        include_recommendations: params.include_recommendations ?? true,
+      })}`,
+      { auth: true }
+    ),
+
+
+
+  getCommerceReadiness: (params: { include_commands?: boolean; include_frontend?: boolean; include_recommendations?: boolean } = {}) =>
+    apiRequest<CommerceReadinessPayload>(
+      `/ops/admin/commerce-readiness/${query({
+        include_commands: params.include_commands ?? true,
+        include_frontend: params.include_frontend ?? true,
+        include_recommendations: params.include_recommendations ?? true,
+      })}`,
+      { auth: true }
+    ),
 
   dispatchOutbox: (batchSize = 100) =>
     apiRequest<DispatchOutboxResult>('/events/outbox/dispatch/', {
@@ -188,5 +364,21 @@ export const adminOperationsApi = {
       method: 'POST',
       auth: true,
       body: JSON.stringify({ payment_id: paymentId, reason }),
+    }),
+
+  captureReconciliationSnapshot: (payload: { limit?: number; source?: string; correlation_id?: string } = {}) =>
+    apiRequest<JsonRecord>('/ops/admin/reconciliation-snapshots/capture/', {
+      method: 'POST',
+      auth: true,
+      body: JSON.stringify({
+        limit: payload.limit ?? 100,
+        source: payload.source ?? 'manual',
+        correlation_id: payload.correlation_id ?? `operations-hub-${Date.now()}`,
+      }),
+    }),
+
+  evaluateReconciliationAlerts: () =>
+    apiRequest<JsonRecord>('/ops/admin/reconciliation-snapshots/alerts/', {
+      auth: true,
     }),
 };

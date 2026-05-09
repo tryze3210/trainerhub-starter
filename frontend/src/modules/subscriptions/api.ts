@@ -10,6 +10,30 @@ export type SubscriptionPlan = {
   is_active?: boolean;
 };
 
+export type SubscriptionLifecycle = {
+  can_cancel: boolean;
+  can_resume: boolean;
+  can_sync_entitlements: boolean;
+  is_terminal: boolean;
+  is_access_active: boolean;
+  status_label: string;
+};
+
+export type SubscriptionRenewalProjection = {
+  subscription_id: string;
+  status: string;
+  auto_renew: boolean;
+  period_days: number;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  can_renew: boolean;
+  reason: string;
+  next_period_start: string | null;
+  next_period_end: string | null;
+  amount: string;
+  currency: string;
+};
+
 export type SubscriptionItem = {
   id: string;
   status?: string;
@@ -33,6 +57,8 @@ export type SubscriptionItem = {
   current_period_end?: string | null;
   cancel_at?: string | null;
   canceled_at?: string | null;
+  lifecycle?: SubscriptionLifecycle;
+  renewal_projection?: SubscriptionRenewalProjection | null;
   latest_payment?: {
     id: string;
     status?: string;
@@ -40,6 +66,32 @@ export type SubscriptionItem = {
     currency?: string;
     confirmed_at?: string | null;
   } | null;
+};
+
+export type SubscriptionLifecyclePolicy = {
+  supported_statuses: string[];
+  access_granting_statuses: string[];
+  terminal_statuses: string[];
+  actions: Record<string, unknown>;
+  virtual_statuses: Record<string, { persisted: boolean; reason: string }>;
+};
+
+export type SubscriptionLifecycleSummary = {
+  summary: {
+    total_count: number;
+    active_count: number;
+    past_due_count: number;
+    cancelled_count: number;
+    expired_count: number;
+    pending_count: number;
+    auto_renew_count: number;
+    due_soon_count: number;
+    expired_due_count: number;
+    failed_payments_count: number;
+    active_entitlement_count: number;
+  };
+  status_breakdown: Record<string, number>;
+  policy: SubscriptionLifecyclePolicy;
 };
 
 export type SubscriptionCenter = {
@@ -56,6 +108,24 @@ export type SubscriptionCenter = {
   };
   items: SubscriptionItem[];
   readiness: Array<{ code: string; label: string; done: boolean }>;
+  lifecycle?: SubscriptionLifecycleSummary;
+};
+
+export type SubscriptionEntitlementSyncResult = {
+  subscription_id: string;
+  status: string;
+  should_have_access: boolean;
+  active_before: number;
+  active_after: number;
+  action: 'granted_or_refreshed' | 'revoked' | 'noop' | string;
+};
+
+export type SubscriptionEntitlementReconcileResult = {
+  checked_count: number;
+  granted_or_refreshed_count: number;
+  revoked_count: number;
+  noop_count: number;
+  items: SubscriptionEntitlementSyncResult[];
 };
 
 export type AdminSubscriptionOverview = {
@@ -76,26 +146,52 @@ export type AdminSubscriptionOverview = {
     currency: string;
   };
   status_breakdown: Record<string, number>;
+  lifecycle?: SubscriptionLifecycleSummary;
 };
 
-export const subscriptionsApi = {
-  getCenter: (days = 30) =>
-    apiRequest<SubscriptionCenter>(`/subscriptions/center/?days=${days}`, { auth: true }),
+function reasonBody(reason = '') {
+  return JSON.stringify({ reason });
+}
 
-  list: () => apiRequest<SubscriptionItem[]>(`/subscriptions/`, { auth: true }),
+export const subscriptionsApi = {
+  getCenter: (days = 30) => apiRequest<SubscriptionCenter>(`/subscriptions/center/?days=${days}`, { auth: true }),
+
+  getLifecyclePolicy: () => apiRequest<SubscriptionLifecyclePolicy>('/subscriptions/lifecycle-policy/', { auth: true }),
+
+  getLifecycleSummary: (days = 30) =>
+    apiRequest<SubscriptionLifecycleSummary>(`/subscriptions/lifecycle-summary/?days=${days}`, { auth: true }),
+
+  list: () => apiRequest<SubscriptionItem[]>('/subscriptions/', { auth: true }),
 
   cancel: (subscriptionId: string, reason = '') =>
     apiRequest<SubscriptionItem>(`/subscriptions/${subscriptionId}/cancel/`, {
       auth: true,
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: reasonBody(reason),
     }),
 
-  reactivate: (subscriptionId: string) =>
+  reactivate: (subscriptionId: string, reason = '') =>
     apiRequest<SubscriptionItem>(`/subscriptions/${subscriptionId}/reactivate/`, {
       auth: true,
       method: 'POST',
-      body: JSON.stringify({}),
+      body: reasonBody(reason),
+    }),
+
+  resume: (subscriptionId: string, reason = '') =>
+    apiRequest<SubscriptionItem>(`/subscriptions/${subscriptionId}/resume/`, {
+      auth: true,
+      method: 'POST',
+      body: reasonBody(reason),
+    }),
+
+  getRenewalProjection: (subscriptionId: string) =>
+    apiRequest<SubscriptionRenewalProjection>(`/subscriptions/${subscriptionId}/renewal-projection/`, { auth: true }),
+
+  syncEntitlements: (subscriptionId: string, reason = '') =>
+    apiRequest<SubscriptionEntitlementSyncResult>(`/subscriptions/${subscriptionId}/sync-entitlements/`, {
+      auth: true,
+      method: 'POST',
+      body: reasonBody(reason),
     }),
 
   getAdminOverview: (days = 30) =>
@@ -110,17 +206,40 @@ export const subscriptionsApi = {
     return apiRequest<SubscriptionItem[]>(`/subscriptions/admin/items/${query ? `?${query}` : ''}`, { auth: true });
   },
 
-  markPastDue: (subscriptionId: string, reason = '') =>
+  getAdminLifecyclePolicy: () =>
+    apiRequest<SubscriptionLifecyclePolicy>('/subscriptions/admin/lifecycle-policy/', { auth: true }),
+
+  getAdminLifecycleSummary: (days = 30) =>
+    apiRequest<SubscriptionLifecycleSummary>(`/subscriptions/admin/lifecycle-summary/?days=${days}`, { auth: true }),
+
+  markPastDue: (subscriptionId: string, reason = '', syncEntitlements = true) =>
     apiRequest<SubscriptionItem>(`/subscriptions/${subscriptionId}/admin/mark-past-due/`, {
       auth: true,
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, sync_entitlements: syncEntitlements }),
+    }),
+
+  adminSyncEntitlements: (subscriptionId: string, reason = '') =>
+    apiRequest<SubscriptionEntitlementSyncResult>(`/subscriptions/${subscriptionId}/admin/sync-entitlements/`, {
+      auth: true,
+      method: 'POST',
+      body: reasonBody(reason),
+    }),
+
+  adminReconcileEntitlements: (payload?: { subscription_id?: string; limit?: number }) =>
+    apiRequest<SubscriptionEntitlementReconcileResult>('/subscriptions/admin/reconcile-entitlements/', {
+      auth: true,
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
     }),
 
   expireDue: () =>
-    apiRequest<{ expired_count: number }>(`/subscriptions/admin/expire-due/`, {
-      auth: true,
-      method: 'POST',
-      body: JSON.stringify({}),
-    }),
+    apiRequest<{ expired_count: number; entitlement_reconciliation?: SubscriptionEntitlementReconcileResult }>(
+      '/subscriptions/admin/expire-due/',
+      {
+        auth: true,
+        method: 'POST',
+        body: JSON.stringify({}),
+      }
+    ),
 };

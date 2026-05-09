@@ -8,166 +8,43 @@ import { adminReconciliationSnapshotsApi } from '@/modules/admin-reconciliation-
 import type {
   ReconciliationSnapshot,
   SnapshotListResponse,
+  SnapshotMetricsResponse,
+  SnapshotRetentionResponse,
+  SnapshotScheduleResponse,
   SnapshotSource,
   SnapshotStatus,
   SnapshotTrendResponse,
 } from '@/modules/admin-reconciliation-snapshots/api';
+import {
+  ReconciliationComparePanel,
+  ReconciliationHealthCard,
+  ReconciliationRepairImpact,
+  ReconciliationRetentionPanel,
+  ReconciliationSnapshotTrend,
+  SnapshotHistoryPanel,
+  formatDate,
+  sourceTitle,
+  statusTitle,
+} from '@/modules/admin-reconciliation-snapshots/components/reconciliation-dashboard';
 
-const STATUS_FILTERS = ['', 'ok', 'degraded', 'critical'];
-const SOURCE_FILTERS = ['', 'manual', 'scheduled', 'repair', 'ci'];
+const STATUS_FILTERS: SnapshotStatus[] = ['', 'ok', 'degraded', 'critical', 'failed'];
+const SOURCE_FILTERS: SnapshotSource[] = ['', 'manual', 'scheduled', 'repair', 'ci'];
 
-function label(value: string) {
-  return value.replaceAll('_', ' ');
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('ru-RU');
-}
-
-function formatNumber(value: number | undefined | null) {
-  return Number(value || 0).toLocaleString('ru-RU');
-}
-
-function statusTitle(status: SnapshotStatus) {
-  if (status === 'ok') return 'OK';
-  if (status === 'degraded') return 'Degraded';
-  if (status === 'critical') return 'Critical';
-  if (status === 'missing') return 'Missing';
-  return status;
-}
-
-function sourceTitle(source: SnapshotSource) {
-  if (source === 'manual') return 'Manual';
-  if (source === 'scheduled') return 'Scheduled';
-  if (source === 'repair') return 'Repair';
-  if (source === 'ci') return 'CI';
-  return source;
-}
-
-function deltaValue(value?: number) {
-  const numeric = Number(value || 0);
-  if (numeric > 0) return `+${numeric}`;
-  return String(numeric);
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="badge secondary">{children}</span>;
-}
-
-function StatCard({ title, value, hint }: { title: string; value: React.ReactNode; hint?: string }) {
-  return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
-      </div>
-    </div>
-  );
-}
-
-function TrendBars({ trend }: { trend: SnapshotTrendResponse | null }) {
-  const points = trend?.points || [];
-  if (!points.length) {
-    return <div className="card"><p className="muted">Пока нет snapshot history для построения тренда.</p></div>;
-  }
-
-  const maxValue = Math.max(...points.map((point) => point.total_issues), 1);
-
-  return (
-    <div className="card">
-      <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
-        <div className="stack" style={{ gap: 6 }}>
-          <Badge>Trend</Badge>
-          <h2 className="title-md">Reconciliation trend</h2>
-          <p className="muted">Динамика количества расхождений по последним snapshot'ам.</p>
-        </div>
-        {trend?.delta ? <Badge>{trend.delta.direction}</Badge> : null}
-      </div>
-
-      <div className="stack" style={{ gap: 12, marginTop: 18 }}>
-        {points.slice(-20).map((point) => {
-          const width = Math.max(4, Math.round((point.total_issues / maxValue) * 100));
-          return (
-            <div className="stack" key={point.id} style={{ gap: 6 }}>
-              <div className="row" style={{ gap: 12 }}>
-                <span className="muted" style={{ minWidth: 160 }}>{formatDate(point.generated_at)}</span>
-                <Badge>{sourceTitle(point.source)}</Badge>
-                <strong>{formatNumber(point.total_issues)} issues</strong>
-                <span className="muted">critical {formatNumber(point.critical_count)}</span>
-              </div>
-              <div style={{ height: 10, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' }}>
-                <div style={{ width: `${width}%`, height: '100%', borderRadius: 999, background: 'currentColor' }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function SectionStatusGrid({ snapshot }: { snapshot: ReconciliationSnapshot }) {
-  const entries = Object.entries(snapshot.section_statuses || {});
-  if (!entries.length) return <p className="muted">Section statuses отсутствуют.</p>;
-
-  return (
-    <div className="grid-3" style={{ marginTop: 14 }}>
-      {entries.map(([sectionKey, section]) => (
-        <div className="list-item" key={sectionKey}>
-          <span className="muted">{label(sectionKey)}</span>
-          <strong>{statusTitle(section?.status || 'missing')}</strong>
-          <small className="muted">
-            {formatNumber(section?.issue_count)} issues · {formatNumber(section?.critical_count)} critical
-          </small>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SnapshotCard({ snapshot }: { snapshot: ReconciliationSnapshot }) {
-  const delta = snapshot.delta;
-  const href = snapshot.href || `/admin/entities/reconciliation_snapshot/${snapshot.id}`;
-
-  return (
-    <div className="card">
-      <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
-        <div className="stack" style={{ gap: 8 }}>
-          <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <Badge>{statusTitle(snapshot.status)}</Badge>
-            <Badge>{sourceTitle(snapshot.source)}</Badge>
-            {delta ? <Badge>{delta.direction}</Badge> : null}
-          </div>
-          <h2 className="title-md">Snapshot {snapshot.id.slice(0, 8)}</h2>
-          <p className="muted">Generated {formatDate(snapshot.generated_at)} · correlation {snapshot.correlation_id || '—'}</p>
-        </div>
-        <div className="inline" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Link href={href} className="button secondary">Open snapshot</Link>
-          {snapshot.audit_event_href ? <Link href={snapshot.audit_event_href} className="button ghost">Audit</Link> : null}
-        </div>
-      </div>
-
-      <div className="grid-4" style={{ marginTop: 16 }}>
-        <StatCard title="Total" value={formatNumber(snapshot.total_issues)} hint="issues" />
-        <StatCard title="Critical" value={formatNumber(snapshot.critical_count)} hint="blocking" />
-        <StatCard title="Warning" value={formatNumber(snapshot.warning_count)} hint="needs review" />
-        <StatCard title="Delta" value={deltaValue(delta?.total_issues_delta)} hint="vs previous" />
-      </div>
-
-      <SectionStatusGrid snapshot={snapshot} />
-    </div>
-  );
+function latestFromPayload(payload: SnapshotListResponse | null): ReconciliationSnapshot | null {
+  return payload?.snapshots?.[0] || null;
 }
 
 export default function AdminReconciliationSnapshotsPage() {
   const { user } = useAuthSession();
   const isAdmin = user?.active_role === 'admin';
+
   const [listPayload, setListPayload] = useState<SnapshotListResponse | null>(null);
+  const [repairPayload, setRepairPayload] = useState<SnapshotListResponse | null>(null);
   const [trend, setTrend] = useState<SnapshotTrendResponse | null>(null);
+  const [metrics, setMetrics] = useState<SnapshotMetricsResponse | null>(null);
+  const [schedule, setSchedule] = useState<SnapshotScheduleResponse | null>(null);
+  const [retentionPreview, setRetentionPreview] = useState<SnapshotRetentionResponse | null>(null);
+
   const [limit, setLimit] = useState(30);
   const [source, setSource] = useState('');
   const [status, setStatus] = useState('');
@@ -177,17 +54,28 @@ export default function AdminReconciliationSnapshotsPage() {
 
   const load = useCallback(async () => {
     if (!isAdmin) return;
+
     try {
       setIsLoading(true);
       setMsg('');
-      const [listResponse, trendResponse] = await Promise.all([
+
+      const [listResponse, repairResponse, trendResponse, metricsResponse, scheduleResponse, retentionResponse] = await Promise.all([
         adminReconciliationSnapshotsApi.list({ limit, source, status }),
-        adminReconciliationSnapshotsApi.trend({ limit: Math.max(2, Math.min(limit, 250)) }),
+        adminReconciliationSnapshotsApi.list({ limit: 10, source: 'repair' }).catch(() => null),
+        adminReconciliationSnapshotsApi.trend({ limit: Math.max(2, Math.min(limit, 250)) }).catch(() => null),
+        adminReconciliationSnapshotsApi.metrics({ limit: Math.max(2, Math.min(limit, 250)), source, status }).catch(() => null),
+        adminReconciliationSnapshotsApi.schedule({ source: 'scheduled', min_age_minutes: 60 }).catch(() => null),
+        adminReconciliationSnapshotsApi.retention({ dry_run: true, source: 'scheduled', keep_min_per_source: 5 }).catch(() => null),
       ]);
+
       setListPayload(listResponse);
+      setRepairPayload(repairResponse);
       setTrend(trendResponse);
+      setMetrics(metricsResponse);
+      setSchedule(scheduleResponse);
+      setRetentionPreview(retentionResponse);
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'Не удалось загрузить reconciliation snapshots');
+      setMsg(error instanceof Error ? error.message : 'Не удалось загрузить reconciliation dashboard');
     } finally {
       setIsLoading(false);
     }
@@ -199,13 +87,14 @@ export default function AdminReconciliationSnapshotsPage() {
 
   const capture = useCallback(async () => {
     if (!isAdmin) return;
+
     try {
       setIsCapturing(true);
       setMsg('');
       const snapshot = await adminReconciliationSnapshotsApi.capture({
         source: 'manual',
         limit: 100,
-        correlation_id: `manual-${Date.now()}`,
+        correlation_id: `manual-dashboard-${Date.now()}`,
       });
       setMsg(`Snapshot ${snapshot.id.slice(0, 8)} создан. Status: ${statusTitle(snapshot.status)}.`);
       await load();
@@ -216,87 +105,105 @@ export default function AdminReconciliationSnapshotsPage() {
     }
   }, [isAdmin, load]);
 
-  const latest = listPayload?.summary;
   const snapshots = useMemo(() => listPayload?.snapshots || [], [listPayload]);
+  const repairSnapshots = useMemo(() => repairPayload?.snapshots || [], [repairPayload]);
+  const latestSnapshot = latestFromPayload(listPayload);
 
   return (
-    <ProtectedPage title="Reconciliation snapshots" description="История reconciliation report, тренды и snapshot'ы после repair actions.">
+    <ProtectedPage
+      title="Reconciliation snapshots"
+      description="Admin dashboard для snapshot history, repair impact, compare и retention."
+    >
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="container page">
+          <div className="card error">У текущей сессии нет admin-role.</div>
+        </div>
       ) : (
-        <section className="stack" style={{ gap: 24 }}>
-          <div className="row" style={{ alignItems: 'flex-start' }}>
-            <div className="stack" style={{ gap: 10 }}>
-              <span className="badge secondary">Reconciliation history</span>
+        <div className="container page">
+          <div className="section row" style={{ alignItems: 'flex-start' }}>
+            <div>
+              <span className="badge secondary">Reconciliation dashboard</span>
               <h1>Reconciliation snapshots</h1>
               <p className="lead">
-                История состояния reconciliation: сколько было расхождений, стало ли меньше после repair actions,
-                и какие секции остаются проблемными.
+                Единая админская панель для v8.30-v8.34: auto-capture после repair, trend, compare, scheduled capture и retention.
+              </p>
+              <p className="muted">
+                Latest: {latestSnapshot ? `${sourceTitle(latestSnapshot.source)} · ${formatDate(latestSnapshot.generated_at)}` : 'snapshot history empty'}
               </p>
             </div>
-            <div className="inline" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <Link href="/admin/reconciliation" className="button secondary">Live report</Link>
-              <Link href="/admin/operations" className="button ghost">Operations</Link>
-              <button className="button secondary" type="button" disabled={isLoading} onClick={() => void load()}>
+            <div className="inline">
+              <Link className="btn secondary" href="/admin/reconciliation">Live report</Link>
+              <Link className="btn secondary" href="/admin/operations">Operations</Link>
+              <button className="btn secondary" type="button" disabled={isLoading || isCapturing} onClick={() => void load()}>
                 {isLoading ? 'Loading...' : 'Refresh'}
               </button>
-              <button className="button" type="button" disabled={isCapturing} onClick={() => void capture()}>
+              <button className="btn" type="button" disabled={isCapturing || isLoading} onClick={() => void capture()}>
                 {isCapturing ? 'Capturing...' : 'Capture snapshot'}
               </button>
             </div>
           </div>
 
-          {msg ? <div className="card">{msg}</div> : null}
+          {msg ? <div className="card warning section">{msg}</div> : null}
 
-          <div className="grid-4">
-            <StatCard title="Latest status" value={statusTitle(latest?.latest_status || 'missing')} hint={formatDate(latest?.latest_generated_at)} />
-            <StatCard title="Latest issues" value={formatNumber(latest?.latest_total_issues)} hint="total" />
-            <StatCard title="Latest critical" value={formatNumber(latest?.latest_critical_count)} hint="blocking" />
-            <StatCard title="Snapshots" value={formatNumber(latest?.snapshot_count)} hint="stored" />
-          </div>
-
-          <TrendBars trend={trend} />
-
-          <div className="card">
-            <div className="row" style={{ alignItems: 'flex-end', gap: 14 }}>
-              <div className="field" style={{ minWidth: 160 }}>
-                <label>Limit</label>
-                <select value={limit} onChange={(event) => setLimit(Number(event.target.value))}>
-                  {[10, 20, 30, 50, 100, 250].map((value) => <option value={value} key={value}>{value}</option>)}
+          <div className="section card compact">
+            <div className="form-row">
+              <label className="form-group">
+                <span className="label">Limit</span>
+                <select className="select" value={limit} onChange={(event) => setLimit(Number(event.target.value))}>
+                  {[10, 20, 30, 50, 100, 250].map((value) => (
+                    <option key={value} value={value}>{value}</option>
+                  ))}
                 </select>
-              </div>
-              <div className="field" style={{ minWidth: 180 }}>
-                <label>Source</label>
-                <select value={source} onChange={(event) => setSource(event.target.value)}>
-                  {SOURCE_FILTERS.map((value) => <option value={value} key={value}>{value ? sourceTitle(value) : 'Any source'}</option>)}
+              </label>
+              <label className="form-group">
+                <span className="label">Source</span>
+                <select className="select" value={source} onChange={(event) => setSource(event.target.value)}>
+                  {SOURCE_FILTERS.map((value) => (
+                    <option key={value || 'any-source'} value={value}>{value ? sourceTitle(value) : 'Any source'}</option>
+                  ))}
                 </select>
-              </div>
-              <div className="field" style={{ minWidth: 180 }}>
-                <label>Status</label>
-                <select value={status} onChange={(event) => setStatus(event.target.value)}>
-                  {STATUS_FILTERS.map((value) => <option value={value} key={value}>{value ? statusTitle(value) : 'Any status'}</option>)}
+              </label>
+              <label className="form-group">
+                <span className="label">Status</span>
+                <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
+                  {STATUS_FILTERS.map((value) => (
+                    <option key={value || 'any-status'} value={value}>{value ? statusTitle(value) : 'Any status'}</option>
+                  ))}
                 </select>
+              </label>
+              <div className="form-group">
+                <span className="label">Apply</span>
+                <button className="btn secondary" type="button" disabled={isLoading} onClick={() => void load()}>
+                  Apply filters
+                </button>
               </div>
-              <button className="button secondary" type="button" disabled={isLoading} onClick={() => void load()}>
-                Apply filters
-              </button>
             </div>
           </div>
 
-          <div className="stack" style={{ gap: 16 }}>
-            <div className="row">
-              <h2 className="title-md">Snapshot history</h2>
-              <span className="muted">{snapshots.length} rows</span>
-            </div>
-            {snapshots.length ? snapshots.map((snapshot) => (
-              <SnapshotCard snapshot={snapshot} key={snapshot.id} />
-            )) : (
-              <div className="card">
-                <p className="muted">Snapshot'ов пока нет. Нажми Capture snapshot, чтобы сохранить первое состояние.</p>
-              </div>
-            )}
-          </div>
-        </section>
+          {!listPayload && !msg ? <div className="empty-state section">Загрузка reconciliation dashboard...</div> : null}
+
+          {listPayload ? (
+            <>
+              <section className="section">
+                <ReconciliationHealthCard latestSnapshot={latestSnapshot} metrics={metrics} schedule={schedule} />
+              </section>
+
+              <section className="section grid-2">
+                <ReconciliationSnapshotTrend trend={trend} metrics={metrics} />
+                <ReconciliationRepairImpact metrics={metrics} repairSnapshots={repairSnapshots} />
+              </section>
+
+              <section className="section">
+                <ReconciliationComparePanel snapshots={snapshots} />
+              </section>
+
+              <section className="section grid-2">
+                <ReconciliationRetentionPanel initialPreview={retentionPreview} onChanged={() => void load()} />
+                <SnapshotHistoryPanel snapshots={snapshots} />
+              </section>
+            </>
+          ) : null}
+        </div>
       )}
     </ProtectedPage>
   );

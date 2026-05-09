@@ -4,24 +4,59 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.ops.api.entity_serializers import AdminEntityDetailSerializer
-from apps.ops.api.operations_serializers import AdminOperationsDashboardSerializer
+from apps.ops.api.operations_serializers import (
+    AdminCommerceReadinessQuerySerializer,
+    AdminCommerceReadinessSerializer,
+    AdminOperationsDashboardSerializer,
+    AdminOperationsHubQuerySerializer,
+    AdminOperationsHubSerializer,
+    AdminOperationsReadinessQuerySerializer,
+    AdminOperationsReadinessSerializer,
+)
 from apps.ops.api.reconciliation_serializers import AdminReconciliationQuerySerializer
-from apps.ops.api.repair_serializers import AdminReconciliationRepairResultSerializer, AdminReconciliationRepairSerializer
-from apps.ops.api.serializers import DiagnosticsSnapshotSerializer, DiagnosticsRunSerializer, RunDiagnosticsSerializer
+from apps.ops.api.repair_serializers import (
+    AdminReconciliationRepairPolicySerializer,
+    AdminReconciliationRepairResultSerializer,
+    AdminReconciliationRepairSerializer,
+)
+from apps.ops.api.serializers import DiagnosticsRunSerializer, DiagnosticsSnapshotSerializer, RunDiagnosticsSerializer
 from apps.ops.api.snapshot_serializers import (
+    AdminReconciliationIssueRegistrySerializer,
+    AdminReconciliationSnapshotAlertSerializer,
     AdminReconciliationSnapshotCaptureSerializer,
+    AdminReconciliationSnapshotCompareSerializer,
+    AdminReconciliationSnapshotLatestSerializer,
     AdminReconciliationSnapshotListSerializer,
+    AdminReconciliationSnapshotMetricsSerializer,
+    AdminReconciliationSnapshotRetentionSerializer,
+    AdminReconciliationSnapshotScheduleSerializer,
     AdminReconciliationSnapshotTrendSerializer,
 )
 from apps.ops.entities import AdminEntityNotFound, UnsupportedAdminEntity, get_admin_entity_detail
 from apps.ops.operations import get_admin_operations_dashboard
+from apps.ops.commerce_readiness import get_commerce_readiness
+from apps.ops.operations_hub import get_admin_operations_hub
+from apps.ops.operations_readiness import get_ops_production_readiness
 from apps.ops.reconciliation import get_money_reconciliation_report
 from apps.ops.reconciliation_snapshots import (
     capture_reconciliation_snapshot,
+    compare_reconciliation_snapshots,
+    get_latest_reconciliation_snapshot,
+    get_reconciliation_issue_registry,
+    get_reconciliation_snapshot_metrics,
+    get_reconciliation_snapshot_alerts,
+    get_reconciliation_snapshot_retention_policy,
+    get_reconciliation_snapshot_schedule,
     get_reconciliation_snapshot_trend,
     list_reconciliation_snapshots,
+    notify_reconciliation_snapshot_alerts,
 )
-from apps.ops.repair import RepairTargetNotFound, UnsupportedRepairAction, run_reconciliation_repair
+from apps.ops.repair import (
+    RepairTargetNotFound,
+    UnsupportedRepairAction,
+    get_reconciliation_repair_policy,
+    run_reconciliation_repair,
+)
 from apps.ops.services import DiagnosticsService
 
 
@@ -39,7 +74,10 @@ class RunDiagnosticsView(APIView):
         serializer = RunDiagnosticsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = self.service.run(**serializer.validated_data)
-        return Response({'run': DiagnosticsRunSerializer(payload['run']).data, 'status': payload['status']}, status=status.HTTP_202_ACCEPTED)
+        return Response(
+            {'run': DiagnosticsRunSerializer(payload['run']).data, 'status': payload['status']},
+            status=status.HTTP_202_ACCEPTED,
+        )
 
 
 class AdminOperationsDashboardView(APIView):
@@ -50,6 +88,44 @@ class AdminOperationsDashboardView(APIView):
     def get(self, request):
         payload = get_admin_operations_dashboard()
         return Response(AdminOperationsDashboardSerializer(payload).data)
+
+
+
+
+class AdminOperationsHubView(APIView):
+    """Unified admin operations command center for async infra, money risk and reconciliation."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminOperationsHubQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_admin_operations_hub(**serializer.validated_data)
+        return Response(AdminOperationsHubSerializer(payload).data)
+
+
+class AdminCommerceReadinessView(APIView):
+    """Read-only commerce readiness report for trainer monetization and public storefront surfaces."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminCommerceReadinessQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_commerce_readiness(**serializer.validated_data)
+        return Response(AdminCommerceReadinessSerializer(payload).data)
+
+
+class AdminOperationsReadinessView(APIView):
+    """Read-only production readiness report for the ops/reconciliation surface."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminOperationsReadinessQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_ops_production_readiness(**serializer.validated_data)
+        return Response(AdminOperationsReadinessSerializer(payload).data)
 
 
 class AdminEntityDetailView(APIView):
@@ -101,6 +177,21 @@ class AdminReconciliationRepairView(APIView):
         return Response(AdminReconciliationRepairResultSerializer(payload).data, status=status.HTTP_202_ACCEPTED)
 
 
+class AdminReconciliationRepairPolicyView(APIView):
+    """Return workflow/risk metadata for a reconciliation repair action before execution."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationRepairPolicySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        try:
+            payload = get_reconciliation_repair_policy(**serializer.validated_data)
+        except UnsupportedRepairAction as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(payload)
+
+
 class AdminReconciliationSnapshotListView(APIView):
     """List persisted reconciliation snapshots for trend/history analysis."""
 
@@ -128,6 +219,18 @@ class AdminReconciliationSnapshotCaptureView(APIView):
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
+class AdminReconciliationSnapshotLatestView(APIView):
+    """Return the latest reconciliation snapshot, optionally filtered by source."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationSnapshotLatestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_latest_reconciliation_snapshot(**serializer.validated_data)
+        return Response(payload)
+
+
 class AdminReconciliationSnapshotTrendView(APIView):
     """Trend endpoint for reconciliation issue counts over recent snapshots."""
 
@@ -137,4 +240,100 @@ class AdminReconciliationSnapshotTrendView(APIView):
         serializer = AdminReconciliationSnapshotTrendSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         payload = get_reconciliation_snapshot_trend(**serializer.validated_data)
+        return Response(payload)
+
+
+class AdminReconciliationSnapshotMetricsView(APIView):
+    """Compact dashboard metrics for reconciliation snapshot health and repair effectiveness."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationSnapshotMetricsSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_reconciliation_snapshot_metrics(**serializer.validated_data)
+        return Response(payload)
+
+
+class AdminReconciliationSnapshotAlertView(APIView):
+    """Evaluate and optionally emit reconciliation snapshot alerts for admins."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationSnapshotAlertSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        data.pop('notify_admins', None)
+        data.pop('dedupe_hours', None)
+        payload = get_reconciliation_snapshot_alerts(**data)
+        return Response(payload)
+
+    def post(self, request):
+        serializer = AdminReconciliationSnapshotAlertSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        payload = notify_reconciliation_snapshot_alerts(
+            **serializer.validated_data,
+            request=request,
+        )
+        return Response(payload, status=status.HTTP_202_ACCEPTED)
+
+
+class AdminReconciliationSnapshotRetentionView(APIView):
+    """Preview or execute reconciliation snapshot retention pruning."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationSnapshotRetentionSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_reconciliation_snapshot_retention_policy(
+            **serializer.validated_data,
+            execute=False,
+        )
+        return Response(payload)
+
+    def post(self, request):
+        serializer = AdminReconciliationSnapshotRetentionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = get_reconciliation_snapshot_retention_policy(
+            **serializer.validated_data,
+            execute=True,
+        )
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class AdminReconciliationSnapshotScheduleView(APIView):
+    """Read scheduled reconciliation snapshot freshness state for ops dashboard/beat checks."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationSnapshotScheduleSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_reconciliation_snapshot_schedule(**serializer.validated_data)
+        return Response(payload)
+
+
+class AdminReconciliationIssueRegistryView(APIView):
+    """Return normalized reconciliation issues from the latest or selected snapshot."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationIssueRegistrySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_reconciliation_issue_registry(**serializer.validated_data)
+        return Response(payload)
+
+
+class AdminReconciliationSnapshotCompareView(APIView):
+    """Compare two reconciliation snapshots and expose resolved/introduced issue diffs."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationSnapshotCompareSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = compare_reconciliation_snapshots(**serializer.validated_data)
         return Response(payload)

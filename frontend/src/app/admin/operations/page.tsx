@@ -5,11 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
-import { adminOperationsApi } from '@/modules/admin-operations/api';
 import { adminEntityHref } from '@/modules/admin-entity-details/api';
+import { adminOperationsApi } from '@/modules/admin-operations/api';
 import type {
-  AdminOperationsDashboard,
-  OperationsBucket,
+  JsonRecord,
+  OperationsHubAction,
+  OperationsHubPayload,
   OperationsIssue,
   OperationsRecentLedgerEntry,
   OperationsRecentModerationCase,
@@ -23,6 +24,8 @@ import type {
 function scalar(value: unknown, fallback = '0') {
   if (value === null || value === undefined || value === '') return fallback;
   if (typeof value === 'number') return value.toLocaleString('ru-RU');
+  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  if (Array.isArray(value)) return `${value.length} items`;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
@@ -34,8 +37,7 @@ function numberValue(value: unknown) {
 }
 
 function money(value: unknown, currency = 'RUB') {
-  const amount = scalar(value, '0.00');
-  return `${amount} ${currency}`;
+  return `${scalar(value, '0.00')} ${currency}`;
 }
 
 function formatDate(value?: string | null) {
@@ -49,76 +51,85 @@ function label(key: string) {
   return key.replaceAll('_', ' ');
 }
 
-function statusLabel(status: OperationsStatus) {
+function statusLabel(status?: OperationsStatus) {
+  if (!status) return 'Missing';
   if (status === 'ok') return 'OK';
   if (status === 'degraded') return 'Degraded';
   if (status === 'critical') return 'Critical';
+  if (status === 'missing') return 'Missing';
+  if (status === 'unavailable') return 'Unavailable';
   return status;
 }
 
-function statusDescription(status: OperationsStatus) {
-  if (status === 'ok') return 'Система работает штатно';
-  if (status === 'degraded') return 'Есть операционные предупреждения';
-  if (status === 'critical') return 'Нужно вмешательство оператора';
-  return 'Статус получен от backend';
+function badgeClass(status?: string) {
+  if (status === 'ok' || status === 'healthy' || status === 'improved') return 'badge success';
+  if (status === 'critical' || status === 'failed' || status === 'worsened') return 'badge danger';
+  if (status === 'degraded' || status === 'warning' || status === 'due') return 'badge warning';
+  return 'badge secondary';
 }
 
 function actionResultSummary(value: unknown) {
   if (!value || typeof value !== 'object') return 'Операция выполнена';
-  const result = value as Record<string, unknown>;
-  const importantKeys = ['status', 'processed', 'failed', 'claimed', 'requeued', 'matched', 'released_amount'];
+  const result = value as JsonRecord;
+  const importantKeys = ['status', 'processed', 'failed', 'claimed', 'requeued', 'matched', 'released_amount', 'id'];
   const parts = importantKeys
     .filter((key) => result[key] !== undefined && result[key] !== null)
     .map((key) => `${label(key)}: ${scalar(result[key])}`);
   return parts.length ? parts.join(' · ') : 'Операция выполнена';
 }
 
-function StatusBadge({ status }: { status: OperationsStatus }) {
-  return <span className="badge secondary">{statusLabel(status)}</span>;
+function StatusBadge({ status }: { status?: OperationsStatus }) {
+  return <span className={badgeClass(status)}>{statusLabel(status)}</span>;
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
-  return <span className="badge secondary">{severity}</span>;
+  return <span className={badgeClass(severity)}>{severity}</span>;
 }
 
-function StatCard({ label: title, value, hint }: { label: string; value: ReactNode; hint?: string }) {
+function StatCard({ title, value, hint, badge }: { title: string; value: ReactNode; hint?: string; badge?: ReactNode }) {
   return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
+    <div className="card compact">
+      <div className="row" style={{ alignItems: 'flex-start' }}>
+        <div className="kpi">
+          <small>{title}</small>
+          <strong>{value}</strong>
+          {hint ? <small>{hint}</small> : null}
+        </div>
+        {badge}
       </div>
     </div>
   );
 }
 
-function IssueList({ issues }: { issues?: OperationsIssue[] }) {
-  if (!issues?.length) return <p className="muted">Активных проблем нет.</p>;
+function EmptyState({ children }: { children: ReactNode }) {
+  return <div className="empty-state">{children}</div>;
+}
 
+function IssueList({ issues }: { issues?: OperationsIssue[] }) {
+  if (!issues?.length) return <EmptyState>Активных проблем нет.</EmptyState>;
   return (
-    <div className="stack" style={{ gap: 10 }}>
+    <div className="stack">
       {issues.map((issue) => (
-        <div className="list-item" key={`${issue.code}-${issue.severity}`}>
-          <span>
-            <SeverityBadge severity={issue.severity} /> <span>{label(issue.code)}</span>
-          </span>
-          <strong>{issue.count !== undefined ? issue.count : issue.amount || '—'}</strong>
+        <div className="row card compact shadow-none" key={`${issue.code}:${issue.severity}`}>
+          <div>
+            <strong>{label(issue.code)}</strong>
+            <small>{issue.count !== undefined ? issue.count : issue.amount || '—'}</small>
+          </div>
+          <SeverityBadge severity={issue.severity} />
         </div>
       ))}
     </div>
   );
 }
 
-function KeyValueGrid({ data }: { data?: Record<string, string | number | null | undefined> }) {
+function KeyValueGrid({ data }: { data?: JsonRecord }) {
   const rows = Object.entries(data || {});
-  if (!rows.length) return <p className="muted">Нет данных.</p>;
-
+  if (!rows.length) return <EmptyState>Нет данных.</EmptyState>;
   return (
-    <div className="stack" style={{ gap: 10 }}>
+    <div className="grid-3">
       {rows.map(([key, value]) => (
-        <div className="list-item" key={key}>
-          <span className="muted">{label(key)}</span>
+        <div className="card compact shadow-none" key={key}>
+          <small>{label(key)}</small>
           <strong>{scalar(value)}</strong>
         </div>
       ))}
@@ -126,96 +137,76 @@ function KeyValueGrid({ data }: { data?: Record<string, string | number | null |
   );
 }
 
-function BucketList({ rows }: { rows?: OperationsBucket[] }) {
-  if (!rows?.length) return <p className="muted">Нет данных.</p>;
-
-  return (
-    <div className="stack" style={{ gap: 10 }}>
-      {rows.map((row) => {
-        const name = row.key || row.status || 'unknown';
-        return (
-          <div className="list-item" key={name}>
-            <span className="muted">{label(name)}</span>
-            <strong>{row.amount ? `${row.count} · ${row.amount}` : row.count}</strong>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function SectionCard({ title, description, section }: { title: string; description: string; section?: OperationsSection }) {
   return (
-    <div className="card">
-      <div className="inline" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+    <div className="card" id={title.toLowerCase().replaceAll(' ', '-')}>
+      <div className="row" style={{ alignItems: 'flex-start' }}>
         <div>
-          <h2 className="title-md">{title}</h2>
-          <p className="muted" style={{ marginTop: 6 }}>{description}</p>
+          <h2>{title}</h2>
+          <p>{description}</p>
         </div>
-        {section ? <StatusBadge status={section.status} /> : <span className="badge secondary">No data</span>}
+        <StatusBadge status={section?.status || 'missing'} />
       </div>
-
-      <div className="stack" style={{ gap: 18, marginTop: 18 }}>
+      <div className="grid-2">
         <div>
-          <h3 className="title-sm">Issues</h3>
-          <div style={{ marginTop: 10 }}><IssueList issues={section?.issues} /></div>
+          <h3>Issues</h3>
+          <IssueList issues={section?.issues} />
         </div>
-
         <div>
-          <h3 className="title-sm">Counts</h3>
-          <div style={{ marginTop: 10 }}><KeyValueGrid data={section?.counts} /></div>
+          <h3>Counts</h3>
+          <KeyValueGrid data={section?.counts} />
         </div>
       </div>
     </div>
   );
 }
 
-type OperationRunner = (label: string, action: () => Promise<unknown>) => void;
+type OperationRunner = (title: string, action: () => Promise<unknown>) => void;
 
 function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMessage[]; busy: boolean; onAction: OperationRunner }) {
-  if (!rows?.length) return <div className="card"><p className="muted">Нет failed/dead outbox-сообщений.</p></div>;
+  if (!rows?.length) return <EmptyState>Нет failed/dead outbox-сообщений.</EmptyState>;
   return (
-    <div className="card">
-      <div className="inline" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-        <div>
-          <h2 className="title-md">Recent outbox problems</h2>
-          <p className="muted" style={{ marginTop: 6 }}>Retry возвращает сообщение в обработку, Dead помечает его как необрабатываемое.</p>
-        </div>
-      </div>
-      <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+    <div className="card" id="outbox">
+      <h2>Recent outbox problems</h2>
+      <p>Retry возвращает сообщение в обработку, Dead помечает его как необрабатываемое.</p>
+      <div className="stack">
         {rows.map((row) => (
-          <div className="list-item" key={row.id}>
-            <span>
-              <strong>{row.event_type || row.topic || 'event'}</strong>
-              <br />
-              <span className="muted">{row.status} · attempts: {row.attempts ?? 0} · {formatDate(row.updated_at)}</span>
-              {row.last_error ? <><br /><span className="muted">{row.last_error}</span></> : null}
-              <br />
-              <small className="muted">{row.aggregate_type}:{row.aggregate_id}</small>
-            </span>
-            <span className="inline" style={{ justifyContent: 'flex-end', gap: 8 }}>
-              <Link href={adminEntityHref('outbox_message', row.id)} className="button ghost">Open</Link>
-              <button
-                className="button secondary"
-                type="button"
-                disabled={busy}
-                onClick={() => onAction(`Retry outbox ${row.id}`, () => adminOperationsApi.retryOutboxMessage(row.id))}
-              >
-                Retry
-              </button>
-              <button
-                className="button ghost"
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  const reason = window.prompt('Причина перевода outbox message в dead-letter:', 'manual_ops_dead_letter');
-                  if (!reason) return;
-                  onAction(`Mark outbox ${row.id} dead`, () => adminOperationsApi.markOutboxDead(row.id, reason));
-                }}
-              >
-                Dead
-              </button>
-            </span>
+          <div className="card compact shadow-none" key={row.id}>
+            <div className="row">
+              <div>
+                <strong>{row.event_type || row.topic || 'event'}</strong>
+                <small>
+                  {row.status} · attempts: {row.attempts ?? 0} · {formatDate(row.updated_at)}
+                </small>
+                {row.last_error ? <small>{row.last_error}</small> : null}
+                <small>
+                  {row.aggregate_type}:{row.aggregate_id}
+                </small>
+              </div>
+              <div className="inline">
+                <Link className="btn secondary sm" href={adminEntityHref('outbox_message', row.id)}>
+                  Open
+                </Link>
+                <button
+                  className="btn sm"
+                  disabled={busy}
+                  onClick={() => onAction(`Retry outbox ${row.id}`, () => adminOperationsApi.retryOutboxMessage(row.id))}
+                >
+                  Retry
+                </button>
+                <button
+                  className="btn danger sm"
+                  disabled={busy}
+                  onClick={() => {
+                    const reason = window.prompt('Причина перевода outbox message в dead-letter:', 'manual_ops_dead_letter');
+                    if (!reason) return;
+                    onAction(`Mark outbox ${row.id} dead`, () => adminOperationsApi.markOutboxDead(row.id, reason));
+                  }}
+                >
+                  Dead
+                </button>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -224,23 +215,32 @@ function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMe
 }
 
 function WebhookTable({ rows }: { rows?: OperationsRecentWebhookEvent[] }) {
-  if (!rows?.length) return <div className="card"><p className="muted">Нет проблемных webhook-событий.</p></div>;
+  if (!rows?.length) return <EmptyState>Нет проблемных webhook-событий.</EmptyState>;
   return (
-    <div className="card">
-      <h2 className="title-md">Recent webhook problems</h2>
-      <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+    <div className="card" id="webhooks">
+      <h2>Recent webhook problems</h2>
+      <div className="stack">
         {rows.map((row) => (
-          <div className="list-item" key={row.id}>
-            <span>
-              <strong>{row.event_type || 'webhook'}</strong>
-              <br />
-              <span className="muted">{row.provider || 'provider'} · {row.status || 'unknown'} · {formatDate(row.received_at)}</span>
-              {row.error_message ? <><br /><span className="muted">{row.error_message}</span></> : null}
-            </span>
-            <span className="inline" style={{ justifyContent: 'flex-end', gap: 8 }}>
-              {row.payment_id ? <Link href={adminEntityHref('payment', row.payment_id)} className="button ghost">Payment</Link> : null}
-              <Link href={adminEntityHref('payment_webhook', row.id)} className="button secondary">Open</Link>
-            </span>
+          <div className="card compact shadow-none" key={row.id}>
+            <div className="row">
+              <div>
+                <strong>{row.event_type || 'webhook'}</strong>
+                <small>
+                  {row.provider || 'provider'} · {row.status || 'unknown'} · {formatDate(row.received_at)}
+                </small>
+                {row.error_message ? <small>{row.error_message}</small> : null}
+              </div>
+              <div className="inline">
+                {row.payment_id ? (
+                  <Link className="btn secondary sm" href={adminEntityHref('payment', row.payment_id)}>
+                    Payment
+                  </Link>
+                ) : null}
+                <Link className="btn secondary sm" href={adminEntityHref('payment_webhook', row.id)}>
+                  Open
+                </Link>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -249,22 +249,31 @@ function WebhookTable({ rows }: { rows?: OperationsRecentWebhookEvent[] }) {
 }
 
 function RiskPaymentsTable({ rows }: { rows?: OperationsRecentRiskPayment[] }) {
-  if (!rows?.length) return <div className="card"><p className="muted">Нет refund/dispute/chargeback платежей.</p></div>;
+  if (!rows?.length) return <EmptyState>Нет refund/dispute/chargeback платежей.</EmptyState>;
   return (
-    <div className="card">
-      <h2 className="title-md">Recent payment risk</h2>
-      <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+    <div className="card" id="payment-risk">
+      <h2>Recent payment risk</h2>
+      <div className="stack">
         {rows.map((row) => (
-          <div className="list-item" key={row.id}>
-            <span>
-              <strong>{money(row.amount, row.currency || 'RUB')}</strong>
-              <br />
-              <span className="muted">{row.status} · {row.provider || 'provider'} · {formatDate(row.updated_at)}</span>
-            </span>
-            <span className="inline" style={{ justifyContent: 'flex-end', gap: 8 }}>
-              {row.order_id ? <Link href={adminEntityHref('order', row.order_id)} className="button ghost">Order</Link> : null}
-              <Link href={adminEntityHref('payment', row.id)} className="button secondary">Open</Link>
-            </span>
+          <div className="card compact shadow-none" key={row.id}>
+            <div className="row">
+              <div>
+                <strong>{money(row.amount, row.currency || 'RUB')}</strong>
+                <small>
+                  {row.status} · {row.provider || 'provider'} · {formatDate(row.updated_at)}
+                </small>
+              </div>
+              <div className="inline">
+                {row.order_id ? (
+                  <Link className="btn secondary sm" href={adminEntityHref('order', row.order_id)}>
+                    Order
+                  </Link>
+                ) : null}
+                <Link className="btn secondary sm" href={adminEntityHref('payment', row.id)}>
+                  Open
+                </Link>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -273,45 +282,48 @@ function RiskPaymentsTable({ rows }: { rows?: OperationsRecentRiskPayment[] }) {
 }
 
 function canReleaseRiskHold(row: OperationsRecentLedgerEntry) {
-  return Boolean(
-    row.source_id &&
-      row.entry_type === 'risk_hold' &&
-      row.source_type === 'payment_dispute_hold'
-  );
+  return Boolean(row.source_id && row.entry_type === 'risk_hold' && row.source_type === 'payment_dispute_hold');
 }
 
 function RiskLedgerTable({ rows, busy, onAction }: { rows?: OperationsRecentLedgerEntry[]; busy: boolean; onAction: OperationRunner }) {
-  if (!rows?.length) return <div className="card"><p className="muted">Нет risk/reversal ledger-записей.</p></div>;
+  if (!rows?.length) return <EmptyState>Нет risk/reversal ledger-записей.</EmptyState>;
   return (
-    <div className="card">
-      <h2 className="title-md">Recent payout risk ledger</h2>
-      <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+    <div className="card" id="payout-risk">
+      <h2>Recent payout risk ledger</h2>
+      <div className="stack">
         {rows.map((row) => (
-          <div className="list-item" key={row.id}>
-            <span>
-              <strong>{row.entry_type || 'entry'} · {money(row.amount, row.currency || 'RUB')}</strong>
-              <br />
-              <span className="muted">{row.direction || 'direction'} · {row.source_type || 'source'} · {formatDate(row.created_at)}</span>
-              <br />
-              <small className="muted">trainer {row.trainer_id || '—'} · source {row.source_id || '—'}</small>
-            </span>
-            <span className="inline" style={{ justifyContent: 'flex-end', gap: 8 }}>
-              <Link href={adminEntityHref('payout_ledger', row.id)} className="button ghost">Open</Link>
-              {canReleaseRiskHold(row) ? (
-              <button
-                className="button secondary"
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  const reason = window.prompt('Причина ручного release risk hold:', 'manual_ops_release');
-                  if (!reason || !row.source_id) return;
-                  onAction(`Release risk hold ${row.source_id}`, () => adminOperationsApi.releaseRiskHold(String(row.source_id), reason));
-                }}
-              >
-                Release hold
-              </button>
-            ) : null}
-            </span>
+          <div className="card compact shadow-none" key={row.id}>
+            <div className="row">
+              <div>
+                <strong>
+                  {row.entry_type || 'entry'} · {money(row.amount, row.currency || 'RUB')}
+                </strong>
+                <small>
+                  {row.direction || 'direction'} · {row.source_type || 'source'} · {formatDate(row.created_at)}
+                </small>
+                <small>
+                  trainer {row.trainer_id || '—'} · source {row.source_id || '—'}
+                </small>
+              </div>
+              <div className="inline">
+                <Link className="btn secondary sm" href={adminEntityHref('balance_entry', row.id)}>
+                  Open
+                </Link>
+                {canReleaseRiskHold(row) ? (
+                  <button
+                    className="btn sm"
+                    disabled={busy}
+                    onClick={() => {
+                      const reason = window.prompt('Причина ручного release risk hold:', 'manual_ops_release');
+                      if (!reason || !row.source_id) return;
+                      onAction(`Release risk hold ${row.source_id}`, () => adminOperationsApi.releaseRiskHold(String(row.source_id), reason));
+                    }}
+                  >
+                    Release hold
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -320,24 +332,160 @@ function RiskLedgerTable({ rows, busy, onAction }: { rows?: OperationsRecentLedg
 }
 
 function ModerationCasesTable({ rows }: { rows?: OperationsRecentModerationCase[] }) {
-  if (!rows?.length) return <div className="card"><p className="muted">Нет payment risk moderation cases.</p></div>;
+  if (!rows?.length) return <EmptyState>Нет payment risk moderation cases.</EmptyState>;
   return (
-    <div className="card">
-      <h2 className="title-md">Payment risk cases</h2>
-      <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+    <div className="card" id="moderation-risk">
+      <h2>Payment risk cases</h2>
+      <div className="stack">
         {rows.map((row) => (
-          <div className="list-item" key={row.id}>
-            <span>
-              <strong>{row.title || 'Risk case'}</strong>
-              <br />
-              <span className="muted">{row.status || 'status'} · priority {row.priority ?? 0} · {formatDate(row.updated_at)}</span>
-            </span>
-            <span className="inline" style={{ justifyContent: 'flex-end', gap: 8 }}>
-              {row.target_type && row.target_id ? <Link href={adminEntityHref(row.target_type, row.target_id)} className="button ghost">Target</Link> : null}
-              <Link href={adminEntityHref('moderation_case', row.id)} className="button secondary">Open</Link>
-            </span>
+          <div className="card compact shadow-none" key={row.id}>
+            <div className="row">
+              <div>
+                <strong>{row.title || 'Risk case'}</strong>
+                <small>
+                  {row.status || 'status'} · priority {row.priority ?? 0} · {formatDate(row.updated_at)}
+                </small>
+              </div>
+              <div className="inline">
+                {row.target_type && row.target_id ? (
+                  <Link className="btn secondary sm" href={adminEntityHref(row.target_type, row.target_id)}>
+                    Target
+                  </Link>
+                ) : null}
+                <Link className="btn secondary sm" href={adminEntityHref('moderation_case', row.id)}>
+                  Open
+                </Link>
+              </div>
+            </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function QuickActions({ actions, busy, onAction }: { actions?: OperationsHubAction[]; busy: boolean; onAction: OperationRunner }) {
+  const supported = new Set(['capture_reconciliation_snapshot', 'evaluate_reconciliation_alerts', 'dispatch_outbox', 'requeue_stuck_outbox']);
+  const visibleActions = (actions || []).filter((action) => supported.has(action.key));
+
+  const run = (action: OperationsHubAction) => {
+    if (action.key === 'capture_reconciliation_snapshot') {
+      onAction(action.title, () => adminOperationsApi.captureReconciliationSnapshot());
+    } else if (action.key === 'evaluate_reconciliation_alerts') {
+      onAction(action.title, () => adminOperationsApi.evaluateReconciliationAlerts());
+    } else if (action.key === 'dispatch_outbox') {
+      onAction(action.title, () => adminOperationsApi.dispatchOutbox(100));
+    } else if (action.key === 'requeue_stuck_outbox') {
+      onAction(action.title, () => adminOperationsApi.requeueStuckOutbox({ older_than_minutes: 15, limit: 100 }));
+    }
+  };
+
+  if (!visibleActions.length) return null;
+
+  return (
+    <div className="card">
+      <h2>Quick actions</h2>
+      <p>Безопасные действия оператора. Destructive reconciliation repair остаётся в dedicated workflow с confirm token.</p>
+      <div className="grid-2">
+        {visibleActions.map((action) => (
+          <div className="card compact shadow-none" key={action.key}>
+            <div className="row">
+              <div>
+                <strong>{action.title}</strong>
+                <small>{action.description}</small>
+                <small>
+                  {action.method} · {action.api_href}
+                </small>
+              </div>
+              <button className="btn sm" disabled={busy} onClick={() => run(action)}>
+                Run
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReconciliationPanel({ payload }: { payload: OperationsHubPayload | null }) {
+  const reconciliation = payload?.sections.reconciliation;
+  const metrics = reconciliation?.metrics as JsonRecord | undefined;
+  const headline = (metrics?.headline || {}) as JsonRecord;
+  const schedule = (reconciliation?.schedule || {}) as JsonRecord;
+  const alerts = (reconciliation?.alerts || {}) as JsonRecord;
+  const registry = reconciliation?.issue_registry;
+  const issues = registry?.issues || [];
+
+  return (
+    <div className="card" id="reconciliation">
+      <div className="row" style={{ alignItems: 'flex-start' }}>
+        <div>
+          <h2>Reconciliation command center</h2>
+          <p>Snapshot health, scheduled capture, alerts и normalized issue registry в одном блоке.</p>
+        </div>
+        <StatusBadge status={reconciliation?.status || 'missing'} />
+      </div>
+
+      <div className="grid-4">
+        <StatCard title="Total issues" value={scalar(headline.current_total_issues ?? payload?.summary.reconciliation_total_issues)} hint="latest snapshot" />
+        <StatCard title="Critical" value={scalar(headline.current_critical_count ?? payload?.summary.reconciliation_critical_count)} hint="critical issues" />
+        <StatCard title="Repairable" value={scalar(payload?.summary.reconciliation_repairable_issues)} hint="issue registry" />
+        <StatCard title="Alerts" value={scalar(payload?.summary.reconciliation_alert_count)} hint={alerts.has_alerts ? 'requires attention' : 'no active alerts'} badge={<StatusBadge status={alerts.has_alerts ? 'critical' : 'ok'} />} />
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 16 }}>
+        <div className="card compact shadow-none">
+          <h3>Scheduled snapshot</h3>
+          <KeyValueGrid
+            data={{
+              status: schedule.status,
+              due: schedule.due,
+              latest_generated_at: schedule.latest_generated_at,
+              next_capture_due_at: schedule.next_capture_due_at,
+            }}
+          />
+        </div>
+        <div className="card compact shadow-none">
+          <h3>Latest direction</h3>
+          <KeyValueGrid
+            data={{
+              latest_snapshot_id: payload?.summary.latest_reconciliation_snapshot_id,
+              latest_status: payload?.summary.latest_reconciliation_status,
+              direction: payload?.summary.latest_reconciliation_direction,
+              source: headline.latest_source,
+            }}
+          />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <h3>Top normalized issues</h3>
+        {!issues.length ? (
+          <EmptyState>Нет normalized reconciliation issues.</EmptyState>
+        ) : (
+          <div className="stack">
+            {issues.slice(0, 10).map((issue) => {
+              const id = String(issue.identity || `${issue.issue_code}:${issue.entity_type}:${issue.entity_id}`);
+              return (
+                <div className="card compact shadow-none" key={id}>
+                  <div className="row">
+                    <div>
+                      <strong>{label(String(issue.issue_code || issue.code || 'issue'))}</strong>
+                      <small>
+                        {scalar(issue.entity_type)}:{scalar(issue.entity_id)} · {scalar(issue.section)}
+                      </small>
+                    </div>
+                    <div className="inline">
+                      <SeverityBadge severity={String(issue.severity || 'warning')} />
+                      {issue.repairable ? <span className="badge success">repairable</span> : <span className="badge secondary">manual</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -346,7 +494,7 @@ function ModerationCasesTable({ rows }: { rows?: OperationsRecentModerationCase[
 export default function AdminOperationsPage() {
   const { user } = useAuthSession();
   const isAdmin = user?.active_role === 'admin';
-  const [dashboard, setDashboard] = useState<AdminOperationsDashboard | null>(null);
+  const [hub, setHub] = useState<OperationsHubPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
   const [msg, setMsg] = useState('');
@@ -357,161 +505,145 @@ export default function AdminOperationsPage() {
     try {
       setLoading(true);
       setMsg('');
-      setDashboard(await adminOperationsApi.getDashboard());
+      setHub(await adminOperationsApi.getHub({ snapshot_limit: 30, issue_limit: 20 }));
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить operations dashboard');
+      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить operations hub');
     } finally {
       setLoading(false);
     }
   }, [isAdmin]);
 
-  const runAction: OperationRunner = useCallback((title, action) => {
-    void (async () => {
-      try {
-        setActionLoading(title);
-        setActionMsg('');
-        const result = await action();
-        setActionMsg(`${title}: ${actionResultSummary(result)}`);
-        await load();
-      } catch (err) {
-        setActionMsg(`${title}: ${err instanceof Error ? err.message : 'операция не выполнена'}`);
-      } finally {
-        setActionLoading('');
-      }
-    })();
-  }, [load]);
+  const runAction: OperationRunner = useCallback(
+    (title, action) => {
+      void (async () => {
+        try {
+          setActionLoading(title);
+          setActionMsg('');
+          const result = await action();
+          setActionMsg(`${title}: ${actionResultSummary(result)}`);
+          await load();
+        } catch (err) {
+          setActionMsg(`${title}: ${err instanceof Error ? err.message : 'операция не выполнена'}`);
+        } finally {
+          setActionLoading('');
+        }
+      })();
+    },
+    [load]
+  );
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const sections = dashboard?.sections || {};
-  const outbox = sections.outbox;
-  const webhooks = sections.webhooks;
-  const payments = sections.payments;
-  const payouts = sections.payouts;
-  const moderation = sections.moderation;
+  const asyncInfra = hub?.sections.async_infra;
+  const moneyRisk = hub?.sections.money_risk;
+  const outbox = asyncInfra?.outbox;
+  const webhooks = asyncInfra?.webhooks;
+  const payments = moneyRisk?.payments;
+  const payouts = moneyRisk?.payouts;
+  const moderation = moneyRisk?.moderation;
 
   const topStats = useMemo(() => {
-    const criticalCount = dashboard?.summary.critical_count || 0;
-    const warningCount = dashboard?.summary.warning_count || 0;
-    const outboxProblems = numberValue(outbox?.counts?.failed) + numberValue(outbox?.counts?.dead) + numberValue(outbox?.counts?.stuck_processing);
-    const webhookProblems = numberValue(webhooks?.counts?.failed) + numberValue(webhooks?.counts?.rejected) + numberValue(webhooks?.counts?.stuck);
-    const paymentRisk = numberValue(payments?.counts?.disputed) + numberValue(payments?.counts?.charged_back) + numberValue(payments?.counts?.refunded);
-    const lockedTotal = payouts?.amounts?.locked_total || '0.00';
-    return { criticalCount, warningCount, outboxProblems, webhookProblems, paymentRisk, lockedTotal };
-  }, [dashboard, outbox, payments, payouts, webhooks]);
+    const summary = hub?.summary || {};
+    const outboxProblems =
+      numberValue(outbox?.counts?.failed) + numberValue(outbox?.counts?.dead) + numberValue(outbox?.counts?.stuck_processing);
+    const webhookProblems =
+      numberValue(webhooks?.counts?.failed) + numberValue(webhooks?.counts?.rejected) + numberValue(webhooks?.counts?.stuck);
+    const paymentRisk =
+      numberValue(payments?.counts?.disputed) + numberValue(payments?.counts?.charged_back) + numberValue(payments?.counts?.refunded);
+    return {
+      operationsCritical: numberValue(summary.operations_critical_count),
+      operationsWarnings: numberValue(summary.operations_warning_count),
+      reconciliationIssues: numberValue(summary.reconciliation_total_issues),
+      reconciliationCritical: numberValue(summary.reconciliation_critical_count),
+      outboxProblems,
+      webhookProblems,
+      paymentRisk,
+      lockedTotal: payouts?.amounts?.locked_total || '0.00',
+    };
+  }, [hub, outbox, payments, payouts, webhooks]);
 
   return (
-    <ProtectedPage title="Admin operations" description="Единая панель money risk, webhooks, outbox и payout holds.">
+    <ProtectedPage
+      title="Admin operations"
+      description="Unified command center для async infra, payment risk, payouts, moderation и reconciliation health."
+    >
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="container page">
+          <div className="card error">У текущей сессии нет admin-role.</div>
+        </div>
       ) : (
-        <section className="stack" style={{ gap: 24 }}>
-          <div className="card dark">
-            <div className="stack" style={{ gap: 12 }}>
-              <span className="badge secondary">Commerce operations</span>
-              <h1 className="title-lg">Admin operations dashboard</h1>
-              <p className="lead">
-                Контроль проблемных денег и асинхронной инфраструктуры: payment webhooks, outbox, disputes, chargebacks, payout holds и payment-risk moderation.
-              </p>
-              <div className="inline" style={{ flexWrap: 'wrap' }}>
-                <button className="button secondary" type="button" onClick={() => void load()} disabled={loading || Boolean(actionLoading)}>
-                  {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
-                <button
-                  className="button secondary"
-                  type="button"
-                  disabled={Boolean(actionLoading)}
-                  onClick={() => runAction('Dispatch outbox', () => adminOperationsApi.dispatchOutbox(100))}
-                >
-                  Dispatch outbox
-                </button>
-                <button
-                  className="button secondary"
-                  type="button"
-                  disabled={Boolean(actionLoading)}
-                  onClick={() => {
-                    const minutes = window.prompt('Вернуть processing outbox старше N минут:', '15');
-                    if (!minutes) return;
-                    const parsed = Number(minutes);
-                    runAction('Requeue stuck outbox', () => adminOperationsApi.requeueStuckOutbox({ older_than_minutes: Number.isFinite(parsed) ? parsed : 15, limit: 100 }));
-                  }}
-                >
-                  Requeue stuck
-                </button>
-                <Link href="/admin/payouts" className="button ghost">Payout ops</Link>
-                <Link href="/admin/moderation" className="button ghost">Moderation</Link>
-                <Link href="/admin/analytics" className="button ghost">Analytics</Link>
-                <Link href="/admin" className="button ghost">Back to cockpit</Link>
+        <div className="container page stack">
+          <div className="card hero">
+            <div className="row" style={{ alignItems: 'flex-start' }}>
+              <div>
+                <span className="badge secondary">Operations hub</span>
+                <h1>Admin operations command center</h1>
+                <p>
+                  Единая панель для outbox/webhooks, payment risk, payout holds, moderation и reconciliation snapshot health.
+                </p>
+                <small>Generated at: {formatDate(hub?.generated_at)}</small>
               </div>
+              <div className="inline">
+                <StatusBadge status={hub?.status || 'missing'} />
+                <button className="btn secondary" disabled={loading} onClick={() => void load()}>
+                  {loading ? 'Loading…' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid-4" style={{ marginTop: 20 }}>
+              <StatCard title="Ops critical" value={topStats.operationsCritical} hint="operations dashboard" badge={<StatusBadge status={topStats.operationsCritical ? 'critical' : 'ok'} />} />
+              <StatCard title="Ops warnings" value={topStats.operationsWarnings} hint="warnings" />
+              <StatCard title="Reconciliation issues" value={topStats.reconciliationIssues} hint={`${topStats.reconciliationCritical} critical`} badge={<StatusBadge status={topStats.reconciliationCritical ? 'critical' : 'ok'} />} />
+              <StatCard title="Locked payout risk" value={money(topStats.lockedTotal)} hint="trainer wallet holds" />
+            </div>
+
+            <div className="grid-3" style={{ marginTop: 20 }}>
+              <StatCard title="Outbox problems" value={topStats.outboxProblems} hint="failed/dead/stuck" />
+              <StatCard title="Webhook problems" value={topStats.webhookProblems} hint="failed/rejected/stuck" />
+              <StatCard title="Payment risk" value={topStats.paymentRisk} hint="disputes/chargebacks/refunds" />
             </div>
           </div>
 
           {msg ? <div className="card error">{msg}</div> : null}
-          {actionMsg ? <div className="card">{actionLoading ? `${actionLoading}...` : actionMsg}</div> : null}
-          {!dashboard && !msg ? <div className="card">Загрузка operations dashboard...</div> : null}
+          {actionMsg ? <div className="card success">{actionMsg}</div> : null}
 
-          {dashboard ? (
-            <>
-              <div className="grid-4">
-                <StatCard label="Overall status" value={<StatusBadge status={dashboard.status} />} hint={statusDescription(dashboard.status)} />
-                <StatCard label="Critical issues" value={topStats.criticalCount} />
-                <StatCard label="Warnings" value={topStats.warningCount} />
-                <StatCard label="Locked payout risk" value={money(topStats.lockedTotal)} />
-              </div>
+          <QuickActions actions={hub?.quick_actions} busy={Boolean(actionLoading)} onAction={runAction} />
 
-              <div className="grid-4">
-                <StatCard label="Outbox problems" value={topStats.outboxProblems} hint="failed + dead + stuck" />
-                <StatCard label="Webhook problems" value={topStats.webhookProblems} hint="failed + rejected + stuck" />
-                <StatCard label="Payment risk events" value={topStats.paymentRisk} hint="disputed + chargeback + refunded" />
-                <StatCard label="Generated at" value={formatDate(dashboard.generated_at)} />
-              </div>
+          <div className="card">
+            <h2>Navigation</h2>
+            <div className="grid-3">
+              {(hub?.navigation || []).map((item) => (
+                <Link className="card compact shadow-none" href={item.href} key={item.key}>
+                  <strong>{item.title}</strong>
+                  <small>{item.description}</small>
+                  {item.api_href ? <small>{item.api_href}</small> : null}
+                </Link>
+              ))}
+            </div>
+          </div>
 
-              <div className="grid-2">
-                <SectionCard title="Outbox" description="Состояние event outbox и сообщений, требующих retry/dead-letter анализа." section={outbox} />
-                <SectionCard title="Payment webhooks" description="Входящие webhook-и платежного провайдера, stuck/rejected/failed события." section={webhooks} />
-                <SectionCard title="Payments risk" description="Refund, dispute, chargeback и неуспешные платежи." section={payments} />
-                <SectionCard title="Payouts" description="Risk holds, locked balances, payout backlog и reversal ledger." section={payouts} />
-              </div>
+          <ReconciliationPanel payload={hub} />
 
-              <div className="grid-2">
-                <div className="card">
-                  <h2 className="title-md">Payment risk amounts</h2>
-                  <div style={{ marginTop: 16 }}><KeyValueGrid data={payments?.risk_amounts} /></div>
-                </div>
-                <div className="card">
-                  <h2 className="title-md">Payout amounts</h2>
-                  <div style={{ marginTop: 16 }}><KeyValueGrid data={payouts?.amounts} /></div>
-                </div>
-              </div>
+          <div className="grid-2">
+            <SectionCard title="Outbox" description="Async event dispatch health and stuck/dead messages." section={outbox} />
+            <SectionCard title="Webhooks" description="Payment provider webhook intake and processing health." section={webhooks} />
+          </div>
 
-              <div className="grid-3">
-                <div className="card">
-                  <h2 className="title-md">Webhook statuses</h2>
-                  <div style={{ marginTop: 16 }}><BucketList rows={webhooks?.by_status} /></div>
-                </div>
-                <div className="card">
-                  <h2 className="title-md">Payout requests</h2>
-                  <div style={{ marginTop: 16 }}><BucketList rows={payouts?.payout_request_by_status} /></div>
-                </div>
-                <div className="card">
-                  <h2 className="title-md">Moderation risk</h2>
-                  <div style={{ marginTop: 16 }}><BucketList rows={moderation?.case_by_status} /></div>
-                </div>
-              </div>
+          <OutboxTable rows={outbox?.recent_problem_messages} busy={Boolean(actionLoading)} onAction={runAction} />
+          <WebhookTable rows={webhooks?.recent_problem_events} />
 
-              <div className="grid-2">
-                <OutboxTable rows={outbox?.recent_problem_messages} busy={Boolean(actionLoading)} onAction={runAction} />
-                <WebhookTable rows={webhooks?.recent_problem_events} />
-                <RiskPaymentsTable rows={payments?.recent_risk_payments} />
-                <RiskLedgerTable rows={payouts?.recent_risk_ledger_entries} busy={Boolean(actionLoading)} onAction={runAction} />
-              </div>
+          <div className="grid-2">
+            <SectionCard title="Payments" description="Refund, dispute, chargeback and failed payment risk." section={payments} />
+            <SectionCard title="Payouts" description="Trainer wallet holds, payout queue and risk ledger state." section={payouts} />
+          </div>
 
-              <ModerationCasesTable rows={moderation?.recent_payment_risk_cases} />
-            </>
-          ) : null}
-        </section>
+          <RiskPaymentsTable rows={payments?.recent_risk_payments} />
+          <RiskLedgerTable rows={payouts?.recent_risk_ledger_entries} busy={Boolean(actionLoading)} onAction={runAction} />
+          <ModerationCasesTable rows={moderation?.recent_payment_risk_cases} />
+        </div>
       )}
     </ProtectedPage>
   );
