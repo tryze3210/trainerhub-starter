@@ -1,15 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
-import { adminAuditApi } from '@/modules/admin-audit/api';
+import { adminAuditApi, downloadAdminAuditCsv } from '@/modules/admin-audit/api';
 import { adminEntityHref } from '@/modules/admin-entity-details/api';
 import type { AuditEvent, AuditEventContext } from '@/modules/admin-audit/api';
 
 const ACTION_PRESETS = [
   '',
+  'admin.referrals.csv_export',
   'admin.outbox.dispatch',
   'admin.outbox.retry',
   'admin.outbox.mark_dead',
@@ -18,14 +20,26 @@ const ACTION_PRESETS = [
   'admin.events.emit',
 ];
 
+const ENTITY_PRESETS = [
+  '',
+  'referral_export',
+  'outbox_message',
+  'payment',
+  'payout',
+  'payout_request',
+  'payment_webhook',
+];
+
 function label(value: string) {
   return value.replaceAll('_', ' ');
 }
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString('ru-RU');
 }
 
@@ -39,6 +53,7 @@ function scalar(value: unknown, fallback = '—') {
 
 function compactJson(value: unknown) {
   if (!value || typeof value !== 'object') return '';
+
   try {
     return JSON.stringify(value, null, 2);
   } catch {
@@ -61,7 +76,9 @@ function getReason(event: AuditEvent) {
 function getRequestPath(context?: AuditEventContext | null) {
   const method = context?.request?.method || '';
   const path = context?.request?.path || '';
+
   if (!method && !path) return '—';
+
   return `${method} ${path}`.trim();
 }
 
@@ -69,98 +86,154 @@ function getCorrelationId(context?: AuditEventContext | null) {
   return context?.request?.correlation_id || '';
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="badge secondary">{children}</span>;
+function Badge({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200">
+      {children}
+    </span>
+  );
 }
 
 function StatCard({ title, value, hint }: { title: string; value: string | number; hint?: string }) {
   return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
-      </div>
+    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 shadow-sm">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
     </div>
+  );
+}
+
+function Field({ label: title, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="space-y-1 text-sm text-slate-300">
+      <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</span>
+      {children}
+    </label>
   );
 }
 
 function AuditEventCard({ event }: { event: AuditEvent }) {
   const contextJson = compactJson(event.context?.context || event.context || {});
   const correlationId = getCorrelationId(event.context);
+  const targetHref = adminEntityHref(event.entity_type, event.entity_id);
 
   return (
-    <div className="card">
-      <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
-        <div className="stack" style={{ gap: 8 }}>
-          <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
+    <article className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
             <Badge>{getAction(event)}</Badge>
             <Badge>{getStatus(event)}</Badge>
             <Badge>{event.entity_type || 'entity'}</Badge>
           </div>
-          <h2 className="title-md">{event.event_type}</h2>
-          <p className="muted">
-            Target: <strong>{event.entity_type}:{event.entity_id}</strong>
+          <h2 className="text-lg font-semibold text-white">{event.event_type}</h2>
+          <p className="text-sm text-slate-400">
+            Target: {event.entity_type || '—'}:{event.entity_id || '—'}
           </p>
-          <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <Link href={adminEntityHref('audit_event', event.id)} className="button secondary">Open audit event</Link>
-            {event.entity_type && event.entity_id ? (
-              <Link href={adminEntityHref(event.entity_type, event.entity_id)} className="button ghost">Open target</Link>
-            ) : null}
-          </div>
         </div>
-        <div className="stack" style={{ gap: 6, textAlign: 'right' }}>
-          <strong>{formatDate(event.created_at)}</strong>
-          <span className="muted">{event.actor_email || 'system / unknown actor'}</span>
+
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Link
+            href={`/admin/audit/${encodeURIComponent(event.id)}`}
+            className="rounded-xl border border-slate-700 px-3 py-2 text-slate-200 hover:border-slate-500"
+          >
+            Open audit event
+          </Link>
+          {targetHref ? (
+            <Link
+              href={targetHref}
+              className="rounded-xl border border-slate-700 px-3 py-2 text-slate-200 hover:border-slate-500"
+            >
+              Open target
+            </Link>
+          ) : null}
         </div>
       </div>
 
-      <div className="grid-4" style={{ marginTop: 16 }}>
-        <div className="list-item"><span className="muted">Reason</span><strong>{scalar(getReason(event))}</strong></div>
-        <div className="list-item"><span className="muted">Request</span><strong>{getRequestPath(event.context)}</strong></div>
-        <div className="list-item"><span className="muted">Correlation</span><strong>{correlationId || '—'}</strong></div>
-        <div className="list-item"><span className="muted">IP</span><strong>{event.ip_address || '—'}</strong></div>
-      </div>
+      <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <dt className="text-slate-500">Created</dt>
+          <dd className="text-slate-200">{formatDate(event.created_at)}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Actor</dt>
+          <dd className="text-slate-200">{event.actor_email || 'system / unknown actor'}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Reason</dt>
+          <dd className="text-slate-200">{scalar(getReason(event))}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Request</dt>
+          <dd className="text-slate-200">{getRequestPath(event.context)}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Correlation</dt>
+          <dd className="break-all text-slate-200">{correlationId || '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">IP</dt>
+          <dd className="text-slate-200">{event.ip_address || '—'}</dd>
+        </div>
+      </dl>
 
       {contextJson ? (
-        <details style={{ marginTop: 16 }}>
-          <summary className="muted" style={{ cursor: 'pointer' }}>Показать context snapshot</summary>
-          <pre className="card" style={{ overflowX: 'auto', marginTop: 12, whiteSpace: 'pre-wrap' }}>{contextJson}</pre>
+        <details className="mt-5 rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-sm">
+          <summary className="cursor-pointer text-slate-300">Показать context snapshot</summary>
+          <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs text-slate-300">
+            {contextJson}
+          </pre>
         </details>
       ) : null}
-    </div>
+    </article>
   );
 }
 
 export default function AdminAuditPage() {
   const { user } = useAuthSession();
   const isAdmin = user?.active_role === 'admin';
+
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [eventType, setEventType] = useState('');
   const [entityType, setEntityType] = useState('');
   const [entityId, setEntityId] = useState('');
+  const [actorId, setActorId] = useState('');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
+  const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(100);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [msg, setMsg] = useState('');
+  const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
     if (!isAdmin) return;
+
     try {
       setIsLoading(true);
       setMsg('');
+      setNotice('');
+
       const payload = await adminAuditApi.listEvents({
         event_type: eventType.trim() || undefined,
         entity_type: entityType.trim() || undefined,
         entity_id: entityId.trim() || undefined,
+        actor_id: actorId.trim() || undefined,
+        created_from: createdFrom || undefined,
+        created_to: createdTo || undefined,
+        search: search.trim() || undefined,
         limit,
       });
+
       setEvents(payload);
     } catch (error) {
       setMsg(error instanceof Error ? error.message : 'Не удалось загрузить audit feed');
     } finally {
       setIsLoading(false);
     }
-  }, [entityId, entityType, eventType, isAdmin, limit]);
+  }, [actorId, createdFrom, createdTo, entityId, entityType, eventType, isAdmin, limit, search]);
 
   useEffect(() => {
     void load();
@@ -169,124 +242,282 @@ export default function AdminAuditPage() {
   const stats = useMemo(() => {
     const byAction = new Map<string, number>();
     const byEntity = new Map<string, number>();
+
     for (const event of events) {
       const action = String(getAction(event) || 'unknown');
+      const entity = event.entity_type || 'unknown';
+
       byAction.set(action, (byAction.get(action) || 0) + 1);
-      byEntity.set(event.entity_type || 'unknown', (byEntity.get(event.entity_type || 'unknown') || 0) + 1);
+      byEntity.set(entity, (byEntity.get(entity) || 0) + 1);
     }
-    const topActions = Array.from(byAction.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    const topEntities = Array.from(byEntity.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    const topActions = Array.from(byAction.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+    const topEntities = Array.from(byEntity.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
     return { topActions, topEntities };
   }, [events]);
 
+  function resetFilters() {
+    setEventType('');
+    setEntityType('');
+    setEntityId('');
+    setActorId('');
+    setCreatedFrom('');
+    setCreatedTo('');
+    setSearch('');
+    setLimit(100);
+  }
+
+  async function exportCsv() {
+    try {
+      setIsExporting(true);
+      setMsg('');
+      setNotice('');
+
+      const filename = await downloadAdminAuditCsv({
+        event_type: eventType.trim() || undefined,
+        entity_type: entityType.trim() || undefined,
+        entity_id: entityId.trim() || undefined,
+        actor_id: actorId.trim() || undefined,
+        created_from: createdFrom || undefined,
+        created_to: createdTo || undefined,
+        search: search.trim() || undefined,
+      });
+
+      setNotice(`CSV export downloaded: ${filename}`);
+      void load();
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Не удалось скачать audit CSV');
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
-    <ProtectedPage title="Admin audit" description="Audit feed операторских действий: outbox, webhooks, payout holds и ручные операции администратора.">
+    <ProtectedPage
+      title="Admin audit feed"
+      description="Audit trail for operational actions, reconciliation fixes and admin exports."
+    >
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="rounded-2xl border border-amber-800 bg-amber-950/40 p-6 text-amber-100">
+          У текущей сессии нет admin-role.
+        </div>
       ) : (
-        <section className="stack" style={{ gap: 24 }}>
-          <div className="row" style={{ alignItems: 'flex-start' }}>
-            <div className="stack" style={{ gap: 10 }}>
-              <span className="badge secondary">Audit trail</span>
-              <h1>Admin audit feed</h1>
-              <p className="lead">Кто, когда и что сделал в операционном контуре: retry outbox, mark dead, release risk hold, requeue stuck и ручной emit.</p>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Audit trail</p>
+              <h1 className="mt-2 text-3xl font-bold text-white">Admin audit feed</h1>
+              <p className="mt-2 max-w-3xl text-slate-400">
+                Кто, когда и что сделал в операционном контуре: retry outbox, mark dead, release risk hold,
+                referral CSV export, reconciliation actions и ручной emit.
+              </p>
             </div>
-            <div className="inline" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <Link href="/admin/operations" className="button secondary">Operations</Link>
-              <button className="button" type="button" disabled={isLoading} onClick={() => void load()}>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void exportCsv()}
+                disabled={isExporting}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isExporting ? 'Export...' : 'Export CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void load()}
+                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-slate-200"
+              >
                 {isLoading ? 'Загрузка...' : 'Обновить'}
               </button>
             </div>
           </div>
 
-          {msg ? <div className="card error">{msg}</div> : null}
+          {msg ? (
+            <div className="rounded-2xl border border-red-800 bg-red-950/40 p-4 text-sm text-red-100">{msg}</div>
+          ) : null}
 
-          <div className="card">
-            <div className="grid-4">
-              <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Event type</span>
-                <select className="select" value={eventType} onChange={(event) => setEventType(event.target.value)}>
-                  {ACTION_PRESETS.map((preset) => (
-                    <option key={preset || 'all'} value={preset}>{preset || 'all admin events'}</option>
+          {notice ? (
+            <div className="rounded-2xl border border-emerald-800 bg-emerald-950/40 p-4 text-sm text-emerald-100">
+              {notice}
+            </div>
+          ) : null}
+
+          <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="Event type">
+                <input
+                  list="audit-event-presets"
+                  value={eventType}
+                  onChange={(event) => setEventType(event.target.value)}
+                  placeholder="admin.referrals.csv_export"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+                <datalist id="audit-event-presets">
+                  {ACTION_PRESETS.filter(Boolean).map((preset) => (
+                    <option key={preset} value={preset} />
                   ))}
-                </select>
-              </label>
-              <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Entity type</span>
-                <input className="input" value={entityType} onChange={(event) => setEntityType(event.target.value)} placeholder="outbox_message / payment / payout" />
-              </label>
-              <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Entity id</span>
-                <input className="input" value={entityId} onChange={(event) => setEntityId(event.target.value)} placeholder="UUID / external id" />
-              </label>
-              <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Limit</span>
-                <select className="select" value={limit} onChange={(event) => setLimit(Number(event.target.value))}>
+                </datalist>
+              </Field>
+
+              <Field label="Entity type">
+                <input
+                  list="audit-entity-presets"
+                  value={entityType}
+                  onChange={(event) => setEntityType(event.target.value)}
+                  placeholder="referral_export / payment / payout"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+                <datalist id="audit-entity-presets">
+                  {ENTITY_PRESETS.filter(Boolean).map((preset) => (
+                    <option key={preset} value={preset} />
+                  ))}
+                </datalist>
+              </Field>
+
+              <Field label="Entity id">
+                <input
+                  value={entityId}
+                  onChange={(event) => setEntityId(event.target.value)}
+                  placeholder="UUID / external id"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+              </Field>
+
+              <Field label="Actor id">
+                <input
+                  value={actorId}
+                  onChange={(event) => setActorId(event.target.value)}
+                  placeholder="admin user UUID"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+              </Field>
+
+              <Field label="Created from">
+                <input
+                  type="date"
+                  value={createdFrom}
+                  onChange={(event) => setCreatedFrom(event.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+              </Field>
+
+              <Field label="Created to">
+                <input
+                  type="date"
+                  value={createdTo}
+                  onChange={(event) => setCreatedTo(event.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+              </Field>
+
+              <Field label="Search">
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="email, path, correlation, reason"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                />
+              </Field>
+
+              <Field label="Limit">
+                <select
+                  value={limit}
+                  onChange={(event) => setLimit(Number(event.target.value))}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                >
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                   <option value={250}>250</option>
                   <option value={500}>500</option>
                 </select>
-              </label>
+              </Field>
             </div>
-            <div className="inline" style={{ marginTop: 16 }}>
-              <button className="button" type="button" disabled={isLoading} onClick={() => void load()}>Применить фильтр</button>
+
+            <div className="mt-4 flex flex-wrap gap-3">
               <button
-                className="button ghost"
                 type="button"
-                disabled={isLoading}
-                onClick={() => {
-                  setEventType('');
-                  setEntityType('');
-                  setEntityId('');
-                  setLimit(100);
-                }}
+                onClick={() => void load()}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500"
+              >
+                Применить фильтр
+              </button>
+              <button
+                type="button"
+                onClick={() => void exportCsv()}
+                disabled={isExporting}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isExporting ? 'Export...' : 'Скачать CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="rounded-xl border border-slate-800 px-4 py-2 text-sm text-slate-400 hover:border-slate-600 hover:text-slate-200"
               >
                 Сбросить
               </button>
             </div>
+          </section>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <StatCard title="Loaded events" value={events.length} hint="по текущему фильтру" />
+            <StatCard title="Limit" value={limit} hint="backend hard-cap: 500" />
           </div>
 
-          <div className="grid-4">
-            <StatCard title="Events loaded" value={events.length} hint="по текущему фильтру" />
-            <StatCard title="Top action" value={stats.topActions[0]?.[0] || '—'} hint={stats.topActions[0] ? `${stats.topActions[0][1]} events` : 'нет данных'} />
-            <StatCard title="Top entity" value={stats.topEntities[0]?.[0] || '—'} hint={stats.topEntities[0] ? `${stats.topEntities[0][1]} events` : 'нет данных'} />
-            <StatCard title="Latest event" value={formatDate(events[0]?.created_at)} />
-          </div>
-
-          <div className="grid-2">
-            <div className="card">
-              <h2 className="title-md">Actions</h2>
-              <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                {stats.topActions.length === 0 ? <p className="muted">Пока нет audit events.</p> : null}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-white">Actions</h2>
+              <div className="mt-4 space-y-2">
+                {stats.topActions.length === 0 ? (
+                  <p className="text-sm text-slate-500">Пока нет audit events.</p>
+                ) : null}
                 {stats.topActions.map(([action, count]) => (
-                  <div className="list-item" key={action}>
-                    <span className="muted">{label(action)}</span>
-                    <strong>{count}</strong>
+                  <div key={action} className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2">
+                    <span className="text-sm text-slate-300">{label(action)}</span>
+                    <span className="text-sm font-semibold text-white">{count}</span>
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="card">
-              <h2 className="title-md">Entity types</h2>
-              <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                {stats.topEntities.length === 0 ? <p className="muted">Пока нет entity buckets.</p> : null}
+            </section>
+
+            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-white">Entity types</h2>
+              <div className="mt-4 space-y-2">
+                {stats.topEntities.length === 0 ? (
+                  <p className="text-sm text-slate-500">Пока нет entity buckets.</p>
+                ) : null}
                 {stats.topEntities.map(([entity, count]) => (
-                  <div className="list-item" key={entity}>
-                    <span className="muted">{label(entity)}</span>
-                    <strong>{count}</strong>
+                  <div key={entity} className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2">
+                    <span className="text-sm text-slate-300">{label(entity)}</span>
+                    <span className="text-sm font-semibold text-white">{count}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           </div>
 
-          <div className="stack" style={{ gap: 16 }}>
-            {isLoading ? <div className="card">Загрузка audit feed...</div> : null}
-            {!isLoading && events.length === 0 ? <div className="card">Audit events по текущему фильтру не найдены.</div> : null}
-            {events.map((event) => <AuditEventCard key={event.id} event={event} />)}
-          </div>
-        </section>
+          <section className="space-y-4">
+            {isLoading ? (
+              <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-slate-300">
+                Загрузка audit feed...
+              </div>
+            ) : null}
+
+            {!isLoading && events.length === 0 ? (
+              <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-slate-400">
+                Audit events по текущему фильтру не найдены.
+              </div>
+            ) : null}
+
+            {events.map((event) => (
+              <AuditEventCard key={event.id} event={event} />
+            ))}
+          </section>
+        </div>
       )}
     </ProtectedPage>
   );

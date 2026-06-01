@@ -56,25 +56,84 @@ class ReferralEngine:
 
 
 class ReferralRewardService:
+    TRIGGER_ORDER_PAID = "order_paid"
+
     @staticmethod
-    @transaction.atomic
-    def reward_for_paid_order(attribution: ReferralAttribution, trigger_reference: str) -> ReferralReward:
-        program: ReferralProgram = attribution.invite.code.program
-        reward = ReferralReward.objects.create(
-            attribution=attribution,
-            trigger_type="order_paid",
-            trigger_reference=trigger_reference,
-            amount=program.reward_amount or Decimal("0.00"),
-            status=ReferralReward.STATUS_APPROVED,
-        )
-        owner = attribution.invite.code.owner
-        last_balance = (
-            ReferralLedger.objects.filter(owner=owner)
+    def _as_money(value: Decimal | str | int | float | None) -> Decimal:
+        return Decimal(str(value if value is not None else Decimal("0.00"))).quantize(Decimal("0.01"))
+
+    @classmethod
+    def _calculate_reward_amount(
+        cls,
+        *,
+        program: ReferralProgram,
+        order_amount: Decimal | str | int | float | None = None,
+    ) -> Decimal:
+        reward_amount = cls._as_money(program.reward_amount)
+        if program.reward_kind == "percent":
+            if order_amount is None:
+                return Decimal("0.00")
+            return (cls._as_money(order_amount) * reward_amount / Decimal("100.00")).quantize(Decimal("0.01"))
+        return reward_amount
+
+    @staticmethod
+    def _last_balance_for_update(owner) -> Decimal:
+        return (
+            ReferralLedger.objects.select_for_update()
+            .filter(owner=owner)
             .order_by("-created_at")
             .values_list("balance_after", flat=True)
             .first()
             or Decimal("0.00")
         )
+
+    @classmethod
+    @transaction.atomic
+    def reward_for_paid_order(
+        cls,
+        attribution: ReferralAttribution,
+        trigger_reference: str,
+        order_amount: Decimal | str | int | float | None = None,
+    ) -> ReferralReward:
+        """Create exactly one approved referral reward for one paid-order trigger.
+
+        Payment webhooks are at-least-once delivered. This service is therefore
+        intentionally idempotent by business key:
+        attribution + trigger_type + trigger_reference.
+        """
+        trigger_reference = str(trigger_reference or "").strip()
+        if not trigger_reference:
+            raise ValueError("trigger_reference is required for referral reward idempotency.")
+
+        attribution = (
+            ReferralAttribution.objects.select_for_update()
+            .select_related("invite__code__program", "invite__code__owner")
+            .get(pk=attribution.pk)
+        )
+
+        existing = (
+            ReferralReward.objects.select_related("attribution__invite__code__owner")
+            .filter(
+                attribution=attribution,
+                trigger_type=cls.TRIGGER_ORDER_PAID,
+                trigger_reference=trigger_reference,
+            )
+            .first()
+        )
+        if existing:
+            return existing
+
+        program: ReferralProgram = attribution.invite.code.program
+        reward = ReferralReward.objects.create(
+            attribution=attribution,
+            trigger_type=cls.TRIGGER_ORDER_PAID,
+            trigger_reference=trigger_reference,
+            amount=cls._calculate_reward_amount(program=program, order_amount=order_amount),
+            status=ReferralReward.STATUS_APPROVED,
+        )
+
+        owner = attribution.invite.code.owner
+        last_balance = cls._last_balance_for_update(owner)
         ReferralLedger.objects.create(
             owner=owner,
             reward=reward,
@@ -82,8 +141,11 @@ class ReferralRewardService:
             amount=reward.amount,
             balance_after=last_balance + reward.amount,
         )
+
         invite = attribution.invite
-        invite.status = ReferralInvite.STATUS_CONVERTED
-        invite.converted_at = timezone.now()
-        invite.save(update_fields=["status", "converted_at"])
+        if invite.status != ReferralInvite.STATUS_CONVERTED:
+            invite.status = ReferralInvite.STATUS_CONVERTED
+            invite.converted_at = timezone.now()
+            invite.save(update_fields=["status", "converted_at"])
+
         return reward

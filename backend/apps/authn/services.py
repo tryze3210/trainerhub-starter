@@ -22,13 +22,21 @@ def _wrap_auth_payload(user) -> dict[str, Any]:
     return {'user': get_account_payload(user), **_token_payload_for_user(user)}
 
 
-def _resolved_full_name(*, normalized_email: str, full_name: str = '', first_name: str = '', last_name: str = '') -> str:
+def _resolved_full_name(
+    *,
+    normalized_email: str,
+    full_name: str = '',
+    first_name: str = '',
+    last_name: str = '',
+) -> str:
     value = (full_name or '').strip()
     if value:
         return value
+
     pieces = [piece.strip() for piece in [first_name, last_name] if (piece or '').strip()]
     if pieces:
         return ' '.join(pieces)
+
     return normalized_email.split('@', 1)[0]
 
 
@@ -40,7 +48,18 @@ def _assign_role(*, user, role: str, is_active: bool) -> None:
     )
 
 
-def register_user(*, email: str, password: str, full_name: str = '', first_name: str = '', last_name: str = '', role: str = 'user') -> dict[str, Any]:
+def register_user(
+    *,
+    email: str,
+    password: str,
+    full_name: str = '',
+    first_name: str = '',
+    last_name: str = '',
+    role: str = 'user',
+    referral_invite_id: str | None = None,
+    referral_code: str = '',
+    click_session_key: str = '',
+) -> dict[str, Any]:
     normalized_email = email.strip().lower()
     resolved_name = _resolved_full_name(
         normalized_email=normalized_email,
@@ -48,6 +67,7 @@ def register_user(*, email: str, password: str, full_name: str = '', first_name:
         first_name=first_name,
         last_name=last_name,
     )
+
     try:
         if User.objects.filter(email=normalized_email).exists():
             raise ValidationError({'email': 'User with this email already exists'})
@@ -62,9 +82,24 @@ def register_user(*, email: str, password: str, full_name: str = '', first_name:
         )
         AccountProfile.objects.create(user=user, full_name=resolved_name, display_name=resolved_name)
         AccountSettings.objects.create(user=user)
-        _assign_role(user=user, role=AccountRoleAssignment.ROLE_USER, is_active=role != AccountRoleAssignment.ROLE_TRAINER)
+
+        from apps.referrals.services.integration import ReferralIntegrationService
+
+        ReferralIntegrationService.bind_signup_from_request(
+            referred_user=user,
+            invite_id=referral_invite_id,
+            referral_code=referral_code,
+            click_session_key=click_session_key,
+        )
+
+        _assign_role(
+            user=user,
+            role=AccountRoleAssignment.ROLE_USER,
+            is_active=role != AccountRoleAssignment.ROLE_TRAINER,
+        )
         if role == AccountRoleAssignment.ROLE_TRAINER:
             _assign_role(user=user, role=AccountRoleAssignment.ROLE_TRAINER, is_active=True)
+
         return _wrap_auth_payload(user)
     except RuntimeError:
         return {'user': {'email': normalized_email, 'full_name': resolved_name, 'display_name': resolved_name}}

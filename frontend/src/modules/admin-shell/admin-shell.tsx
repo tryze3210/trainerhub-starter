@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+type AdminNavGroup = 'core' | 'commercial' | 'risk' | 'settings';
+
 type AdminNavItem = {
   href: string;
   label: string;
   description: string;
-  group: 'core' | 'commercial' | 'risk' | 'settings';
+  group: AdminNavGroup;
 };
 
 const NAV_ITEMS: AdminNavItem[] = [
@@ -55,6 +57,12 @@ const NAV_ITEMS: AdminNavItem[] = [
     group: 'commercial',
   },
   {
+    href: '/admin/referrals',
+    label: 'Referrals',
+    description: 'Ambassador rewards, attribution, integrity',
+    group: 'commercial',
+  },
+  {
     href: '/admin/analytics',
     label: 'Analytics',
     description: 'KPI, revenue, conversion',
@@ -92,7 +100,7 @@ const NAV_ITEMS: AdminNavItem[] = [
   },
 ];
 
-const GROUP_LABELS: Record<AdminNavItem['group'], string> = {
+const GROUP_LABELS: Record<AdminNavGroup, string> = {
   core: 'Core',
   commercial: 'Commercial',
   risk: 'Risk & ops',
@@ -106,23 +114,9 @@ function isActivePath(pathname: string, href: string) {
 
 function AdminNavLink({ item, active }: { item: AdminNavItem; active: boolean }) {
   return (
-    <Link
-      href={item.href}
-      aria-current={active ? 'page' : undefined}
-      className={active ? 'card dark' : 'card'}
-      style={{
-        display: 'block',
-        padding: 14,
-        textDecoration: 'none',
-        borderColor: active ? 'rgba(255,255,255,0.24)' : undefined,
-      }}
-    >
-      <div className="stack" style={{ gap: 4 }}>
-        <strong>{item.label}</strong>
-        <span className={active ? 'muted-light' : 'muted'} style={{ fontSize: 13, lineHeight: 1.35 }}>
-          {item.description}
-        </span>
-      </div>
+    <Link className={`trainer-side-nav__item ${active ? 'is-active' : ''}`} href={item.href}>
+      <strong>{item.label}</strong>
+      <small style={{ display: 'block', marginTop: 4 }}>{item.description}</small>
     </Link>
   );
 }
@@ -132,71 +126,41 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const activeItem = NAV_ITEMS.find((item) => isActivePath(pathname, item.href));
 
   return (
-    <div className="stack" style={{ gap: 24 }}>
-      <section className="card dark">
-        <div className="stack" style={{ gap: 14 }}>
-          <div className="inline" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-            <div className="stack" style={{ gap: 8 }}>
-              <span className="badge secondary">Admin console</span>
-              <div>
-                <h1 className="title-lg">TrainerHub admin</h1>
-                <p className="lead" style={{ marginTop: 8 }}>
-                  Единая навигация для операций, риска, выплат, модерации и аналитики.
-                </p>
-              </div>
+    <section className="page">
+      <div className="container trainer-dashboard-shell">
+        <aside className="trainer-dashboard-shell__sidebar card">
+          <span className="badge secondary">Admin console</span>
+          <h1 className="title-md" style={{ marginTop: 12 }}>TrainerHub admin</h1>
+          <p className="muted">Единая навигация для операций, риска, выплат, referral growth, модерации и аналитики.</p>
+
+          {activeItem ? (
+            <div className="list-item" style={{ marginTop: 16 }}>
+              <span className="muted">Current section</span>
+              <strong>{activeItem.label}</strong>
+              <small>{activeItem.description}</small>
             </div>
+          ) : null}
 
-            {activeItem ? (
-              <div className="card" style={{ minWidth: 220, padding: 14 }}>
-                <div className="stack" style={{ gap: 4 }}>
-                  <span className="muted">Current section</span>
-                  <strong>{activeItem.label}</strong>
-                  <span className="muted" style={{ fontSize: 13 }}>{activeItem.description}</span>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <nav className="trainer-side-nav" aria-label="Admin navigation">
+            {(['risk', 'commercial', 'core', 'settings'] as const).map((group) => {
+              const items = NAV_ITEMS.filter((item) => item.group === group);
 
-          <div className="inline" style={{ flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/admin/operations" className="button">Operations</Link>
-            <Link href="/admin/audit" className="button secondary">Audit</Link>
-            <Link href="/admin/reconciliation" className="button secondary">Reconciliation</Link>
-            <Link href="/admin/reconciliation/snapshots" className="button secondary">Snapshots</Link>
-            <Link href="/admin/payouts" className="button secondary">Payouts</Link>
-            <Link href="/admin/moderation" className="button secondary">Moderation</Link>
-            <Link href="/admin/analytics" className="button ghost">Analytics</Link>
-          </div>
-        </div>
-      </section>
-
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(220px, 280px) minmax(0, 1fr)',
-          gap: 24,
-          alignItems: 'start',
-        }}
-      >
-        <aside className="stack" style={{ gap: 14, position: 'sticky', top: 24 }}>
-          {(['risk', 'commercial', 'core', 'settings'] as const).map((group) => {
-            const items = NAV_ITEMS.filter((item) => item.group === group);
-            return (
-              <div className="stack" key={group} style={{ gap: 8 }}>
-                <span className="badge secondary">{GROUP_LABELS[group]}</span>
-                <nav className="stack" style={{ gap: 8 }} aria-label={`${GROUP_LABELS[group]} admin navigation`}>
+              return (
+                <div className="stack" key={group} style={{ gap: 8 }}>
+                  <span className="muted" style={{ fontWeight: 700 }}>{GROUP_LABELS[group]}</span>
                   {items.map((item) => (
                     <AdminNavLink key={item.href} item={item} active={isActivePath(pathname, item.href)} />
                   ))}
-                </nav>
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </nav>
         </aside>
 
-        <div className="stack" style={{ gap: 24, minWidth: 0 }}>
+        <div className="trainer-dashboard-shell__content stack" style={{ gap: 24 }}>
           {children}
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

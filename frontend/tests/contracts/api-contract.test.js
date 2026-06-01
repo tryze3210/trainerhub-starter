@@ -13,10 +13,8 @@ const route = (path) => `${API_BASE_URL}${path}`;
   assert.equal(route('/content/bundles/demo-bundle/'), `${API_BASE_URL}/content/bundles/demo-bundle/`);
   assert.equal(route('/trainers/'), `${API_BASE_URL}/trainers/`);
   assert.equal(route('/trainers/demo-trainer/'), `${API_BASE_URL}/trainers/demo-trainer/`);
-
   assert.equal(route('/orders/checkout/'), `${API_BASE_URL}/orders/checkout/`);
   assert.equal(route('/payments-webhooks/receive/'), `${API_BASE_URL}/payments-webhooks/receive/`);
-
   assert.equal(route('/trainers/me/revenue/summary/'), `${API_BASE_URL}/trainers/me/revenue/summary/`);
   assert.equal(route('/trainers/me/revenue/transactions/'), `${API_BASE_URL}/trainers/me/revenue/transactions/`);
   assert.equal(route('/trainers/me/revenue/payouts/'), `${API_BASE_URL}/trainers/me/revenue/payouts/`);
@@ -26,7 +24,6 @@ const route = (path) => `${API_BASE_URL}${path}`;
   assert.equal(route('/trainers/me/onboarding/status/'), `${API_BASE_URL}/trainers/me/onboarding/status/`);
   assert.equal(route('/trainers/me/application-status/'), `${API_BASE_URL}/trainers/me/application-status/`);
   assert.equal(route('/trainers/admin/applications/'), `${API_BASE_URL}/trainers/admin/applications/`);
-
   assert.equal(route('/payouts/my/balance/'), `${API_BASE_URL}/payouts/my/balance/`);
   assert.equal(route('/payouts/my/request/'), `${API_BASE_URL}/payouts/my/request/`);
   assert.equal(route('/payouts/my/'), `${API_BASE_URL}/payouts/my/`);
@@ -45,18 +42,15 @@ const route = (path) => `${API_BASE_URL}${path}`;
   assert.equal(route('/payouts/admin/risk-holds/release/'), `${API_BASE_URL}/payouts/admin/risk-holds/release/`);
   assert.equal(route('/payouts/admin/reconciliation/'), `${API_BASE_URL}/payouts/admin/reconciliation/`);
   assert.equal(route('/payouts/admin/reconciliation/repair/'), `${API_BASE_URL}/payouts/admin/reconciliation/repair/`);
-
   assert.equal(route('/products/trainer/'), `${API_BASE_URL}/products/trainer/`);
   assert.equal(route('/subscriptions/lifecycle-policy/'), `${API_BASE_URL}/subscriptions/lifecycle-policy/`);
   assert.equal(route('/subscriptions/lifecycle-summary/'), `${API_BASE_URL}/subscriptions/lifecycle-summary/`);
   assert.equal(route('/subscriptions/admin/reconcile-entitlements/'), `${API_BASE_URL}/subscriptions/admin/reconcile-entitlements/`);
   assert.equal(route('/entitlements/me/access-check/'), `${API_BASE_URL}/entitlements/me/access-check/`);
-
   assert.equal(route('/ops/admin/operations-dashboard/'), `${API_BASE_URL}/ops/admin/operations-dashboard/`);
   assert.equal(route('/ops/admin/operations-hub/'), `${API_BASE_URL}/ops/admin/operations-hub/`);
   assert.equal(route('/ops/admin/operations-readiness/'), `${API_BASE_URL}/ops/admin/operations-readiness/`);
   assert.equal(route('/ops/admin/commerce-readiness/'), `${API_BASE_URL}/ops/admin/commerce-readiness/`);
-
   assert.equal(route('/ops/admin/reconciliation-snapshots/'), `${API_BASE_URL}/ops/admin/reconciliation-snapshots/`);
   assert.equal(route('/ops/admin/reconciliation-snapshots/latest/'), `${API_BASE_URL}/ops/admin/reconciliation-snapshots/latest/`);
   assert.equal(route('/ops/admin/reconciliation-snapshots/compare/'), `${API_BASE_URL}/ops/admin/reconciliation-snapshots/compare/`);
@@ -64,6 +58,17 @@ const route = (path) => `${API_BASE_URL}${path}`;
   assert.equal(route('/ops/admin/reconciliation-snapshots/schedule/'), `${API_BASE_URL}/ops/admin/reconciliation-snapshots/schedule/`);
   assert.equal(route('/ops/admin/reconciliation-snapshots/retention/'), `${API_BASE_URL}/ops/admin/reconciliation-snapshots/retention/`);
   assert.equal(route('/ops/admin/reconciliation-snapshots/issues/'), `${API_BASE_URL}/ops/admin/reconciliation-snapshots/issues/`);
-
+  assert.equal(route('/referrals/admin/ops/overview/'), `${API_BASE_URL}/referrals/admin/ops/overview/`);
+  assert.equal(route('/referrals/admin/rewards/'), `${API_BASE_URL}/referrals/admin/rewards/`);
+  assert.equal(route('/referrals/admin/rewards/export.csv'), `${API_BASE_URL}/referrals/admin/rewards/export.csv`);
+  assert.equal(route('/referrals/admin/rewards/demo-reward/'), `${API_BASE_URL}/referrals/admin/rewards/demo-reward/`);
+  assert.equal(route('/referrals/admin/ledger/'), `${API_BASE_URL}/referrals/admin/ledger/`);
+  assert.equal(route('/referrals/admin/ledger/export.csv'), `${API_BASE_URL}/referrals/admin/ledger/export.csv`);
+  assert.equal(route('/referrals/admin/invites/'), `${API_BASE_URL}/referrals/admin/invites/`);
+  assert.equal(route('/referrals/admin/invites/export.csv'), `${API_BASE_URL}/referrals/admin/invites/export.csv`);
+  assert.equal(route('/referrals/admin/invites/demo-invite/'), `${API_BASE_URL}/referrals/admin/invites/demo-invite/`);
+  assert.equal(route('/referrals/admin/attributions/'), `${API_BASE_URL}/referrals/admin/attributions/`);
+  assert.equal(route('/audit/admin/events/'), `${API_BASE_URL}/audit/admin/events/`);
+  assert.equal(route('/audit/admin/events/export.csv'), `${API_BASE_URL}/audit/admin/events/export.csv`);
   console.log('frontend contract routes ok');
 })();

@@ -1,25 +1,31 @@
-# TrainerHub v49 patch — referrals engine
+# TrainerHub v61 — admin audit retention summary
 
-Этот patch добавляет отдельный bounded context `referrals` для growth / ambassador / promo attribution.
+Safe files-only archive. No scripts, no patch files.
 
-## Что внутри
-- referral domain models
-- application services
-- DRF API
-- Celery snippets
-- frontend scaffolds
-- install notes
+Adds a read-only admin endpoint:
 
-## Основные сущности
-- ReferralProgram
-- ReferralCode
-- ReferralInvite
-- ReferralAttribution
-- ReferralReward
-- ReferralLedger
+```text
+GET /api/v1/audit/admin/retention/summary/
+```
 
-## Дальше по интеграции
-Главные integration seams:
-- signup / registration flow
-- order paid / conversion flow
-- analytics utm attribution bridge
+It helps the platform owner inspect audit table growth before implementing a destructive retention policy.
+
+## Apply
+
+From repository root:
+
+```bash
+cp -a trainerhub_v61_admin_audit_retention_summary_verified_files/backend .
+cp -a trainerhub_v61_admin_audit_retention_summary_verified_files/docs .
+```
+
+## Verify
+
+```bash
+cd backend
+python manage.py check
+python manage.py makemigrations --check --dry-run
+pytest tests/test_audit_v58_admin_filters.py \
+       tests/test_audit_v60_admin_csv_export.py \
+       tests/test_audit_v61_retention_summary.py -q
+```

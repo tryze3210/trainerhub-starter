@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 
@@ -88,6 +89,15 @@ class ReferralReward(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["trigger_type", "trigger_reference"], name="ref_reward_trigger_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["attribution", "trigger_type", "trigger_reference"],
+                name="ref_reward_once_per_trigger",
+            ),
+        ]
 
 
 class ReferralLedger(models.Model):
