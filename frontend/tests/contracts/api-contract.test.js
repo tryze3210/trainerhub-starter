@@ -70,5 +70,6 @@ const route = (path) => `${API_BASE_URL}${path}`;
   assert.equal(route('/referrals/admin/attributions/'), `${API_BASE_URL}/referrals/admin/attributions/`);
   assert.equal(route('/audit/admin/events/'), `${API_BASE_URL}/audit/admin/events/`);
   assert.equal(route('/audit/admin/events/export.csv'), `${API_BASE_URL}/audit/admin/events/export.csv`);
+  assert.equal(route('/audit/admin/retention/summary/'), `${API_BASE_URL}/audit/admin/retention/summary/`);
   console.log('frontend contract routes ok');
 })();

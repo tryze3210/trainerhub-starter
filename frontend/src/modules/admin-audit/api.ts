@@ -47,9 +47,38 @@ export type AuditEventFilters = {
   limit?: number;
 };
 
+export type AuditRetentionFilters = Omit<AuditEventFilters, 'limit'> & {
+  older_than_days?: number;
+};
+
+export type AuditRetentionEventTypeBucket = {
+  event_type: string | null;
+  count: number;
+};
+
+export type AuditRetentionEntityTypeBucket = {
+  entity_type: string | null;
+  count: number;
+};
+
+export type AuditRetentionSummary = {
+  older_than_days: number;
+  cutoff: string;
+  total_matching_events: number;
+  stale_events: number;
+  oldest_created_at: string | null;
+  newest_created_at: string | null;
+  filters: Record<string, string>;
+  by_event_type: AuditRetentionEventTypeBucket[];
+  by_entity_type: AuditRetentionEntityTypeBucket[];
+  note: string;
+};
+
 type AuditEventListPayload = AuditEvent[] | PaginatedResponse<AuditEvent> | null | undefined;
 
-function buildQuery(params?: AuditEventFilters) {
+type AuditQueryParams = AuditEventFilters | AuditRetentionFilters;
+
+function buildQuery(params?: AuditQueryParams) {
   const search = new URLSearchParams();
 
   if (params?.event_type) search.set('event_type', params.event_type);
@@ -59,7 +88,12 @@ function buildQuery(params?: AuditEventFilters) {
   if (params?.created_from) search.set('created_from', params.created_from);
   if (params?.created_to) search.set('created_to', params.created_to);
   if (params?.search) search.set('search', params.search);
-  if (params?.limit) search.set('limit', String(params.limit));
+
+  const limit = params && 'limit' in params ? params.limit : undefined;
+  if (limit) search.set('limit', String(limit));
+
+  const olderThanDays = params && 'older_than_days' in params ? params.older_than_days : undefined;
+  if (olderThanDays) search.set('older_than_days', String(olderThanDays));
 
   const query = search.toString();
   return query ? `?${query}` : '';
@@ -96,6 +130,10 @@ function defaultAuditExportFilename(): string {
 
 export function buildAdminAuditExportPath(params?: AuditEventFilters): string {
   return `/audit/admin/events/export.csv${buildQuery(params)}`;
+}
+
+export function buildAdminAuditRetentionSummaryPath(params?: AuditRetentionFilters): string {
+  return `/audit/admin/retention/summary/${buildQuery(params)}`;
 }
 
 export async function downloadAdminAuditCsv(params?: AuditEventFilters): Promise<string> {
@@ -142,5 +180,9 @@ export const adminAuditApi = {
     );
 
     return normalizeListResponse<AuditEvent>(payload);
+  },
+
+  async getRetentionSummary(params?: AuditRetentionFilters): Promise<AuditRetentionSummary> {
+    return apiRequest<AuditRetentionSummary>(buildAdminAuditRetentionSummaryPath(params), { auth: true });
   },
 };

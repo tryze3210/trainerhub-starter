@@ -7,7 +7,7 @@ import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
 import { adminAuditApi, downloadAdminAuditCsv } from '@/modules/admin-audit/api';
 import { adminEntityHref } from '@/modules/admin-entity-details/api';
-import type { AuditEvent, AuditEventContext } from '@/modules/admin-audit/api';
+import type { AuditEvent, AuditEventContext, AuditRetentionSummary } from '@/modules/admin-audit/api';
 
 const ACTION_PRESETS = [
   '',
@@ -29,6 +29,8 @@ const ENTITY_PRESETS = [
   'payout_request',
   'payment_webhook',
 ];
+
+const RETENTION_DAY_PRESETS = [30, 90, 180, 365, 730, 1095];
 
 function label(value: string) {
   return value.replaceAll('_', ' ');
@@ -101,6 +103,34 @@ function StatCard({ title, value, hint }: { title: string; value: string | numbe
       <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
       {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
     </div>
+  );
+}
+
+function RetentionBucketList<T extends { count: number }>({
+  title,
+  items,
+  getLabel,
+}: {
+  title: string;
+  items: T[];
+  getLabel: (item: T) => string;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
+      <div className="mt-4 space-y-2">
+        {items.length === 0 ? <p className="text-sm text-slate-500">Нет старых audit events в этом разрезе.</p> : null}
+        {items.map((item, index) => (
+          <div
+            key={`${getLabel(item)}-${index}`}
+            className="flex items-center justify-between gap-3 rounded-xl bg-slate-900 px-3 py-2"
+          >
+            <span className="truncate text-sm text-slate-300">{label(getLabel(item))}</span>
+            <span className="text-sm font-semibold text-white">{item.count.toLocaleString('ru-RU')}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -195,6 +225,8 @@ export default function AdminAuditPage() {
   const isAdmin = user?.active_role === 'admin';
 
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [retentionSummary, setRetentionSummary] = useState<AuditRetentionSummary | null>(null);
+  const [retentionDays, setRetentionDays] = useState(180);
   const [eventType, setEventType] = useState('');
   const [entityType, setEntityType] = useState('');
   const [entityId, setEntityId] = useState('');
@@ -204,9 +236,40 @@ export default function AdminAuditPage() {
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(100);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRetentionLoading, setIsRetentionLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [msg, setMsg] = useState('');
   const [notice, setNotice] = useState('');
+
+  const sharedFilters = useMemo(
+    () => ({
+      event_type: eventType.trim() || undefined,
+      entity_type: entityType.trim() || undefined,
+      entity_id: entityId.trim() || undefined,
+      actor_id: actorId.trim() || undefined,
+      created_from: createdFrom || undefined,
+      created_to: createdTo || undefined,
+      search: search.trim() || undefined,
+    }),
+    [actorId, createdFrom, createdTo, entityId, entityType, eventType, search]
+  );
+
+  const loadRetention = useCallback(async () => {
+    if (!isAdmin) return;
+
+    try {
+      setIsRetentionLoading(true);
+      const payload = await adminAuditApi.getRetentionSummary({
+        ...sharedFilters,
+        older_than_days: retentionDays,
+      });
+      setRetentionSummary(payload);
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Не удалось загрузить retention summary');
+    } finally {
+      setIsRetentionLoading(false);
+    }
+  }, [isAdmin, retentionDays, sharedFilters]);
 
   const load = useCallback(async () => {
     if (!isAdmin) return;
@@ -217,13 +280,7 @@ export default function AdminAuditPage() {
       setNotice('');
 
       const payload = await adminAuditApi.listEvents({
-        event_type: eventType.trim() || undefined,
-        entity_type: entityType.trim() || undefined,
-        entity_id: entityId.trim() || undefined,
-        actor_id: actorId.trim() || undefined,
-        created_from: createdFrom || undefined,
-        created_to: createdTo || undefined,
-        search: search.trim() || undefined,
+        ...sharedFilters,
         limit,
       });
 
@@ -233,11 +290,12 @@ export default function AdminAuditPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [actorId, createdFrom, createdTo, entityId, entityType, eventType, isAdmin, limit, search]);
+  }, [isAdmin, limit, sharedFilters]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadRetention();
+  }, [load, loadRetention]);
 
   const stats = useMemo(() => {
     const byAction = new Map<string, number>();
@@ -272,24 +330,22 @@ export default function AdminAuditPage() {
     setLimit(100);
   }
 
+  function applyFilters() {
+    void load();
+    void loadRetention();
+  }
+
   async function exportCsv() {
     try {
       setIsExporting(true);
       setMsg('');
       setNotice('');
 
-      const filename = await downloadAdminAuditCsv({
-        event_type: eventType.trim() || undefined,
-        entity_type: entityType.trim() || undefined,
-        entity_id: entityId.trim() || undefined,
-        actor_id: actorId.trim() || undefined,
-        created_from: createdFrom || undefined,
-        created_to: createdTo || undefined,
-        search: search.trim() || undefined,
-      });
+      const filename = await downloadAdminAuditCsv(sharedFilters);
 
       setNotice(`CSV export downloaded: ${filename}`);
       void load();
+      void loadRetention();
     } catch (error) {
       setMsg(error instanceof Error ? error.message : 'Не удалось скачать audit CSV');
     } finally {
@@ -328,10 +384,10 @@ export default function AdminAuditPage() {
               </button>
               <button
                 type="button"
-                onClick={() => void load()}
+                onClick={applyFilters}
                 className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-slate-200"
               >
-                {isLoading ? 'Загрузка...' : 'Обновить'}
+                {isLoading || isRetentionLoading ? 'Загрузка...' : 'Обновить'}
               </button>
             </div>
           </div>
@@ -423,6 +479,20 @@ export default function AdminAuditPage() {
                 />
               </Field>
 
+              <Field label="Retention days">
+                <select
+                  value={retentionDays}
+                  onChange={(event) => setRetentionDays(Number(event.target.value))}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
+                >
+                  {RETENTION_DAY_PRESETS.map((days) => (
+                    <option key={days} value={days}>
+                      {days} days
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
               <Field label="Limit">
                 <select
                   value={limit}
@@ -440,7 +510,7 @@ export default function AdminAuditPage() {
             <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => void load()}
+                onClick={applyFilters}
                 className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500"
               >
                 Применить фильтр
@@ -461,6 +531,71 @@ export default function AdminAuditPage() {
                 Сбросить
               </button>
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Retention planning</p>
+                <h2 className="mt-1 text-xl font-semibold text-white">Audit retention summary</h2>
+                <p className="mt-2 max-w-3xl text-sm text-slate-400">
+                  Read-only snapshot: сколько audit events старше выбранного срока попадёт под будущую retention policy.
+                  Этот блок ничего не удаляет.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void loadRetention()}
+                disabled={isRetentionLoading}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRetentionLoading ? 'Loading...' : 'Refresh retention'}
+              </button>
+            </div>
+
+            {retentionSummary ? (
+              <div className="mt-5 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <StatCard
+                    title="Older than"
+                    value={`${retentionSummary.older_than_days} days`}
+                    hint={`cutoff: ${formatDate(retentionSummary.cutoff)}`}
+                  />
+                  <StatCard
+                    title="Matching events"
+                    value={retentionSummary.total_matching_events.toLocaleString('ru-RU')}
+                    hint="по текущему фильтру без limit"
+                  />
+                  <StatCard
+                    title="Stale events"
+                    value={retentionSummary.stale_events.toLocaleString('ru-RU')}
+                    hint="кандидаты для будущей cleanup policy"
+                  />
+                  <StatCard
+                    title="Oldest event"
+                    value={formatDate(retentionSummary.oldest_created_at)}
+                    hint={`newest stale: ${formatDate(retentionSummary.newest_created_at)}`}
+                  />
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <RetentionBucketList
+                    title="Stale events by event type"
+                    items={retentionSummary.by_event_type}
+                    getLabel={(item) => ('event_type' in item ? item.event_type || 'unknown' : 'unknown')}
+                  />
+                  <RetentionBucketList
+                    title="Stale events by entity type"
+                    items={retentionSummary.by_entity_type}
+                    getLabel={(item) => ('entity_type' in item ? item.entity_type || 'unknown' : 'unknown')}
+                  />
+                </div>
+
+                <p className="text-xs text-slate-500">{retentionSummary.note}</p>
+              </div>
+            ) : (
+              <p className="mt-5 text-sm text-slate-500">Retention summary ещё не загружен.</p>
+            )}
           </section>
 
           <div className="grid gap-4 md:grid-cols-2">

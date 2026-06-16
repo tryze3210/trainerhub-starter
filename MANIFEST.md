@@ -1,21 +1,25 @@
-# Manifest — TrainerHub v61
+# MANIFEST — v68 payout admin frontend dashboard
 
-Changed files:
+## Existing files replaced
 
-- `backend/apps/audit/api/views.py`
-- `backend/apps/audit/api/urls.py`
+- `frontend/src/modules/admin-payouts/api.ts`
+- `frontend/src/modules/admin-payouts/components/admin-payout-operations-dashboard.tsx`
 
-New files:
+## New files
 
-- `backend/tests/test_audit_v61_retention_summary.py`
-- `docs/v61_admin_audit_retention_summary.md`
+- `docs/v68_payout_admin_frontend_dashboard.md`
 
-Not included:
+## Files intentionally not touched
 
-- scripts
-- patches
-- snippets
-- `__pycache__`
-- `.pyc`
-- `node_modules`
-- `tsconfig.tsbuildinfo`
+- `frontend/src/modules/admin-shell/admin-shell.tsx`
+- `frontend/tests/contracts/api-contract.test.js`
+- `backend/**`
+- `patches/**`
+- `scripts/**`
+- `snippets/**`
+
+## Verification performed before archive
+
+- Archive tree inspected.
+- `wc -c` size report generated into `SIZE_CHECK.md`.
+- Confirmed no `.patch`, runtime script, snippet, `__pycache__`, `.pyc`, `node_modules`, or `tsconfig.tsbuildinfo` is included.

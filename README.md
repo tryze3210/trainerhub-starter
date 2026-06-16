@@ -1,31 +1,61 @@
-# TrainerHub v61 — admin audit retention summary
+# TrainerHub v68 — payout admin frontend dashboard
 
-Safe files-only archive. No scripts, no patch files.
+Frontend-only dashboard hardening for payout admin operations.
 
-Adds a read-only admin endpoint:
+## Adds
 
-```text
-GET /api/v1/audit/admin/retention/summary/
-```
+- `/admin/payouts` now consumes the read-only payout admin-ops API from v65/v67.
+- Dashboard blocks for:
+  - payout admin-ops summary;
+  - wallet totals;
+  - payout status buckets;
+  - payout ledger buckets;
+  - reconciliation snapshot;
+  - CSV exports for payout requests and payout ledger.
+- Existing payout workflow controls are preserved:
+  - approve;
+  - processing;
+  - mark-paid;
+  - reject;
+  - bulk transitions;
+  - risk hold release;
+  - projection outbox;
+  - reconciliation repair controls.
 
-It helps the platform owner inspect audit table growth before implementing a destructive retention policy.
+## Safety notes
+
+This archive intentionally does **not** modify:
+
+- `frontend/src/modules/admin-shell/admin-shell.tsx`
+- `frontend/tests/contracts/api-contract.test.js`
+- backend files
+- migrations
+
+Only two existing frontend files are replaced. Both files are complete, formatted replacements and were checked with `wc -c` before zipping.
 
 ## Apply
 
-From repository root:
-
 ```bash
-cp -a trainerhub_v61_admin_audit_retention_summary_verified_files/backend .
-cp -a trainerhub_v61_admin_audit_retention_summary_verified_files/docs .
+cd /home/tryze/Рабочий\ стол/мои\ работы/trainerhub-starter
+
+unzip ~/Загрузки/trainerhub_v68_payout_admin_frontend_dashboard_verified_files.zip
+
+cp -a trainerhub_v68_payout_admin_frontend_dashboard_verified_files/frontend .
+cp -a trainerhub_v68_payout_admin_frontend_dashboard_verified_files/docs .
 ```
 
 ## Verify
 
 ```bash
-cd backend
-python manage.py check
-python manage.py makemigrations --check --dry-run
-pytest tests/test_audit_v58_admin_filters.py \
-       tests/test_audit_v60_admin_csv_export.py \
-       tests/test_audit_v61_retention_summary.py -q
+cd frontend
+npm run typecheck
+npm run build
+npm run test:contracts
+```
+
+Then remove TypeScript build cache if it appears:
+
+```bash
+cd /home/tryze/Рабочий\ стол/мои\ работы/trainerhub-starter
+git checkout -- frontend/tsconfig.tsbuildinfo
 ```
