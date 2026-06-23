@@ -230,6 +230,51 @@ export type PayoutAdminOpsReconciliationSnapshot = {
   };
 };
 
+export type PayoutIntegrityIssue = {
+  code: string;
+  severity: string;
+  message?: string;
+  trainer_id?: string;
+  wallet_id?: string;
+  payout_id?: string;
+  ledger_entry_id?: string;
+  currency?: string;
+  amount?: string;
+  active_amount?: string;
+  locked_amount?: string;
+  expected_amount?: string;
+  actual_amount?: string;
+  reserve_amount?: string;
+  payout_amount?: string;
+  delta?: string;
+  status?: string;
+  entry_type?: string;
+  direction?: string;
+  source_type?: string;
+  [key: string]: unknown;
+};
+
+export type PayoutAdminOpsIntegritySnapshot = {
+  generated_at?: string;
+  mode?: string;
+  filters?: Record<string, string | number | null | undefined>;
+  summary?: {
+    status?: string;
+    issue_count?: number;
+    wallet_count?: number;
+    payouts_scanned?: number;
+    ledger_entries_scanned?: number;
+    truncated?: boolean;
+  };
+  issue_codes?: Record<string, number>;
+  issue_severities?: Record<string, number>;
+  issues?: PayoutIntegrityIssue[];
+  actions?: {
+    repair_performed?: boolean;
+    note?: string;
+  };
+};
+
 function listFromPayload<T>(payload: T[] | PaginatedResponse<T> | { results?: T[] } | null | undefined): T[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -403,6 +448,13 @@ export const adminPayoutsApi = {
   async getAdminOpsReconciliationSnapshot(params?: PayoutAdminOpsFilters) {
     return apiRequest<PayoutAdminOpsReconciliationSnapshot>(
       `/payouts/admin-ops/reconciliation/snapshot/${buildQuery(params)}`,
+      { auth: true }
+    );
+  },
+
+  async getAdminOpsIntegritySnapshot(params?: PayoutAdminOpsFilters) {
+    return apiRequest<PayoutAdminOpsIntegritySnapshot>(
+      `/payouts/admin-ops/integrity/${buildQuery(params)}`,
       { auth: true }
     );
   },

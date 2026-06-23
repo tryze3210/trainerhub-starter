@@ -11,21 +11,25 @@ import {
   type AdminPayoutRiskHold,
   type AdminPayoutRiskHoldSummary,
   type PayoutAdminOpsFilters,
+  type PayoutAdminOpsIntegritySnapshot,
   type PayoutAdminOpsReconciliationSnapshot,
   type PayoutAdminOpsSummaryResponse,
   type PayoutReconciliationIssue,
   type PayoutReconciliationReport,
 } from '@/modules/admin-payouts/api';
+import { adminAuditApi, type AuditEvent } from '@/modules/admin-audit/api';
 
 type DashboardState = {
   overview: AdminPayoutOverview | null;
   adminOps: PayoutAdminOpsSummaryResponse | null;
   adminOpsReconciliation: PayoutAdminOpsReconciliationSnapshot | null;
+  payoutIntegrity: PayoutAdminOpsIntegritySnapshot | null;
   payouts: AdminPayoutRequest[];
   reconciliation: PayoutReconciliationReport | null;
   riskSummary: AdminPayoutRiskHoldSummary | null;
   riskHolds: AdminPayoutRiskHold[];
   projection: AdminPayoutProjectionHealth | null;
+  payoutExportAudits: AuditEvent[];
 };
 
 type PayoutAction = 'approve' | 'processing' | 'paid' | 'reject';
@@ -34,6 +38,12 @@ type BusyState = string | null;
 
 const STATUS_OPTIONS = ['', 'pending', 'approved', 'processing', 'paid', 'rejected'];
 const CURRENCY_OPTIONS = ['RUB', 'EUR', 'USD'];
+
+const PAYOUT_EXPORT_AUDIT_FILTERS = {
+  event_type: 'admin.payouts.admin_ops.csv_export',
+  entity_type: 'payout_export',
+  limit: 25,
+};
 
 function money(value: string | number | null | undefined, currency = 'RUB') {
   const amount = Number(value ?? 0);
@@ -61,6 +71,10 @@ function stringify(value: unknown) {
   if (value === null || value === undefined || value === '') return '—';
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+}
+
+function auditContextValue(event: AuditEvent, key: string) {
+  return stringify(event.context?.[key]);
 }
 
 function toneClass(status: string | undefined) {
@@ -133,11 +147,13 @@ export function AdminPayoutOperationsDashboard() {
     overview: null,
     adminOps: null,
     adminOpsReconciliation: null,
+    payoutIntegrity: null,
     payouts: [],
     reconciliation: null,
     riskSummary: null,
     riskHolds: [],
     projection: null,
+    payoutExportAudits: [],
   });
   const [statusFilter, setStatusFilter] = useState('');
   const [trainerFilter, setTrainerFilter] = useState('');
@@ -169,17 +185,30 @@ export function AdminPayoutOperationsDashboard() {
     setLoading(true);
     setMessage('');
     try {
-      const [overview, adminOps, payouts, reconciliation, adminOpsReconciliation, riskSummary, riskHolds, projection] = await Promise.all([
+      const [
+        overview,
+        adminOps,
+        payouts,
+        reconciliation,
+        adminOpsReconciliation,
+        payoutIntegrity,
+        riskSummary,
+        riskHolds,
+        projection,
+        payoutExportAudits,
+      ] = await Promise.all([
         adminPayoutsApi.getOverview(),
         adminPayoutsApi.getAdminOpsSummary(opsFilters),
         adminPayoutsApi.listPayouts({ status: statusFilter || undefined, trainer_id: trainerFilter || undefined, limit: 100 }),
         adminPayoutsApi.getReconciliation(),
         adminPayoutsApi.getAdminOpsReconciliationSnapshot(opsFilters),
+        adminPayoutsApi.getAdminOpsIntegritySnapshot(opsFilters),
         adminPayoutsApi.getRiskHoldSummary(50),
         adminPayoutsApi.listRiskHolds({ trainer_id: trainerFilter || undefined, limit: 50 }),
         adminPayoutsApi.getProjectionHealth(),
+        adminAuditApi.listEvents(PAYOUT_EXPORT_AUDIT_FILTERS),
       ]);
-      setState({ overview, adminOps, payouts, reconciliation, adminOpsReconciliation, riskSummary, riskHolds, projection });
+      setState({ overview, adminOps, payouts, reconciliation, adminOpsReconciliation, payoutIntegrity, riskSummary, riskHolds, projection, payoutExportAudits });
       setSelected((current) => current.filter((id) => payouts.some((payout) => payout.id === id)));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Не удалось загрузить admin payout operations');
@@ -207,6 +236,9 @@ export function AdminPayoutOperationsDashboard() {
   const payoutBuckets = state.adminOps?.payout_buckets ?? state.adminOps?.status_buckets ?? [];
   const ledgerBuckets = state.adminOps?.ledger_buckets ?? [];
   const snapshotIssues = issuesFromSnapshot(state.adminOpsReconciliation);
+  const integrityIssues = state.payoutIntegrity?.issues ?? [];
+  const integrityIssueCodes = Object.entries(state.payoutIntegrity?.issue_codes ?? {}).sort((a, b) => b[1] - a[1]);
+  const integritySeverities = Object.entries(state.payoutIntegrity?.issue_severities ?? {}).sort((a, b) => b[1] - a[1]);
 
   const runAction = async (payout: AdminPayoutRequest, action: PayoutAction) => {
     if (action === 'reject' && !rejectReason.trim()) {
@@ -310,7 +342,9 @@ export function AdminPayoutOperationsDashboard() {
     try {
       if (kind === 'requests') await adminPayoutsApi.exportAdminOpsRequestsCsv(opsFilters);
       if (kind === 'ledger') await adminPayoutsApi.exportAdminOpsLedgerCsv(opsFilters);
-      setMessage(`CSV export ${kind} запущен.`);
+      const payoutExportAudits = await adminAuditApi.listEvents(PAYOUT_EXPORT_AUDIT_FILTERS);
+      setState((current) => ({ ...current, payoutExportAudits }));
+      setMessage(`CSV export ${kind} запущен и записан в audit trail.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : `CSV export ${kind} не выполнен`);
     } finally {
@@ -447,6 +481,43 @@ export function AdminPayoutOperationsDashboard() {
         </div>
       </Section>
 
+      <Section title="Recent payout CSV exports" description="Последние audit events по payout CSV exports. Используется общий admin audit trail, поэтому видны actor, фильтры и размер выгрузки.">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Created</th>
+                <th className="px-3 py-2">Actor</th>
+                <th className="px-3 py-2">Export</th>
+                <th className="px-3 py-2">Rows</th>
+                <th className="px-3 py-2">Truncated</th>
+                <th className="px-3 py-2">Filters</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {state.payoutExportAudits.slice(0, 8).map((event) => (
+                <tr key={event.id}>
+                  <td className="px-3 py-2 whitespace-nowrap">{dateTime(event.created_at)}</td>
+                  <td className="px-3 py-2">{event.actor_email || event.actor || '—'}</td>
+                  <td className="px-3 py-2">
+                    <div className="font-medium text-slate-900">{event.entity_id || auditContextValue(event, 'export_type')}</div>
+                    <div className="text-xs text-slate-500">{event.event_type}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {auditContextValue(event, 'exported_rows')} / {auditContextValue(event, 'total_rows')}
+                  </td>
+                  <td className="px-3 py-2">{auditContextValue(event, 'truncated')}</td>
+                  <td className="px-3 py-2 max-w-md truncate" title={auditContextValue(event, 'filters')}>
+                    {auditContextValue(event, 'filters')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!state.payoutExportAudits.length ? <p className="p-4 text-sm text-slate-500">Payout CSV export audit events пока отсутствуют.</p> : null}
+        </div>
+      </Section>
+
       <Section title="Ops controls" description="Все действия идут через backend state-machine и пишут audit events.">
         <div className="flex flex-wrap gap-2">
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runProjectOutbox()} disabled={!!busy}>Project outbox</button>
@@ -554,6 +625,74 @@ export function AdminPayoutOperationsDashboard() {
           ))}
           {!state.riskHolds.length ? <p className="text-sm text-slate-500">Active risk holds не найдены.</p> : null}
         </div>
+      </Section>
+
+      <Section title="Integrity snapshot" description="Read-only диагностика payout requests, wallets и ledger без repair actions.">
+        <div className="mb-4 grid gap-4 md:grid-cols-4">
+          <MetricCard label="Integrity status" value={state.payoutIntegrity?.summary?.status || '—'} hint={`${state.payoutIntegrity?.summary?.issue_count ?? 0} issues`} status={state.payoutIntegrity?.summary?.status} />
+          <MetricCard label="Wallets scanned" value={String(state.payoutIntegrity?.summary?.wallet_count ?? 0)} hint="TrainerWallet rows" />
+          <MetricCard label="Payouts scanned" value={String(state.payoutIntegrity?.summary?.payouts_scanned ?? 0)} hint="Filtered PayoutRequest rows" />
+          <MetricCard label="Ledger scanned" value={String(state.payoutIntegrity?.summary?.ledger_entries_scanned ?? 0)} hint="Filtered BalanceEntry rows" />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-medium text-slate-900">Issue severities</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {integritySeverities.map(([severity, count]) => (
+                <span className={`rounded-full border px-3 py-1 text-xs ${toneClass(severity)}`} key={severity}>{severity}: {count}</span>
+              ))}
+              {!integritySeverities.length ? <span className="text-sm text-slate-500">Severity buckets отсутствуют.</span> : null}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-medium text-slate-900">Issue codes</h3>
+            <div className="mt-3 grid gap-2 text-sm text-slate-700">
+              {integrityIssueCodes.slice(0, 8).map(([code, count]) => (
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2" key={code}>
+                  <span className="font-mono text-xs">{code}</span>
+                  <span className="font-semibold">{count}</span>
+                </div>
+              ))}
+              {!integrityIssueCodes.length ? <span className="text-sm text-slate-500">Issue codes отсутствуют.</span> : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Severity</th>
+                <th className="px-3 py-2">Code</th>
+                <th className="px-3 py-2">Entity</th>
+                <th className="px-3 py-2">Amount</th>
+                <th className="px-3 py-2">Message</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {integrityIssues.slice(0, 12).map((issue, index) => (
+                <tr key={`${issue.code}:${issue.payout_id || issue.wallet_id || issue.ledger_entry_id || index}`}>
+                  <td className="px-3 py-2"><span className={`rounded-full border px-2 py-1 text-xs ${toneClass(issue.severity)}`}>{issue.severity}</span></td>
+                  <td className="px-3 py-2 font-mono text-xs">{issue.code}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600">
+                    <div>trainer: {stringify(issue.trainer_id)}</div>
+                    <div>payout: {stringify(issue.payout_id)}</div>
+                    <div>wallet: {stringify(issue.wallet_id)}</div>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-600">
+                    <div>amount: {stringify(issue.amount ?? issue.payout_amount ?? issue.reserve_amount)}</div>
+                    <div>delta: {stringify(issue.delta)}</div>
+                    <div>currency: {stringify(issue.currency)}</div>
+                  </td>
+                  <td className="max-w-xl px-3 py-2 text-slate-700">{issue.message || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!integrityIssues.length ? <p className="p-4 text-sm text-slate-500">Payout integrity issues отсутствуют.</p> : null}
+        </div>
+        <p className="mt-3 text-xs text-slate-500">{state.payoutIntegrity?.actions?.note || 'Integrity endpoint is read-only.'}</p>
       </Section>
 
       <Section title="Reconciliation snapshot" description="Read-only snapshot из /payouts/admin-ops/reconciliation/snapshot/ плюс legacy reconciliation issues.">

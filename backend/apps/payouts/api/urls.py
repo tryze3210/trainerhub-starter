@@ -4,8 +4,10 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from apps.payouts.api.ops_views import (
+    AdminPayoutOpsIntegrityAPIView,
     AdminPayoutOpsLedgerExportAPIView,
     AdminPayoutOpsReconciliationSnapshotAPIView,
+    AdminPayoutOpsRepairPreviewAPIView,
     AdminPayoutOpsRequestsExportAPIView,
     AdminPayoutOpsSummaryAPIView,
 )
@@ -24,6 +26,16 @@ urlpatterns = [
         "admin-ops/reconciliation/snapshot/",
         AdminPayoutOpsReconciliationSnapshotAPIView.as_view(),
         name="admin-payout-ops-reconciliation-snapshot",
+    ),
+    path(
+        "admin-ops/integrity/",
+        AdminPayoutOpsIntegrityAPIView.as_view(),
+        name="admin-payout-ops-integrity",
+    ),
+    path(
+        "admin-ops/repair/preview/",
+        AdminPayoutOpsRepairPreviewAPIView.as_view(),
+        name="admin-payout-ops-repair-preview",
     ),
     path(
         "admin-ops/requests/export.csv",

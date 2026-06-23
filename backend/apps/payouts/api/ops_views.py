@@ -14,7 +14,11 @@ from rest_framework.views import APIView
 
 from apps.audit.services import AuditService
 from apps.payouts.models import BalanceEntry, PayoutRequest
-from apps.payouts.ops_selectors import build_payout_admin_ops_summary
+from apps.payouts.ops_selectors import (
+    build_payout_admin_ops_summary,
+    build_payout_integrity_snapshot,
+    build_payout_repair_preview,
+)
 from apps.payouts.services import PayoutService
 
 EXPORT_LIMIT = 10_000
@@ -120,6 +124,23 @@ class AdminPayoutOpsReconciliationSnapshotAPIView(APIView):
                 },
             }
         )
+
+
+class AdminPayoutOpsIntegrityAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        return Response(build_payout_integrity_snapshot(request.query_params))
+
+
+class AdminPayoutOpsRepairPreviewAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        return Response(build_payout_repair_preview(request.query_params))
+
+    def post(self, request):
+        return Response(build_payout_repair_preview(request.data))
 
 
 class AdminPayoutOpsRequestsExportAPIView(APIView):
