@@ -10,6 +10,8 @@ const links = [
   { href: '/trainer/application-status', label: 'Application status' },
   { href: '/trainer/dashboard/products', label: 'Products' },
   { href: '/trainer/dashboard/sales', label: 'Sales' },
+  { href: '/trainer/dashboard/crm', label: 'CRM' },
+  { href: '/trainer/dashboard/schedule', label: 'Schedule' },
   { href: '/trainer/dashboard/revenue', label: 'Revenue' },
   { href: '/trainer/dashboard/payouts', label: 'Payouts' },
   { href: '/trainer/dashboard/analytics', label: 'Analytics' },

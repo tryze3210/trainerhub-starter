@@ -103,3 +103,23 @@ class AdminCommerceReadinessSerializer(serializers.Serializer):
     smoke_commands = serializers.ListField(child=serializers.DictField(), required=False)
     management_commands = serializers.ListField(child=serializers.DictField(), required=False)
     recommendations = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class AdminProductionReadinessQuerySerializer(serializers.Serializer):
+    include_commands = serializers.BooleanField(required=False, default=True)
+    include_recommendations = serializers.BooleanField(required=False, default=True)
+
+
+class AdminProductionReadinessSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    generated_at = serializers.DateTimeField()
+    version = serializers.CharField()
+    scope = serializers.CharField()
+    summary = serializers.DictField()
+    checks = serializers.ListField(child=serializers.DictField())
+    api_surface = serializers.ListField(child=serializers.DictField())
+    frontend_surface = serializers.ListField(child=serializers.DictField())
+    seed_data = serializers.ListField(child=serializers.DictField())
+    smoke_commands = serializers.ListField(child=serializers.DictField(), required=False)
+    management_commands = serializers.ListField(child=serializers.DictField(), required=False)
+    recommendations = serializers.ListField(child=serializers.DictField(), required=False)

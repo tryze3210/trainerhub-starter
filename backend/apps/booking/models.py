@@ -55,6 +55,7 @@ class BookingSlot(models.Model):
     starts_at = models.DateTimeField(db_index=True)
     ends_at = models.DateTimeField()
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_OPEN, db_index=True)
+    capacity = models.PositiveIntegerField(default=1)
     source = models.CharField(max_length=32, default="generated")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -79,7 +80,7 @@ class SessionReservation(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    slot = models.OneToOneField(BookingSlot, on_delete=models.PROTECT, related_name="reservation")
+    slot = models.ForeignKey(BookingSlot, on_delete=models.PROTECT, related_name="reservations")
     trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="session_reservations_as_trainer")
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="session_reservations_as_customer")
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
@@ -97,3 +98,78 @@ class BookingEvent(models.Model):
     payload = models.JSONField(default=dict, blank=True)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class BookingWaitlistEntry(models.Model):
+    STATUS_WAITING = "waiting"
+    STATUS_PROMOTED = "promoted"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_CHOICES = [
+        (STATUS_WAITING, "Waiting"),
+        (STATUS_PROMOTED, "Promoted"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slot = models.ForeignKey(BookingSlot, on_delete=models.CASCADE, related_name="waitlist_entries")
+    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_waitlist_as_trainer")
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_waitlist_as_customer")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_WAITING, db_index=True)
+    title = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    promoted_reservation = models.ForeignKey(SessionReservation, on_delete=models.SET_NULL, null=True, blank=True, related_name="waitlist_source")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["slot", "status", "created_at"])]
+        constraints = [
+            models.UniqueConstraint(fields=["slot", "customer", "status"], name="uniq_waiting_customer_per_slot")
+        ]
+
+
+class BookingAttendance(models.Model):
+    STATUS_EXPECTED = "expected"
+    STATUS_CHECKED_IN = "checked_in"
+    STATUS_ATTENDED = "attended"
+    STATUS_NO_SHOW = "no_show"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_CHOICES = [
+        (STATUS_EXPECTED, "Expected"),
+        (STATUS_CHECKED_IN, "Checked in"),
+        (STATUS_ATTENDED, "Attended"),
+        (STATUS_NO_SHOW, "No show"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    METHOD_MANUAL = "manual"
+    METHOD_QR = "qr"
+    METHOD_MIFARE = "mifare"
+    METHOD_EXTERNAL = "external"
+    METHOD_CHOICES = [
+        (METHOD_MANUAL, "Manual"),
+        (METHOD_QR, "QR"),
+        (METHOD_MIFARE, "Mifare"),
+        (METHOD_EXTERNAL, "External"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reservation = models.OneToOneField(SessionReservation, on_delete=models.CASCADE, related_name="attendance")
+    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_attendance_as_trainer")
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_attendance_as_customer")
+    checkin_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    external_identifier = models.CharField(max_length=128, blank=True, db_index=True)
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default=STATUS_EXPECTED, db_index=True)
+    checkin_method = models.CharField(max_length=24, choices=METHOD_CHOICES, default=METHOD_MANUAL)
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.PositiveIntegerField(default=0)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["trainer", "status", "checked_in_at"], name="booking_att_trainer_status_idx"),
+            models.Index(fields=["customer", "created_at"], name="booking_att_customer_idx"),
+        ]

@@ -1,8 +1,8 @@
-# TrainerHub — current version v91
+# TrainerHub — current version v95
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, and notifications.
 
-This README describes the current roadmap state after the payout production pass and the Payment / Orders / Entitlements block.
+This README describes the current roadmap state after the payout production pass, the Payment / Orders / Entitlements block, CRM Core, Booking / Schedule, Attendance / Check-in, and the Production Readiness Pass.
 
 ## Current Roadmap State
 
@@ -27,8 +27,12 @@ Completed in the current line:
 - v89 — Subscription Lifecycle
 - v90 — Access Guard Hardening
 - v91 — Notification System
+- v92 — CRM Core
+- v93 — Booking / Schedule
+- v94 — Attendance / Check-in
+- v95 — Production Readiness Pass
 
-The next planned block starts at v92 — CRM Core.
+The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 
 ## Main User Surfaces
 
@@ -49,6 +53,9 @@ Customer:
 Trainer:
 
 - `/trainer/dashboard/sales` — sales, revenue, refunds, conversion-oriented metrics, student access signals.
+- `/trainer/dashboard/crm` — customer cards, purchase/access/attendance history, trainer notes, client segments.
+- `/trainer/dashboard/schedule` — availability rules, generated slots, reservations, cancellations, waitlist.
+- `/trainer/dashboard/schedule` — attendance check-in, no-show, checkout history, QR token and Mifare-ready identifiers.
 - `/trainer/payouts` and payout-related dashboard links — payout request and payout status flows.
 
 ## Payout Module
@@ -182,10 +189,138 @@ New event-level delivery types:
 - `subscription_expiring`
 - `payout_paid`
 
+## CRM Core
+
+v92 adds the first production CRM layer for trainers.
+
+Implemented capabilities:
+
+- customer card;
+- purchase history;
+- access and entitlement history;
+- booking/attendance history from existing reservations;
+- trainer-private notes;
+- client segments;
+- segment assignment;
+- trainer CRM frontend dashboard.
+
+Important API areas:
+
+- `GET /api/v1/customer/trainer-crm/`
+- `GET /api/v1/customer/trainer-crm/{customer_id}/`
+- `POST /api/v1/customer/trainer-crm/notes/`
+- `POST /api/v1/customer/trainer-crm/segments/`
+- `POST /api/v1/customer/trainer-crm/segments/assign/`
+
+New UI:
+
+- `/trainer/dashboard/crm`
+
+## Booking / Schedule
+
+v93 hardens the existing booking app into a trainer schedule surface.
+
+Implemented capabilities:
+
+- trainer booking profile;
+- availability rules;
+- generated slots from availability;
+- slot capacity limits;
+- customer reservation creation;
+- reservation cancellation;
+- waitlist join;
+- automatic promotion from waitlist when a confirmed reservation is cancelled;
+- trainer schedule dashboard.
+
+Important API areas:
+
+- `GET /api/v1/booking/me/profile/`
+- `GET /api/v1/booking/me/availability-rules/`
+- `POST /api/v1/booking/me/availability-rules/`
+- `GET /api/v1/booking/me/schedule/`
+- `POST /api/v1/booking/me/generate-slots/`
+- `GET /api/v1/booking/slots/open/`
+- `POST /api/v1/booking/reservations/create/`
+- `POST /api/v1/booking/reservations/waitlist/`
+- `POST /api/v1/booking/reservations/{reservation_id}/cancel/`
+
+New UI:
+
+- `/trainer/dashboard/schedule`
+
+## Attendance / Check-in
+
+v94 adds studio-ready attendance tracking on top of booking reservations.
+
+Implemented capabilities:
+
+- expected attendance record for every confirmed reservation;
+- manual check-in;
+- QR-ready check-in token;
+- Mifare-ready external identifier check-in;
+- check-out and duration calculation;
+- no-show marking;
+- attendance history in trainer schedule;
+- attendance data in CRM customer history.
+
+Important API areas:
+
+- `GET /api/v1/booking/attendance/`
+- `POST /api/v1/booking/attendance/check-in/`
+- `POST /api/v1/booking/attendance/check-out/{attendance_id}/`
+- `POST /api/v1/booking/attendance/no-show/`
+
+Frontend:
+
+- `/trainer/dashboard/schedule` now includes check-in, check-out, no-show and attendance history controls.
+
+## Production Readiness
+
+v95 adds a full-platform read-only production readiness gate.
+
+Implemented checks:
+
+- permissions audit for sensitive admin/trainer surfaces;
+- API contract checks for current roadmap endpoints;
+- Python symbol/import contract checks;
+- regression test file presence checks;
+- seed data helper presence check;
+- CI workflow presence check;
+- smoke command manifest;
+- management command gate.
+
+Important API areas:
+
+- `GET /api/v1/ops/admin/production-readiness/`
+
+Management command:
+
+```bash
+cd backend
+python manage.py check_production_readiness --json
+python manage.py check_production_readiness --json --fail-on-degraded
+```
+
+Recommended v95 smoke suite:
+
+```bash
+cd backend
+python manage.py check
+python manage.py makemigrations --check --dry-run
+pytest tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_notifications_v91_domain_triggers.py tests/test_production_readiness_v95.py
+
+cd ../frontend
+npm run typecheck
+npm run build
+```
+
 ## Migrations Added In This Line
 
 - `backend/apps/subscriptions/migrations/0004_v89_subscription_trial_status.py`
 - `backend/apps/notifications/migrations/0003_v91_notification_event_types.py`
+- `backend/apps/customers/migrations/0003_v92_crm_core.py`
+- `backend/apps/booking/migrations/0002_v93_booking_schedule_core.py`
+- `backend/apps/booking/migrations/0003_v94_attendance_checkin.py`
 
 Run migrations before using the new lifecycle and notification states:
 
@@ -209,6 +344,8 @@ Frontend routes were also smoke-checked through the local Next.js dev server:
 - `/admin/payments`
 - `/billing`
 - `/trainer/dashboard/sales`
+- `/trainer/dashboard/crm`
+- `/trainer/dashboard/schedule`
 - `/subscriptions`
 
 Known local environment limitation:
@@ -221,16 +358,9 @@ Known local environment limitation:
 - `fac1fba` — Implement payment admin billing and notification roadmap
 - `9fa2da7` — Implement payout ops and payment lifecycle hardening
 
-## Next Roadmap
+## Release Gate
 
-Planned next versions:
-
-- v92 — CRM Core
-- v93 — Booking / Schedule
-- v94 — Attendance / Check-in
-- v95 — Production Readiness Pass
-
-Before production release, run a full readiness pass:
+The v70-v95 roadmap block is complete. Before production release, run:
 
 - permissions audit;
 - API contract tests;

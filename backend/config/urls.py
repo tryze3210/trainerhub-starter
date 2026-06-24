@@ -20,6 +20,7 @@ urlpatterns = [
     path("api/v1/reviews/", include("apps.reviews.api.urls")),
     path("api/v1/moderation/", include("apps.moderation.api.urls")),
     path("api/v1/payouts/", include("apps.payouts.api.urls")),
+    path("api/v1/booking/", include("apps.booking.api.urls")),
     path("api/v1/analytics/", include("apps.analytics.api.urls")),
     path("api/v1/referrals/", include("apps.referrals.api.urls")),
     path("api/v1/admin/", include("apps.admin_marketplace.api.urls")),

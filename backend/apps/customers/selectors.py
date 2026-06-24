@@ -5,10 +5,10 @@ from decimal import Decimal
 from uuid import UUID
 from typing import Any
 
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
-from apps.customers.models import CustomerProfile
+from apps.customers.models import CustomerNote, CustomerProfile, CustomerSegment
 from apps.entitlements.models import Entitlement, EntitlementStatus
 from apps.favorites.models import Favorite
 from apps.orders.models import Order, OrderStatus
@@ -471,3 +471,226 @@ class CustomerMarketplaceHubSelector:
             "status": "ready" if not blocking else "attention",
             "checks": checks,
         }
+
+
+class TrainerCRMSelector:
+    def build(self, *, trainer, days: int = 90, search: str = "", limit: int = 100) -> dict[str, Any]:
+        days = max(1, min(int(days or 90), 365))
+        limit = max(1, min(int(limit or 100), 250))
+        customer_ids = self._customer_ids_for_trainer(trainer=trainer, search=search)
+        customers = list(
+            trainer.__class__.objects
+            .filter(id__in=customer_ids)
+            .order_by("email")[:limit]
+        )
+        items = [self._customer_summary(trainer=trainer, customer=customer, days=days) for customer in customers]
+        segments = self._segments(trainer=trainer)
+        return {
+            "summary": {
+                "customers_count": len(items),
+                "with_active_access_count": sum(1 for item in items if item["active_entitlements_count"] > 0),
+                "with_notes_count": sum(1 for item in items if item["notes_count"] > 0),
+                "segments_count": len(segments),
+                "period_days": days,
+            },
+            "segments": segments,
+            "items": items,
+        }
+
+    def detail(self, *, trainer, customer_id) -> dict[str, Any]:
+        User = trainer.__class__
+        customer = User.objects.get(id=customer_id)
+        if str(customer.id) not in self._customer_ids_for_trainer(trainer=trainer):
+            raise PermissionError("Customer is not connected to this trainer.")
+        return {
+            "customer": self._customer_summary(trainer=trainer, customer=customer, days=365),
+            "purchase_history": self._purchase_history(trainer=trainer, customer=customer),
+            "access_history": self._access_history(customer=customer),
+            "attendance_history": self._attendance_history(trainer=trainer, customer=customer),
+            "notes": self._notes(trainer=trainer, customer=customer),
+            "segments": self._segments(trainer=trainer, customer=customer),
+        }
+
+    def _customer_ids_for_trainer(self, *, trainer, search: str = "") -> set[str]:
+        trainer_ids = {str(trainer.id)}
+        order_customer_ids = set(
+            Order.objects.filter(
+                Q(items__metadata__trainer_id__in=list(trainer_ids))
+                | Q(payments__provider_payload__trainer_id__in=list(trainer_ids))
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        try:
+            from apps.booking.models import SessionReservation
+
+            booking_customer_ids = set(
+                SessionReservation.objects.filter(trainer=trainer)
+                .values_list("customer_id", flat=True)
+                .distinct()
+            )
+        except Exception:
+            booking_customer_ids = set()
+        ids = {str(value) for value in order_customer_ids | booking_customer_ids if value}
+        if search:
+            search = search.strip()
+            if search:
+                User = trainer.__class__
+                ids = set(
+                    str(value)
+                    for value in User.objects.filter(id__in=ids).filter(
+                        Q(email__icontains=search)
+                        | Q(first_name__icontains=search)
+                        | Q(last_name__icontains=search)
+                    ).values_list("id", flat=True)
+                )
+        return ids
+
+    def _customer_summary(self, *, trainer, customer, days: int) -> dict[str, Any]:
+        start_date = timezone.localdate() - timedelta(days=days - 1)
+        profile, _ = CustomerProfile.objects.get_or_create(
+            user=customer,
+            defaults={"display_name": customer.email},
+        )
+        orders = self._trainer_orders(trainer=trainer, customer=customer)
+        paid_orders = orders.filter(status__in=[OrderStatus.PAID, OrderStatus.COMPLETED])
+        period_orders = paid_orders.filter(created_at__date__gte=start_date)
+        total_spent = paid_orders.aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+        period_spent = period_orders.aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+        entitlements = Entitlement.objects.filter(user=customer)
+        active_entitlements = entitlements.filter(status=EntitlementStatus.ACTIVE).count()
+        notes_count = CustomerNote.objects.filter(trainer=trainer, customer=customer).count()
+        segment_rows = self._segments(trainer=trainer, customer=customer)
+        last_order = paid_orders.order_by("-created_at").first()
+        return {
+            "customer_id": str(customer.id),
+            "profile_id": str(profile.id),
+            "email": customer.email,
+            "display_name": profile.display_name or customer.get_full_name() or customer.email,
+            "first_name": customer.first_name,
+            "last_name": customer.last_name,
+            "created_at": _iso(customer.created_at),
+            "orders_count": orders.count(),
+            "paid_orders_count": paid_orders.count(),
+            "total_spent": _money(total_spent),
+            "period_spent": _money(period_spent),
+            "active_entitlements_count": active_entitlements,
+            "notes_count": notes_count,
+            "segments": segment_rows,
+            "last_order_at": _iso(last_order.created_at if last_order else None),
+            "status": "active" if active_entitlements else "lead",
+        }
+
+    @staticmethod
+    def _trainer_orders(*, trainer, customer):
+        return (
+            Order.objects.filter(user=customer)
+            .filter(
+                Q(items__metadata__trainer_id=str(trainer.id))
+                | Q(payments__provider_payload__trainer_id=str(trainer.id))
+            )
+            .distinct()
+            .prefetch_related("items")
+            .order_by("-created_at")
+        )
+
+    def _purchase_history(self, *, trainer, customer) -> list[dict[str, Any]]:
+        return [CustomerMarketplaceHubSelector._order_item(order) for order in self._trainer_orders(trainer=trainer, customer=customer)[:30]]
+
+    @staticmethod
+    def _access_history(*, customer) -> list[dict[str, Any]]:
+        qs = Entitlement.objects.filter(user=customer).order_by("-created_at")[:40]
+        return [
+            {
+                "id": str(item.id),
+                "source_type": item.source_type,
+                "source_order_id": _uuid(item.source_order_id),
+                "source_subscription_id": _uuid(item.source_subscription_id),
+                "target_type": item.target_type,
+                "target_id": _uuid(item.target_id),
+                "status": item.status,
+                "starts_at": _iso(item.starts_at),
+                "ends_at": _iso(item.ends_at),
+                "created_at": _iso(item.created_at),
+                "metadata": item.metadata or {},
+            }
+            for item in qs
+        ]
+
+    @staticmethod
+    def _attendance_history(*, trainer, customer) -> list[dict[str, Any]]:
+        try:
+            from apps.booking.models import BookingAttendance, SessionReservation
+        except Exception:
+            return []
+        attendance_rows = (
+            BookingAttendance.objects
+            .select_related("reservation", "reservation__slot")
+            .filter(trainer=trainer, customer=customer)
+            .order_by("-created_at")[:30]
+        )
+        if attendance_rows:
+            return [
+                {
+                    "id": str(row.id),
+                    "status": row.status,
+                    "title": row.reservation.title,
+                    "notes": row.reservation.notes,
+                    "starts_at": _iso(row.reservation.slot.starts_at),
+                    "ends_at": _iso(row.reservation.slot.ends_at),
+                    "checked_in_at": _iso(row.checked_in_at),
+                    "checked_out_at": _iso(row.checked_out_at),
+                    "duration_seconds": row.duration_seconds,
+                    "created_at": _iso(row.created_at),
+                }
+                for row in attendance_rows
+            ]
+        rows = (
+            SessionReservation.objects
+            .select_related("slot")
+            .filter(trainer=trainer, customer=customer)
+            .order_by("-created_at")[:30]
+        )
+        return [
+            {
+                "id": str(row.id),
+                "status": row.status,
+                "title": row.title,
+                "notes": row.notes,
+                "starts_at": _iso(row.slot.starts_at),
+                "ends_at": _iso(row.slot.ends_at),
+                "created_at": _iso(row.created_at),
+            }
+            for row in rows
+        ]
+
+    @staticmethod
+    def _notes(*, trainer, customer) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": str(note.id),
+                "body": note.body,
+                "visibility": note.visibility,
+                "pinned": note.pinned,
+                "created_at": _iso(note.created_at),
+                "updated_at": _iso(note.updated_at),
+            }
+            for note in CustomerNote.objects.filter(trainer=trainer, customer=customer)[:30]
+        ]
+
+    @staticmethod
+    def _segments(*, trainer, customer=None) -> list[dict[str, Any]]:
+        qs = CustomerSegment.objects.filter(trainer=trainer).annotate(customers_count=Count("customers"))
+        if customer is not None:
+            profile, _ = CustomerProfile.objects.get_or_create(user=customer, defaults={"display_name": customer.email})
+            qs = qs.filter(customers=profile)
+        return [
+            {
+                "id": str(segment.id),
+                "name": segment.name,
+                "description": segment.description,
+                "color": segment.color,
+                "customers_count": segment.customers_count,
+            }
+            for segment in qs.order_by("name")
+        ]

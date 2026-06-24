@@ -12,6 +12,8 @@ from apps.ops.api.operations_serializers import (
     AdminOperationsHubSerializer,
     AdminOperationsReadinessQuerySerializer,
     AdminOperationsReadinessSerializer,
+    AdminProductionReadinessQuerySerializer,
+    AdminProductionReadinessSerializer,
 )
 from apps.ops.api.reconciliation_serializers import AdminReconciliationQuerySerializer
 from apps.ops.api.repair_serializers import (
@@ -38,6 +40,7 @@ from apps.ops.commerce_readiness import get_commerce_readiness
 from apps.ops.operations_hub import get_admin_operations_hub
 from apps.ops.operations_readiness import get_ops_production_readiness
 from apps.ops.payment_reconciliation import get_payment_reconciliation_report
+from apps.ops.production_readiness import get_platform_production_readiness
 from apps.ops.reconciliation import get_money_reconciliation_report
 from apps.ops.reconciliation_snapshots import (
     capture_reconciliation_snapshot,
@@ -127,6 +130,18 @@ class AdminOperationsReadinessView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = get_ops_production_readiness(**serializer.validated_data)
         return Response(AdminOperationsReadinessSerializer(payload).data)
+
+
+class AdminProductionReadinessView(APIView):
+    """Read-only v95 production readiness gate for the full platform surface."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminProductionReadinessQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_platform_production_readiness(**serializer.validated_data)
+        return Response(AdminProductionReadinessSerializer(payload).data)
 
 
 class AdminEntityDetailView(APIView):
