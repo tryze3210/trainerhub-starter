@@ -6,9 +6,12 @@ import hmac
 import json
 import os
 from dataclasses import dataclass
+from datetime import timezone as datetime_timezone
 from typing import Any, Mapping
 
 from django.conf import settings
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from apps.payments.models import PaymentProvider
 
@@ -19,6 +22,14 @@ SIGNATURE_HEADERS = (
     'X-Webhook-Signature',
     'X-Yookassa-Signature',
     'X-Cloudpayments-Signature',
+)
+
+TIMESTAMP_HEADERS = (
+    'X-Provider-Timestamp',
+    'X-Webhook-Timestamp',
+    'X-Request-Timestamp',
+    'X-Yookassa-Timestamp',
+    'X-Cloudpayments-Timestamp',
 )
 
 
@@ -81,8 +92,71 @@ class PaymentWebhookSecurity:
         return ''
 
     @staticmethod
+    def require_timestamp(provider: str) -> bool:
+        normalized = (provider or PaymentProvider.MOCK).upper().replace('-', '_')
+        candidates = [
+            f'{normalized}_WEBHOOK_REQUIRE_TIMESTAMP',
+            f'PAYMENTS_{normalized}_WEBHOOK_REQUIRE_TIMESTAMP',
+            'PAYMENTS_WEBHOOK_REQUIRE_TIMESTAMP',
+        ]
+        for name in candidates:
+            value = os.getenv(name)
+            if value is None:
+                value = getattr(settings, name, None)
+            if value is not None:
+                return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+        return False
+
+    @staticmethod
+    def replay_tolerance_seconds(provider: str) -> int:
+        normalized = (provider or PaymentProvider.MOCK).upper().replace('-', '_')
+        candidates = [
+            f'{normalized}_WEBHOOK_REPLAY_TOLERANCE_SECONDS',
+            f'PAYMENTS_{normalized}_WEBHOOK_REPLAY_TOLERANCE_SECONDS',
+            'PAYMENTS_WEBHOOK_REPLAY_TOLERANCE_SECONDS',
+        ]
+        for name in candidates:
+            value = os.getenv(name) or getattr(settings, name, None)
+            if value:
+                try:
+                    return max(1, int(value))
+                except (TypeError, ValueError):
+                    return 300
+        return 300
+
+    @staticmethod
     def _digest(raw_body: bytes, secret: str) -> str:
         return hmac.new(secret.encode('utf-8'), raw_body, hashlib.sha256).hexdigest()
+
+    @staticmethod
+    def timestamp_from_headers(headers: Mapping[str, Any]) -> str:
+        for name in TIMESTAMP_HEADERS:
+            value = headers.get(name) or headers.get(name.lower())
+            if value:
+                return str(value).strip()
+        return ''
+
+    @classmethod
+    def validate_replay_window(cls, *, provider: str, headers: Mapping[str, Any]) -> None:
+        timestamp = cls.timestamp_from_headers(headers)
+        if not timestamp:
+            if cls.require_timestamp(provider):
+                raise PaymentWebhookSignatureError('Payment webhook timestamp is required.')
+            return
+
+        parsed = None
+        if timestamp.isdigit():
+            parsed = timezone.datetime.fromtimestamp(int(timestamp), tz=datetime_timezone.utc)
+        else:
+            parsed = parse_datetime(timestamp)
+            if parsed and timezone.is_naive(parsed):
+                parsed = timezone.make_aware(parsed, datetime_timezone.utc)
+        if not parsed:
+            raise PaymentWebhookSignatureError('Invalid payment webhook timestamp.')
+
+        age = abs((timezone.now() - parsed).total_seconds())
+        if age > cls.replay_tolerance_seconds(provider):
+            raise PaymentWebhookSignatureError('Payment webhook timestamp is outside replay tolerance.')
 
     @classmethod
     def verify_signature(cls, *, provider: str, raw_body: bytes, signature: str) -> bool:
@@ -128,6 +202,9 @@ class PaymentWebhookSecurity:
         headers_dict = {str(k): str(v) for k, v in dict(headers or {}).items()}
         body = raw_body if raw_body is not None else cls.json_bytes(payload_dict)
         signature_value = signature if signature is not None else cls.signature_from_headers(headers_dict)
+
+        if verify_signature:
+            cls.validate_replay_window(provider=provider_value, headers=headers_dict)
 
         if verify_signature and not cls.verify_signature(provider=provider_value, raw_body=body, signature=signature_value or ''):
             raise PaymentWebhookSignatureError('Invalid payment webhook signature.')

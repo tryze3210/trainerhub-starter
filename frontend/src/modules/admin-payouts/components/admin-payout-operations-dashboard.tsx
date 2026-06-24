@@ -12,7 +12,10 @@ import {
   type AdminPayoutRiskHoldSummary,
   type PayoutAdminOpsFilters,
   type PayoutAdminOpsIntegritySnapshot,
+  type PayoutAdminOpsRepairPreview,
   type PayoutAdminOpsReconciliationSnapshot,
+  type PayoutAdminOpsRepairExecution,
+  type PayoutRepairExecutionResult,
   type PayoutAdminOpsSummaryResponse,
   type PayoutReconciliationIssue,
   type PayoutReconciliationReport,
@@ -24,12 +27,15 @@ type DashboardState = {
   adminOps: PayoutAdminOpsSummaryResponse | null;
   adminOpsReconciliation: PayoutAdminOpsReconciliationSnapshot | null;
   payoutIntegrity: PayoutAdminOpsIntegritySnapshot | null;
+  repairPreview: PayoutAdminOpsRepairPreview | null;
+  lastRepairExecution: PayoutAdminOpsRepairExecution | null;
   payouts: AdminPayoutRequest[];
   reconciliation: PayoutReconciliationReport | null;
   riskSummary: AdminPayoutRiskHoldSummary | null;
   riskHolds: AdminPayoutRiskHold[];
   projection: AdminPayoutProjectionHealth | null;
   payoutExportAudits: AuditEvent[];
+  repairAudits: AuditEvent[];
 };
 
 type PayoutAction = 'approve' | 'processing' | 'paid' | 'reject';
@@ -42,6 +48,18 @@ const CURRENCY_OPTIONS = ['RUB', 'EUR', 'USD'];
 const PAYOUT_EXPORT_AUDIT_FILTERS = {
   event_type: 'admin.payouts.admin_ops.csv_export',
   entity_type: 'payout_export',
+  limit: 25,
+};
+
+const PAYOUT_REPAIR_AUDIT_FILTERS = {
+  event_type: 'admin.payouts.repair_execution',
+  entity_type: 'payout_repair_execution',
+  limit: 25,
+};
+
+const PAYOUT_RECONCILIATION_EXPORT_AUDIT_FILTERS = {
+  event_type: 'admin.payouts.reconciliation_report_export',
+  entity_type: 'payout_reconciliation_export',
   limit: 25,
 };
 
@@ -73,8 +91,24 @@ function stringify(value: unknown) {
   return String(value);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function auditBusinessContext(event: AuditEvent) {
+  return asRecord(asRecord(event.context).context);
+}
+
 function auditContextValue(event: AuditEvent, key: string) {
-  return stringify(event.context?.[key]);
+  const root = asRecord(event.context);
+  const nested = auditBusinessContext(event);
+  return stringify(root[key] ?? nested[key]);
+}
+
+function mergeAuditEvents(...groups: AuditEvent[][]) {
+  const byId = new Map<string, AuditEvent>();
+  groups.flat().forEach((event) => byId.set(event.id, event));
+  return Array.from(byId.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 function toneClass(status: string | undefined) {
@@ -91,6 +125,18 @@ function MetricCard({ label, value, hint, status }: { label: string; value: stri
       <div className="text-xs font-medium uppercase tracking-wide opacity-70">{label}</div>
       <div className="mt-2 text-2xl font-semibold">{value}</div>
       {hint ? <div className="mt-1 text-xs opacity-75">{hint}</div> : null}
+    </div>
+  );
+}
+
+function HealthIndicator({ label, status, detail }: { label: string; status: string; detail: string }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClass(status)}`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium">{label}</span>
+        <span className="rounded-full border border-current px-2 py-1 text-xs uppercase">{status}</span>
+      </div>
+      <p className="mt-2 text-sm opacity-80">{detail}</p>
     </div>
   );
 }
@@ -139,6 +185,10 @@ function issuesFromSnapshot(snapshot: PayoutAdminOpsReconciliationSnapshot | nul
   return payload.issues as PayoutReconciliationIssue[];
 }
 
+function bucketCount(buckets: PayoutAdminOpsSummaryResponse['payout_buckets'] | undefined, status: string) {
+  return buckets?.find((bucket) => bucket.status === status)?.count ?? 0;
+}
+
 export function AdminPayoutOperationsDashboard() {
   const { user } = useAuthSession();
   const isAdmin = user?.active_role === 'admin';
@@ -148,12 +198,15 @@ export function AdminPayoutOperationsDashboard() {
     adminOps: null,
     adminOpsReconciliation: null,
     payoutIntegrity: null,
+    repairPreview: null,
+    lastRepairExecution: null,
     payouts: [],
     reconciliation: null,
     riskSummary: null,
     riskHolds: [],
     projection: null,
     payoutExportAudits: [],
+    repairAudits: [],
   });
   const [statusFilter, setStatusFilter] = useState('');
   const [trainerFilter, setTrainerFilter] = useState('');
@@ -163,6 +216,7 @@ export function AdminPayoutOperationsDashboard() {
   const [externalReference, setExternalReference] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [releaseReason, setReleaseReason] = useState('manual_admin_release');
+  const [repairBatchSize, setRepairBatchSize] = useState(25);
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<BusyState>(null);
@@ -192,10 +246,13 @@ export function AdminPayoutOperationsDashboard() {
         reconciliation,
         adminOpsReconciliation,
         payoutIntegrity,
+        repairPreview,
         riskSummary,
         riskHolds,
         projection,
         payoutExportAudits,
+        reconciliationExportAudits,
+        repairAudits,
       ] = await Promise.all([
         adminPayoutsApi.getOverview(),
         adminPayoutsApi.getAdminOpsSummary(opsFilters),
@@ -203,19 +260,36 @@ export function AdminPayoutOperationsDashboard() {
         adminPayoutsApi.getReconciliation(),
         adminPayoutsApi.getAdminOpsReconciliationSnapshot(opsFilters),
         adminPayoutsApi.getAdminOpsIntegritySnapshot(opsFilters),
+        adminPayoutsApi.getAdminOpsRepairPreview({ ...opsFilters, batch_size: repairBatchSize }),
         adminPayoutsApi.getRiskHoldSummary(50),
         adminPayoutsApi.listRiskHolds({ trainer_id: trainerFilter || undefined, limit: 50 }),
         adminPayoutsApi.getProjectionHealth(),
         adminAuditApi.listEvents(PAYOUT_EXPORT_AUDIT_FILTERS),
+        adminAuditApi.listEvents(PAYOUT_RECONCILIATION_EXPORT_AUDIT_FILTERS),
+        adminAuditApi.listEvents(PAYOUT_REPAIR_AUDIT_FILTERS),
       ]);
-      setState({ overview, adminOps, payouts, reconciliation, adminOpsReconciliation, payoutIntegrity, riskSummary, riskHolds, projection, payoutExportAudits });
+      setState({
+        overview,
+        adminOps,
+        payouts,
+        reconciliation,
+        adminOpsReconciliation,
+        payoutIntegrity,
+        repairPreview,
+        lastRepairExecution: null,
+        riskSummary,
+        riskHolds,
+        projection,
+        payoutExportAudits: mergeAuditEvents(payoutExportAudits, reconciliationExportAudits),
+        repairAudits,
+      });
       setSelected((current) => current.filter((id) => payouts.some((payout) => payout.id === id)));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Не удалось загрузить admin payout operations');
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, opsFilters, statusFilter, trainerFilter]);
+  }, [isAdmin, opsFilters, repairBatchSize, statusFilter, trainerFilter]);
 
   useEffect(() => {
     void load();
@@ -239,6 +313,55 @@ export function AdminPayoutOperationsDashboard() {
   const integrityIssues = state.payoutIntegrity?.issues ?? [];
   const integrityIssueCodes = Object.entries(state.payoutIntegrity?.issue_codes ?? {}).sort((a, b) => b[1] - a[1]);
   const integritySeverities = Object.entries(state.payoutIntegrity?.issue_severities ?? {}).sort((a, b) => b[1] - a[1]);
+  const repairPreviewActions = state.repairPreview?.actions ?? [];
+  const repairActionCodes = Object.entries(state.repairPreview?.action_codes ?? {}).sort((a, b) => b[1] - a[1]);
+  const totalPayouts = state.adminOps?.summary.total_payout_requests ?? state.payouts.length;
+  const pendingPayouts = bucketCount(payoutBuckets, 'pending') + bucketCount(payoutBuckets, 'requested');
+  const failedPayouts = bucketCount(payoutBuckets, 'failed') + bucketCount(payoutBuckets, 'rejected');
+  const integrityIssueCount = state.payoutIntegrity?.summary?.issue_count ?? 0;
+  const criticalIntegrityIssues = state.payoutIntegrity?.issue_severities?.critical ?? 0;
+  const lastRepairRun = state.repairAudits[0] ?? null;
+  const lastRepairContext = lastRepairRun ? auditBusinessContext(lastRepairRun) : {};
+  const lastRepairSummary = lastRepairRun
+    ? `fixed ${stringify(lastRepairContext.repaired_count)}, manual ${stringify(lastRepairContext.manual_review_count)}`
+    : 'repair execution has not run yet';
+  const payoutHealthStatus = failedPayouts > 0 ? 'critical' : pendingPayouts > 0 ? 'degraded' : 'healthy';
+  const integrityHealthStatus = criticalIntegrityIssues > 0 ? 'critical' : integrityIssueCount > 0 ? 'degraded' : 'healthy';
+  const repairHealthStatus = lastRepairRun ? 'healthy' : repairPreviewActions.length > 0 ? 'degraded' : 'healthy';
+  const projectionHealthStatus = (state.projection?.failed_messages ?? 0) > 0 ? 'critical' : state.projection?.status || 'healthy';
+  const riskHoldHealthStatus = (state.riskSummary?.shortfall_count ?? 0) > 0 ? 'critical' : (state.riskSummary?.active_hold_count ?? 0) > 0 ? 'degraded' : 'healthy';
+  const healthIndicators = [
+    {
+      label: 'Payout queue',
+      status: payoutHealthStatus,
+      detail: `${pendingPayouts} pending, ${failedPayouts} failed/rejected`,
+    },
+    {
+      label: 'Integrity',
+      status: integrityHealthStatus,
+      detail: `${integrityIssueCount} issues, ${criticalIntegrityIssues} critical`,
+    },
+    {
+      label: 'Repair readiness',
+      status: repairHealthStatus,
+      detail: lastRepairRun ? `last run ${dateTime(lastRepairRun.created_at)} · ${lastRepairSummary}` : `${repairPreviewActions.length} preview actions`,
+    },
+    {
+      label: 'Projection',
+      status: projectionHealthStatus,
+      detail: `${state.projection?.projected_messages ?? 0} projected, ${state.projection?.failed_messages ?? 0} failed`,
+    },
+    {
+      label: 'Risk holds',
+      status: riskHoldHealthStatus,
+      detail: `${state.riskSummary?.active_hold_count ?? 0} active, ${state.riskSummary?.shortfall_count ?? 0} shortfalls`,
+    },
+  ];
+
+  const repairIssueIds = (result: PayoutRepairExecutionResult) =>
+    [result.payout_id ? `payout:${result.payout_id}` : '', result.wallet_id ? `wallet:${result.wallet_id}` : '', result.ledger_entry_id ? `ledger:${result.ledger_entry_id}` : '']
+      .filter(Boolean)
+      .join(' · ') || '—';
 
   const runAction = async (payout: AdminPayoutRequest, action: PayoutAction) => {
     if (action === 'reject' && !rejectReason.trim()) {
@@ -318,6 +441,31 @@ export function AdminPayoutOperationsDashboard() {
     }
   };
 
+  const executeRepair = async () => {
+    setBusy('repair:execute');
+    setMessage('');
+    try {
+      const result = await adminPayoutsApi.executeAdminOpsRepair({ ...opsFilters, batch_size: repairBatchSize });
+      const [repairPreview, repairAudits, payoutIntegrity] = await Promise.all([
+        adminPayoutsApi.getAdminOpsRepairPreview({ ...opsFilters, batch_size: repairBatchSize }),
+        adminAuditApi.listEvents(PAYOUT_REPAIR_AUDIT_FILTERS),
+        adminPayoutsApi.getAdminOpsIntegritySnapshot(opsFilters),
+      ]);
+      setState((current) => ({
+        ...current,
+        repairPreview,
+        repairAudits,
+        payoutIntegrity,
+        lastRepairExecution: result,
+      }));
+      setMessage(`Repair execution: fixed ${result.summary?.repaired_count ?? 0}, manual review ${result.summary?.manual_review_count ?? 0}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Payout repair execution не выполнен');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const releaseHold = async (hold: AdminPayoutRiskHold) => {
     if (!hold.payment_id) {
       setMessage('Risk hold не содержит payment_id.');
@@ -342,11 +490,49 @@ export function AdminPayoutOperationsDashboard() {
     try {
       if (kind === 'requests') await adminPayoutsApi.exportAdminOpsRequestsCsv(opsFilters);
       if (kind === 'ledger') await adminPayoutsApi.exportAdminOpsLedgerCsv(opsFilters);
-      const payoutExportAudits = await adminAuditApi.listEvents(PAYOUT_EXPORT_AUDIT_FILTERS);
-      setState((current) => ({ ...current, payoutExportAudits }));
+      const [payoutExportAudits, reconciliationExportAudits] = await Promise.all([
+        adminAuditApi.listEvents(PAYOUT_EXPORT_AUDIT_FILTERS),
+        adminAuditApi.listEvents(PAYOUT_RECONCILIATION_EXPORT_AUDIT_FILTERS),
+      ]);
+      setState((current) => ({ ...current, payoutExportAudits: mergeAuditEvents(payoutExportAudits, reconciliationExportAudits) }));
       setMessage(`CSV export ${kind} запущен и записан в audit trail.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : `CSV export ${kind} не выполнен`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runReconciliationExport = async (format: 'csv' | 'xlsx') => {
+    setBusy(`reconciliation-export:${format}`);
+    setMessage('');
+    try {
+      if (format === 'csv') await adminPayoutsApi.exportAdminOpsReconciliationReportCsv(opsFilters);
+      if (format === 'xlsx') await adminPayoutsApi.exportAdminOpsReconciliationReportXlsx(opsFilters);
+      const [payoutExportAudits, reconciliationExportAudits] = await Promise.all([
+        adminAuditApi.listEvents(PAYOUT_EXPORT_AUDIT_FILTERS),
+        adminAuditApi.listEvents(PAYOUT_RECONCILIATION_EXPORT_AUDIT_FILTERS),
+      ]);
+      setState((current) => ({ ...current, payoutExportAudits: mergeAuditEvents(payoutExportAudits, reconciliationExportAudits) }));
+      setMessage(`Reconciliation report ${format.toUpperCase()} export запущен и записан в audit trail.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : `Reconciliation report ${format.toUpperCase()} export не выполнен`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runRepairAuditExport = async (format: 'csv' | 'xlsx') => {
+    setBusy(`repair-audit-export:${format}`);
+    setMessage('');
+    try {
+      if (format === 'csv') await adminPayoutsApi.exportAdminOpsRepairAuditCsv(opsFilters);
+      if (format === 'xlsx') await adminPayoutsApi.exportAdminOpsRepairAuditXlsx(opsFilters);
+      const repairAudits = await adminAuditApi.listEvents(PAYOUT_REPAIR_AUDIT_FILTERS);
+      setState((current) => ({ ...current, repairAudits }));
+      setMessage(`Repair audit ${format.toUpperCase()} export запущен.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : `Repair audit ${format.toUpperCase()} export не выполнен`);
     } finally {
       setBusy(null);
     }
@@ -385,7 +571,7 @@ export function AdminPayoutOperationsDashboard() {
       </div>
 
       <Section title="Фильтры и meta" description="Эти фильтры применяются к payout queue, ops summary, reconciliation snapshot и CSV exports.">
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-7">
           <label className="text-sm font-medium text-slate-700">
             Статус
             <select className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
@@ -422,6 +608,10 @@ export function AdminPayoutOperationsDashboard() {
             External reference
             <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={externalReference} onChange={(event) => setExternalReference(event.target.value)} placeholder="bank-batch-042" />
           </label>
+          <label className="text-sm font-medium text-slate-700">
+            Repair batch
+            <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" min={1} max={100} type="number" value={repairBatchSize} onChange={(event) => setRepairBatchSize(Math.max(1, Math.min(Number(event.target.value || 25), 100)))} />
+          </label>
         </div>
       </Section>
 
@@ -431,6 +621,21 @@ export function AdminPayoutOperationsDashboard() {
         <MetricCard label="Wallet available" value={money(state.adminOps?.wallet_totals?.available_amount ?? state.overview?.balances.available_amount, currencyFilter)} hint="Trainer wallet available" status="healthy" />
         <MetricCard label="Reconciliation" value={state.adminOpsReconciliation?.summary?.status ?? state.adminOps?.reconciliation?.status ?? state.reconciliation?.status ?? '—'} hint={`${state.adminOpsReconciliation?.summary?.issue_count ?? state.adminOps?.reconciliation?.issue_count ?? state.reconciliation?.issue_count ?? 0} issues`} status={state.adminOpsReconciliation?.summary?.status ?? state.reconciliation?.status} />
       </div>
+
+      <Section title="Ops Dashboard" description="Production-readiness view for payout operations health.">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <MetricCard label="Total payouts" value={String(totalPayouts)} hint="All payout requests under filters" />
+          <MetricCard label="Pending payouts" value={String(pendingPayouts)} hint="requested + pending" status={pendingPayouts ? 'degraded' : 'healthy'} />
+          <MetricCard label="Failed payouts" value={String(failedPayouts)} hint="failed + rejected" status={failedPayouts ? 'critical' : 'healthy'} />
+          <MetricCard label="Integrity issues" value={String(integrityIssueCount)} hint={`${criticalIntegrityIssues} critical`} status={integrityHealthStatus} />
+          <MetricCard label="Last repair run" value={lastRepairRun ? dateTime(lastRepairRun.created_at) : '—'} hint={lastRepairSummary} status={repairHealthStatus} />
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {healthIndicators.map((item) => (
+            <HealthIndicator detail={item.detail} key={item.label} label={item.label} status={item.status} />
+          ))}
+        </div>
+      </Section>
 
       <Section title="Payout admin-ops summary" description="Read-only финансовая сводка из /payouts/admin-ops/summary/.">
         <div className="grid gap-4 xl:grid-cols-3">
@@ -470,7 +675,7 @@ export function AdminPayoutOperationsDashboard() {
         </div>
       </Section>
 
-      <Section title="CSV exports" description="Выгрузки используют текущие фильтры и audit-логируются backend-слоем.">
+      <Section title="Exports" description="Выгрузки используют текущие фильтры и audit-логируются backend-слоем.">
         <div className="flex flex-wrap gap-3">
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runCsvExport('requests')} disabled={!!busy}>
             Export payout requests CSV
@@ -478,10 +683,16 @@ export function AdminPayoutOperationsDashboard() {
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runCsvExport('ledger')} disabled={!!busy}>
             Export payout ledger CSV
           </button>
+          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationExport('csv')} disabled={!!busy}>
+            Export reconciliation CSV
+          </button>
+          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationExport('xlsx')} disabled={!!busy}>
+            Export reconciliation XLSX
+          </button>
         </div>
       </Section>
 
-      <Section title="Recent payout CSV exports" description="Последние audit events по payout CSV exports. Используется общий admin audit trail, поэтому видны actor, фильтры и размер выгрузки.">
+      <Section title="Recent payout exports" description="Последние audit events по payout exports. Используется общий admin audit trail, поэтому видны actor, фильтры и размер выгрузки.">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -490,7 +701,7 @@ export function AdminPayoutOperationsDashboard() {
                 <th className="px-3 py-2">Actor</th>
                 <th className="px-3 py-2">Export</th>
                 <th className="px-3 py-2">Rows</th>
-                <th className="px-3 py-2">Truncated</th>
+                <th className="px-3 py-2">Details</th>
                 <th className="px-3 py-2">Filters</th>
               </tr>
             </thead>
@@ -506,7 +717,7 @@ export function AdminPayoutOperationsDashboard() {
                   <td className="px-3 py-2">
                     {auditContextValue(event, 'exported_rows')} / {auditContextValue(event, 'total_rows')}
                   </td>
-                  <td className="px-3 py-2">{auditContextValue(event, 'truncated')}</td>
+                  <td className="px-3 py-2">{auditContextValue(event, 'truncated') !== '—' ? auditContextValue(event, 'truncated') : auditContextValue(event, 'section_counts')}</td>
                   <td className="px-3 py-2 max-w-md truncate" title={auditContextValue(event, 'filters')}>
                     {auditContextValue(event, 'filters')}
                   </td>
@@ -514,7 +725,7 @@ export function AdminPayoutOperationsDashboard() {
               ))}
             </tbody>
           </table>
-          {!state.payoutExportAudits.length ? <p className="p-4 text-sm text-slate-500">Payout CSV export audit events пока отсутствуют.</p> : null}
+          {!state.payoutExportAudits.length ? <p className="p-4 text-sm text-slate-500">Payout export audit events пока отсутствуют.</p> : null}
         </div>
       </Section>
 
@@ -523,6 +734,9 @@ export function AdminPayoutOperationsDashboard() {
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runProjectOutbox()} disabled={!!busy}>Project outbox</button>
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationRepair(true)} disabled={!!busy}>Dry-run repair</button>
           <button className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60" onClick={() => void runReconciliationRepair(false)} disabled={!!busy}>Apply repair</button>
+          <button className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100 disabled:opacity-60" onClick={() => void executeRepair()} disabled={!!busy || !repairPreviewActions.length}>
+            Execute payout repair
+          </button>
         </div>
         <p className="mt-3 text-sm text-slate-600">
           {state.projection?.status || 'projection —'} · {state.projection?.consumer || 'payout projection'} · projected: {state.projection?.projected_messages ?? 0}, failed: {state.projection?.failed_messages ?? 0}
@@ -627,7 +841,7 @@ export function AdminPayoutOperationsDashboard() {
         </div>
       </Section>
 
-      <Section title="Integrity snapshot" description="Read-only диагностика payout requests, wallets и ledger без repair actions.">
+      <Section title="Integrity Issues" description="Read-only диагностика payout requests, wallets и ledger без repair actions.">
         <div className="mb-4 grid gap-4 md:grid-cols-4">
           <MetricCard label="Integrity status" value={state.payoutIntegrity?.summary?.status || '—'} hint={`${state.payoutIntegrity?.summary?.issue_count ?? 0} issues`} status={state.payoutIntegrity?.summary?.status} />
           <MetricCard label="Wallets scanned" value={String(state.payoutIntegrity?.summary?.wallet_count ?? 0)} hint="TrainerWallet rows" />
@@ -693,6 +907,139 @@ export function AdminPayoutOperationsDashboard() {
           {!integrityIssues.length ? <p className="p-4 text-sm text-slate-500">Payout integrity issues отсутствуют.</p> : null}
         </div>
         <p className="mt-3 text-xs text-slate-500">{state.payoutIntegrity?.actions?.note || 'Integrity endpoint is read-only.'}</p>
+      </Section>
+
+      <Section title="Repair Preview" description="Dry-run план deterministic repair: какие действия будут применены, сколько auto-repairable и сколько уйдёт в manual review.">
+        <div className="mb-4 grid gap-4 md:grid-cols-4">
+          <MetricCard label="Preview status" value={state.repairPreview?.summary?.status || '—'} hint={`${state.repairPreview?.summary?.issue_count ?? 0} integrity issues`} status={state.repairPreview?.summary?.status} />
+          <MetricCard label="Preview actions" value={String(state.repairPreview?.summary?.preview_count ?? 0)} hint={`batch size ${repairBatchSize}`} />
+          <MetricCard label="Auto repairable" value={String(state.repairPreview?.summary?.auto_repairable_count ?? 0)} hint="Eligible deterministic actions" status="healthy" />
+          <MetricCard label="Manual review" value={String(state.repairPreview?.summary?.manual_review_count ?? 0)} hint={state.repairPreview?.summary?.has_more ? 'More issues after this batch' : 'Current batch'} status={state.repairPreview?.summary?.manual_review_count ? 'critical' : 'healthy'} />
+        </div>
+
+        <div className="mb-4 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-medium text-slate-900">Action codes</h3>
+            <div className="mt-3 grid gap-2 text-sm text-slate-700">
+              {repairActionCodes.slice(0, 8).map(([code, count]) => (
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2" key={code}>
+                  <span className="font-mono text-xs">{code}</span>
+                  <span className="font-semibold">{count}</span>
+                </div>
+              ))}
+              {!repairActionCodes.length ? <span className="text-sm text-slate-500">Repair actions отсутствуют.</span> : null}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-medium text-slate-900">Safety</h3>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Dry run only</dt><dd>{state.repairPreview?.safety?.dry_run_only ? 'yes' : 'no'}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Future confirmation</dt><dd>{state.repairPreview?.safety?.requires_confirmation_for_future_execution ? 'yes' : 'no'}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Generated</dt><dd>{dateTime(state.repairPreview?.generated_at)}</dd></div>
+            </dl>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Risk</th>
+                <th className="px-3 py-2">Issue</th>
+                <th className="px-3 py-2">Action</th>
+                <th className="px-3 py-2">Records</th>
+                <th className="px-3 py-2">Amount</th>
+                <th className="px-3 py-2">Message</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {repairPreviewActions.slice(0, 12).map((action, index) => (
+                <tr key={`${action.issue_code}:${action.payout_id || action.wallet_id || index}`}>
+                  <td className="px-3 py-2"><span className={`rounded-full border px-2 py-1 text-xs ${toneClass(action.risk_level)}`}>{action.risk_level || '—'}</span></td>
+                  <td className="px-3 py-2 font-mono text-xs">{action.issue_code}</td>
+                  <td className="px-3 py-2">
+                    <div className="font-mono text-xs">{action.action_code}</div>
+                    <div className="text-xs text-slate-500">{action.eligible_for_auto_repair ? 'auto repairable' : 'manual review'}</div>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-600">
+                    <div>payout: {stringify(action.payout_id)}</div>
+                    <div>wallet: {stringify(action.wallet_id)}</div>
+                  </td>
+                  <td className="px-3 py-2">{stringify(action.amount)} {stringify(action.currency) !== '—' ? action.currency : ''}</td>
+                  <td className="max-w-xl px-3 py-2 text-slate-700">{action.message || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!repairPreviewActions.length ? <p className="p-4 text-sm text-slate-500">Repair preview пустой: текущий integrity snapshot не требует действий.</p> : null}
+        </div>
+
+        {state.lastRepairExecution ? (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+            Last execution: fixed {state.lastRepairExecution.summary?.repaired_count ?? 0}, skipped {state.lastRepairExecution.summary?.skipped_count ?? 0}, manual review {state.lastRepairExecution.summary?.manual_review_count ?? 0}; after status {state.lastRepairExecution.summary?.after_status || '—'}.
+          </div>
+        ) : null}
+      </Section>
+
+      <Section title="Repair History" description="Audit trail repair runs: operator, timestamp, changed records, result counts and manual review fallout.">
+        <div className="mb-4 flex flex-wrap gap-3">
+          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runRepairAuditExport('csv')} disabled={!!busy}>
+            Export repair audit CSV
+          </button>
+          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runRepairAuditExport('xlsx')} disabled={!!busy}>
+            Export repair audit XLSX
+          </button>
+        </div>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Timestamp</th>
+                <th className="px-3 py-2">Operator</th>
+                <th className="px-3 py-2">Repair id</th>
+                <th className="px-3 py-2">Result</th>
+                <th className="px-3 py-2">Changed records</th>
+                <th className="px-3 py-2">Manual review</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {state.repairAudits.slice(0, 10).map((event) => {
+                const context = auditBusinessContext(event);
+                const results = Array.isArray(context.results) ? (context.results as PayoutRepairExecutionResult[]) : [];
+                const changed = results.filter((result) => result.status === 'repaired');
+                const manual = results.filter((result) => result.status === 'manual_review_required');
+                return (
+                  <tr key={event.id}>
+                    <td className="px-3 py-2 whitespace-nowrap">{dateTime(event.created_at)}</td>
+                    <td className="px-3 py-2">{event.actor_email || event.actor || '—'}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-mono text-xs">{event.id}</div>
+                      <div className="text-xs text-slate-500">{event.entity_id}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-700">
+                      <div>fixed: {stringify(context.repaired_count)}</div>
+                      <div>skipped: {stringify(context.skipped_count)}</div>
+                      <div>manual: {stringify(context.manual_review_count)}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-600">
+                      {changed.slice(0, 3).map((result, index) => (
+                        <div key={`${event.id}:changed:${index}`}>{result.action_code}: {repairIssueIds(result)}</div>
+                      ))}
+                      {!changed.length ? '—' : null}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-600">
+                      {manual.slice(0, 3).map((result, index) => (
+                        <div key={`${event.id}:manual:${index}`}>{result.issue_code}: {result.reason || 'manual review required'}</div>
+                      ))}
+                      {!manual.length ? '—' : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {!state.repairAudits.length ? <p className="p-4 text-sm text-slate-500">Repair execution audit events пока отсутствуют.</p> : null}
+        </div>
       </Section>
 
       <Section title="Reconciliation snapshot" description="Read-only snapshot из /payouts/admin-ops/reconciliation/snapshot/ плюс legacy reconciliation issues.">

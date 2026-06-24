@@ -5,10 +5,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
-from apps.payments.api.serializers import PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
+from apps.audit.services import AuditService
+from apps.payments.api.serializers import PaymentRefundSerializer, PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
 from apps.payments.models import Payment, PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
-from apps.payments.webhook_security import PaymentWebhookPayloadError, PaymentWebhookSignatureError
+from apps.payments.webhook_security import PaymentWebhookPayloadError, PaymentWebhookSecurity, PaymentWebhookSignatureError
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -34,9 +35,15 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     @action(detail=True, methods=['post'], url_path='refund-mock')
     def refund_mock(self, request, pk=None):
         payment = self.get_object()
+        serializer = PaymentRefundSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         updated = PaymentService.mark_refunded(
             payment=payment,
             provider_payload={**(payment.provider_payload or {}), 'refunded_via': 'mock_ui'},
+            amount=serializer.validated_data.get('amount'),
+            refund_id=serializer.validated_data.get('refund_id', ''),
+            reason=serializer.validated_data.get('reason', ''),
+            request=request,
         )
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 
@@ -135,6 +142,26 @@ class PaymentWebhookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
             queryset = queryset.filter(payload__external_payment_id=external_payment_id)
         return queryset
 
+    def _audit_rejected_webhook(self, request, *, reason: str) -> None:
+        raw_body = request.body or json.dumps(request.data).encode('utf-8')
+        provider = request.query_params.get('provider') or request.headers.get('X-Payment-Provider') or request.data.get('provider') or ''
+        AuditService.log(
+            event_type='payment.webhook_rejected',
+            entity_type='payment_webhook',
+            entity_id=PaymentWebhookSecurity.raw_hash(raw_body)[:32],
+            context={
+                'provider': provider,
+                'reason': reason,
+                'raw_payload_hash': PaymentWebhookSecurity.raw_hash(raw_body),
+                'headers': {
+                    key: value
+                    for key, value in dict(request.headers).items()
+                    if key.lower().startswith('x-') or key.lower() in {'content-type', 'user-agent'}
+                },
+            },
+            request=request,
+        )
+
     @action(detail=False, methods=['post'], url_path='receive')
     def receive(self, request):
         try:
@@ -153,8 +180,10 @@ class PaymentWebhookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
                     verify_signature=True,
                 )
         except PaymentWebhookSignatureError as exc:
+            self._audit_rejected_webhook(request, reason=str(exc))
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PaymentWebhookPayloadError as exc:
+            self._audit_rejected_webhook(request, reason=str(exc))
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         data = PaymentWebhookEventSerializer(event).data

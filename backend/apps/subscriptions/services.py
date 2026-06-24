@@ -108,6 +108,9 @@ class SubscriptionService:
         EntitlementService.revoke_by_source(
             source_type=EntitlementSourceType.SUBSCRIPTION,
             source_subscription=subscription,
+            reason=reason or 'subscription_cancelled',
+            revoked_by='subscription_cancelled',
+            request=request,
         )
         AuditService.log(
             actor=actor or subscription.user,

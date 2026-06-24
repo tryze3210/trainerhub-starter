@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from apps.entitlements.models import EntitlementSourceType, EntitlementTargetType
+from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus, EntitlementTargetType
 from apps.entitlements.services import EntitlementService
 from apps.events.services import DomainEventService
 from apps.orders.models import Order, OrderStatus, PurchasedItemType
@@ -11,6 +11,15 @@ from apps.subscriptions.models import Subscription, SubscriptionStatus, Subscrip
 
 
 class CommerceFinalizationService:
+    @staticmethod
+    def _has_active_access_for_order(order: Order) -> bool:
+        if order.granted_entitlements.filter(status=EntitlementStatus.ACTIVE).exists():
+            return True
+        return Entitlement.objects.filter(
+            status=EntitlementStatus.ACTIVE,
+            source_subscription__source_order=order,
+        ).exists()
+
     @staticmethod
     def _emit_order_completed(*, order: Order, payment=None) -> None:
         DomainEventService().emit(
@@ -75,7 +84,7 @@ class CommerceFinalizationService:
     @transaction.atomic
     def finalize_paid_order(*, order: Order, payment=None) -> None:
         order = Order.objects.select_for_update().prefetch_related('items').get(pk=order.pk)
-        if order.status == OrderStatus.COMPLETED:
+        if order.status == OrderStatus.COMPLETED and CommerceFinalizationService._has_active_access_for_order(order):
             return
         if order.status not in [OrderStatus.PAID, OrderStatus.COMPLETED]:
             raise ValueError('Order must be paid before finalization')
@@ -134,6 +143,6 @@ class CommerceFinalizationService:
             CommerceFinalizationService._emit_entitlement_granted(entitlement=entitlement, order=order, payment=payment, first_item=first_item)
 
         order.status = OrderStatus.COMPLETED
-        order.completed_at = now
+        order.completed_at = order.completed_at or now
         order.save(update_fields=['status', 'completed_at', 'updated_at'])
         CommerceFinalizationService._emit_order_completed(order=order, payment=payment)

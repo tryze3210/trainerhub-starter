@@ -32,6 +32,12 @@ class PaymentWebhookSerializer(serializers.Serializer):
     raw_payload_hash = serializers.CharField(required=False, allow_blank=True)
 
 
+class PaymentRefundSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    refund_id = serializers.CharField(required=False, allow_blank=True)
+    reason = serializers.CharField(required=False, allow_blank=True)
+
+
 class PaymentWebhookEventSerializer(serializers.ModelSerializer):
     payment_id = serializers.UUIDField(read_only=True)
 

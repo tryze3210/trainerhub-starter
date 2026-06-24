@@ -3,8 +3,12 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
+from apps.audit.models import AuditEvent
 from apps.entitlements.models import Entitlement
+from apps.entitlements.selectors import EntitlementAccessCenterSelector, has_active_entitlement
+from apps.events.models import DomainEvent
 from apps.orders.models import OrderStatus
 from apps.orders.services import OrderService
 from apps.payments.models import PaymentStatus
@@ -62,6 +66,17 @@ class PaymentServiceTest(TestCase):
                 is_active=True,
             ).exists()
         )
+        self.assertTrue(has_active_entitlement(user=user, target_type='video', target_id=str(item_id)))
+        access = EntitlementAccessCenterSelector().check(user=user, target_type='video', target_id=str(item_id))
+        self.assertTrue(access['allowed'])
+        self.assertEqual(access['source'], 'direct')
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                event_type='entitlement.activated',
+                context__source_order_id=str(order.id),
+                context__target_type='video',
+            ).exists()
+        )
 
     def test_webhook_success_for_subscription_is_idempotent_and_accrues_balance_once(self):
         trainer_id = uuid4()
@@ -104,12 +119,77 @@ class PaymentServiceTest(TestCase):
                 is_active=True,
             ).exists()
         )
+        self.assertTrue(has_active_entitlement(user=user, target_type='library', target_id=''))
+        self.assertTrue(has_active_entitlement(user=user, target_type='video', target_id=str(uuid4())))
+        access = EntitlementAccessCenterSelector().check(user=user, target_type='video', target_id=str(uuid4()))
+        self.assertTrue(access['allowed'])
+        self.assertEqual(access['source'], 'library')
         self.assertEqual(balance.available_amount, Decimal('900.00'))
         self.assertEqual(
             PayoutLedgerEntry.objects.filter(
                 trainer_id=trainer_id,
                 payment_id=str(payment.id),
                 entry_type=PayoutLedgerEntry.EntryType.ACCRUAL,
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                event_type='entitlement.activated',
+                context__source_type='subscription',
+            ).count(),
+            1,
+        )
+
+    def test_already_succeeded_payment_reconciles_missing_effects_once(self):
+        trainer_id = uuid4()
+        user = get_user_model().objects.create_user(email='succeeded-reconcile@example.com', password='pass12345')
+        plan = SubscriptionPlan.objects.create(
+            trainer_id=str(trainer_id),
+            title='Recoverable Monthly',
+            price=Decimal('1000.00'),
+            billing_period=SubscriptionPlan.BillingPeriod.MONTH,
+        )
+        order = OrderService.create_subscription_order(user=user, plan=plan)
+        payment = PaymentService.create_checkout_payment(order=order)
+        confirmed_at = timezone.now()
+        payment.status = PaymentStatus.SUCCEEDED
+        payment.confirmed_at = confirmed_at
+        payment.provider_payload = {'external_payment_id': payment.external_payment_id}
+        payment.save(update_fields=['status', 'confirmed_at', 'provider_payload', 'updated_at'])
+
+        PaymentService.mark_succeeded(payment=payment, provider_payload={'external_payment_id': payment.external_payment_id})
+        PaymentService.mark_succeeded(payment=payment, provider_payload={'external_payment_id': payment.external_payment_id})
+
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        balance = TrainerBalance.objects.get(trainer_id=trainer_id)
+
+        self.assertEqual(payment.status, PaymentStatus.SUCCEEDED)
+        self.assertEqual(payment.confirmed_at, confirmed_at)
+        self.assertEqual(order.status, OrderStatus.COMPLETED)
+        self.assertEqual(Subscription.objects.filter(source_order=order).count(), 1)
+        self.assertEqual(
+            Entitlement.objects.filter(
+                user=user,
+                source=Entitlement.Source.SUBSCRIPTION,
+                is_active=True,
+            ).count(),
+            1,
+        )
+        self.assertEqual(balance.available_amount, Decimal('900.00'))
+        self.assertEqual(
+            PayoutLedgerEntry.objects.filter(
+                trainer_id=trainer_id,
+                payment_id=str(payment.id),
+                entry_type=PayoutLedgerEntry.EntryType.ACCRUAL,
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            DomainEvent.objects.filter(
+                event_type='payment.succeeded_reconciled',
+                aggregate_id=str(payment.id),
             ).count(),
             1,
         )

@@ -6,12 +6,17 @@ from rest_framework.routers import DefaultRouter
 from apps.payouts.api.ops_views import (
     AdminPayoutOpsIntegrityAPIView,
     AdminPayoutOpsLedgerExportAPIView,
+    AdminPayoutOpsReconciliationReportExportCsvAPIView,
+    AdminPayoutOpsReconciliationReportExportXlsxAPIView,
     AdminPayoutOpsReconciliationSnapshotAPIView,
+    AdminPayoutOpsRepairAuditExportCsvAPIView,
+    AdminPayoutOpsRepairAuditExportXlsxAPIView,
     AdminPayoutOpsRepairPreviewAPIView,
     AdminPayoutOpsRequestsExportAPIView,
     AdminPayoutOpsSummaryAPIView,
 )
 from apps.payouts.api.readiness_views import AdminPayoutReadinessAPIView
+from apps.payouts.api.repair_execution_views import AdminPayoutOpsRepairExecuteAPIView
 from apps.payouts.api.views import AdminPayoutViewSet, MyPayoutViewSet
 
 router = DefaultRouter()
@@ -36,6 +41,31 @@ urlpatterns = [
         "admin-ops/repair/preview/",
         AdminPayoutOpsRepairPreviewAPIView.as_view(),
         name="admin-payout-ops-repair-preview",
+    ),
+    path(
+        "admin-ops/repair/execute/",
+        AdminPayoutOpsRepairExecuteAPIView.as_view(),
+        name="admin-payout-ops-repair-execute",
+    ),
+    path(
+        "admin-ops/repair/audit/export.csv",
+        AdminPayoutOpsRepairAuditExportCsvAPIView.as_view(),
+        name="admin-payout-ops-repair-audit-export-csv",
+    ),
+    path(
+        "admin-ops/repair/audit/export.xlsx",
+        AdminPayoutOpsRepairAuditExportXlsxAPIView.as_view(),
+        name="admin-payout-ops-repair-audit-export-xlsx",
+    ),
+    path(
+        "admin-ops/reconciliation/export.csv",
+        AdminPayoutOpsReconciliationReportExportCsvAPIView.as_view(),
+        name="admin-payout-ops-reconciliation-report-export-csv",
+    ),
+    path(
+        "admin-ops/reconciliation/export.xlsx",
+        AdminPayoutOpsReconciliationReportExportXlsxAPIView.as_view(),
+        name="admin-payout-ops-reconciliation-report-export-xlsx",
     ),
     path(
         "admin-ops/requests/export.csv",

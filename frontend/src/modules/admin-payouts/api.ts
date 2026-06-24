@@ -275,6 +275,90 @@ export type PayoutAdminOpsIntegritySnapshot = {
   };
 };
 
+export type PayoutRepairPreviewAction = {
+  issue_code: string;
+  action_code: string;
+  severity?: string;
+  payout_id?: string;
+  wallet_id?: string;
+  trainer_id?: string;
+  currency?: string;
+  amount?: string;
+  eligible_for_auto_repair?: boolean;
+  risk_level?: string;
+  message?: string;
+  requires_confirmation?: boolean;
+  dry_run_only?: boolean;
+  [key: string]: unknown;
+};
+
+export type PayoutAdminOpsRepairPreview = {
+  generated_at?: string;
+  mode?: string;
+  repair_performed?: boolean;
+  filters?: Record<string, string | number | null | undefined>;
+  summary?: {
+    status?: string;
+    issue_count?: number;
+    preview_count?: number;
+    auto_repairable_count?: number;
+    manual_review_count?: number;
+    has_more?: boolean;
+  };
+  action_codes?: Record<string, number>;
+  actions?: PayoutRepairPreviewAction[];
+  integrity?: {
+    issue_codes?: Record<string, number>;
+    issue_severities?: Record<string, number>;
+  };
+  safety?: {
+    dry_run_only?: boolean;
+    requires_confirmation_for_future_execution?: boolean;
+    note?: string;
+  };
+};
+
+export type PayoutRepairExecutionResult = {
+  issue_code: string;
+  action_code: string;
+  status: 'repaired' | 'skipped' | 'manual_review_required' | string;
+  reason?: string;
+  payout_id?: string;
+  wallet_id?: string;
+  trainer_id?: string;
+  ledger_entry_id?: string;
+  currency?: string;
+  amount?: string;
+  before?: Record<string, string>;
+  after?: Record<string, string>;
+  [key: string]: unknown;
+};
+
+export type PayoutAdminOpsRepairExecution = {
+  generated_at?: string;
+  mode?: string;
+  repair_performed?: boolean;
+  filters?: Record<string, string | number | null | undefined>;
+  summary?: {
+    before_issue_count?: number;
+    after_issue_count?: number;
+    processed_count?: number;
+    repaired_count?: number;
+    skipped_count?: number;
+    manual_review_count?: number;
+    has_more_before?: boolean;
+    after_status?: string;
+  };
+  results?: PayoutRepairExecutionResult[];
+  manual_review_required_codes?: string[];
+  safe_auto_repair_codes?: string[];
+  repair_preview_after?: PayoutAdminOpsRepairPreview;
+};
+
+export type PayoutAdminOpsRepairFilters = PayoutAdminOpsFilters & {
+  batch_size?: number;
+};
+
 function listFromPayload<T>(payload: T[] | PaginatedResponse<T> | { results?: T[] } | null | undefined): T[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -300,7 +384,7 @@ function filenameFromDisposition(disposition: string | null, fallback: string) {
   return raw ? decodeURIComponent(raw) : fallback;
 }
 
-async function downloadCsv(path: string, fallbackFilename: string) {
+async function downloadFile(path: string, fallbackFilename: string) {
   const headers = new Headers();
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -459,11 +543,54 @@ export const adminPayoutsApi = {
     );
   },
 
+  async getAdminOpsRepairPreview(params?: PayoutAdminOpsRepairFilters) {
+    return apiRequest<PayoutAdminOpsRepairPreview>(
+      `/payouts/admin-ops/repair/preview/${buildQuery(params)}`,
+      { auth: true }
+    );
+  },
+
+  async executeAdminOpsRepair(params?: PayoutAdminOpsRepairFilters) {
+    return apiRequest<PayoutAdminOpsRepairExecution>('/payouts/admin-ops/repair/execute/', {
+      auth: true,
+      method: 'POST',
+      body: JSON.stringify(params ?? {}),
+    });
+  },
+
+  async exportAdminOpsRepairAuditCsv(params?: PayoutAdminOpsFilters) {
+    return downloadFile(
+      `/payouts/admin-ops/repair/audit/export.csv${buildQuery(params)}`,
+      'payout-repair-audit.csv'
+    );
+  },
+
+  async exportAdminOpsRepairAuditXlsx(params?: PayoutAdminOpsFilters) {
+    return downloadFile(
+      `/payouts/admin-ops/repair/audit/export.xlsx${buildQuery(params)}`,
+      'payout-repair-audit.xlsx'
+    );
+  },
+
   async exportAdminOpsRequestsCsv(params?: PayoutAdminOpsFilters) {
-    return downloadCsv(`/payouts/admin-ops/requests/export.csv${buildQuery(params)}`, 'payout-requests.csv');
+    return downloadFile(`/payouts/admin-ops/requests/export.csv${buildQuery(params)}`, 'payout-requests.csv');
   },
 
   async exportAdminOpsLedgerCsv(params?: PayoutAdminOpsLedgerFilters) {
-    return downloadCsv(`/payouts/admin-ops/ledger/export.csv${buildQuery(params)}`, 'payout-ledger.csv');
+    return downloadFile(`/payouts/admin-ops/ledger/export.csv${buildQuery(params)}`, 'payout-ledger.csv');
+  },
+
+  async exportAdminOpsReconciliationReportCsv(params?: PayoutAdminOpsFilters) {
+    return downloadFile(
+      `/payouts/admin-ops/reconciliation/export.csv${buildQuery(params)}`,
+      'payout-reconciliation-report.csv'
+    );
+  },
+
+  async exportAdminOpsReconciliationReportXlsx(params?: PayoutAdminOpsFilters) {
+    return downloadFile(
+      `/payouts/admin-ops/reconciliation/export.xlsx${buildQuery(params)}`,
+      'payout-reconciliation-report.xlsx'
+    );
   },
 };

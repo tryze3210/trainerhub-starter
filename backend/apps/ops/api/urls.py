@@ -6,6 +6,7 @@ from apps.ops.api.views import (
     AdminOperationsDashboardView,
     AdminOperationsHubView,
     AdminOperationsReadinessView,
+    AdminPaymentReconciliationView,
     AdminReconciliationIssueRegistryView,
     AdminReconciliationReportView,
     AdminReconciliationRepairPolicyView,
@@ -31,6 +32,7 @@ urlpatterns = [
     path('admin/operations-readiness/', AdminOperationsReadinessView.as_view(), name='ops-admin-operations-readiness'),
     path('admin/commerce-readiness/', AdminCommerceReadinessView.as_view(), name='ops-admin-commerce-readiness'),
     path('admin/reconciliation-report/', AdminReconciliationReportView.as_view(), name='ops-admin-reconciliation-report'),
+    path('admin/payment-reconciliation/', AdminPaymentReconciliationView.as_view(), name='ops-admin-payment-reconciliation'),
     path('admin/reconciliation-repair/', AdminReconciliationRepairView.as_view(), name='ops-admin-reconciliation-repair'),
     path(
         'admin/reconciliation-repair/policy/',

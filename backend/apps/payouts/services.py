@@ -810,7 +810,15 @@ class PayoutService:
 
     @classmethod
     @transaction.atomic
-    def reverse_payment_accrual(cls, *, payment, source_type: str = 'payment_refund', reversal_status: str = 'available_reversed') -> dict:
+    def reverse_payment_accrual(
+        cls,
+        *,
+        payment,
+        source_type: str = 'payment_refund',
+        reversal_status: str = 'available_reversed',
+        amount: Decimal | None = None,
+        source_id=None,
+    ) -> dict:
         """
         Reverse trainer revenue created for a payment.
 
@@ -840,19 +848,33 @@ class PayoutService:
             }
 
         wallet = TrainerWallet.objects.select_for_update().get(id=accruals[0].wallet_id)
+        source_id = source_id or payment.id
         existing_reversal = BalanceEntry.objects.filter(
             wallet=wallet,
             source_type=source_type,
-            source_id=payment.id,
+            source_id=source_id,
             entry_type="reversal",
         ).first()
         total_amount = sum((entry.amount for entry in accruals), Decimal("0.00"))
+        reversal_amount = (amount if amount is not None else total_amount).quantize(Decimal("0.01"))
+        if reversal_amount <= Decimal("0.00"):
+            return {
+                "status": "skipped",
+                "reason": "Reversal amount must be positive.",
+                "payment_id": str(payment.id),
+                "source_type": source_type,
+                "source_id": str(source_id),
+                "reversed_amount": "0.00",
+            }
+        if reversal_amount > total_amount:
+            reversal_amount = total_amount
 
         if existing_reversal:
             return {
                 "status": "already_reversed",
                 "payment_id": str(payment.id),
                 "source_type": source_type,
+                "source_id": str(source_id),
                 "wallet_id": str(wallet.id),
                 "trainer_id": str(wallet.trainer.user_id),
                 "reversal_entry_id": str(existing_reversal.id),
@@ -869,14 +891,14 @@ class PayoutService:
         existing_hold_consumed = BalanceEntry.objects.filter(
             wallet=wallet,
             source_type=f"{source_type}_hold_consumed",
-            source_id=payment.id,
+            source_id=source_id,
             entry_type=BalanceEntry.EntryType.RISK_HOLD_CONSUMED,
         ).first()
 
         consumed_hold_amount = Decimal("0.00")
         hold_consumed_entry = None
         if hold_entry and not existing_hold_consumed:
-            consumed_hold_amount = min(hold_entry.amount, wallet.locked_amount)
+            consumed_hold_amount = min(hold_entry.amount, wallet.locked_amount, reversal_amount)
             if consumed_hold_amount > Decimal("0.00"):
                 wallet.locked_amount -= consumed_hold_amount
                 hold_consumed_entry = BalanceEntry.objects.create(
@@ -887,10 +909,10 @@ class PayoutService:
                     currency=payment.currency,
                     status="consumed",
                     source_type=f"{source_type}_hold_consumed",
-                    source_id=payment.id,
+                    source_id=source_id,
                 )
 
-        remaining_available_reversal = total_amount - consumed_hold_amount
+        remaining_available_reversal = reversal_amount - consumed_hold_amount
         wallet.available_amount -= remaining_available_reversal
         wallet.save(update_fields=["available_amount", "locked_amount", "updated_at"])
 
@@ -898,24 +920,24 @@ class PayoutService:
             wallet=wallet,
             entry_type=BalanceEntry.EntryType.REVERSAL,
             direction="debit",
-            amount=total_amount,
+            amount=reversal_amount,
             currency=payment.currency,
             status=reversal_status,
             source_type=source_type,
-            source_id=payment.id,
+            source_id=source_id,
         )
 
         return {
             "status": "reversed",
             "payment_id": str(payment.id),
             "source_type": source_type,
+            "source_id": str(source_id),
             "wallet_id": str(wallet.id),
             "trainer_id": str(wallet.trainer.user_id),
             "reversal_entry_id": str(reversal.id),
             "hold_consumed_entry_id": str(hold_consumed_entry.id) if hold_consumed_entry else "",
-            "reversed_amount": str(total_amount),
+            "reversed_amount": str(reversal_amount),
             "consumed_hold_amount": str(consumed_hold_amount),
             "available_reversed_amount": str(remaining_available_reversal),
             "currency": payment.currency,
         }
-

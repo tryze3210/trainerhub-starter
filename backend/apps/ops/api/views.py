@@ -37,6 +37,7 @@ from apps.ops.operations import get_admin_operations_dashboard
 from apps.ops.commerce_readiness import get_commerce_readiness
 from apps.ops.operations_hub import get_admin_operations_hub
 from apps.ops.operations_readiness import get_ops_production_readiness
+from apps.ops.payment_reconciliation import get_payment_reconciliation_report
 from apps.ops.reconciliation import get_money_reconciliation_report
 from apps.ops.reconciliation_snapshots import (
     capture_reconciliation_snapshot,
@@ -152,6 +153,18 @@ class AdminReconciliationReportView(APIView):
         serializer = AdminReconciliationQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         payload = get_money_reconciliation_report(**serializer.validated_data)
+        return Response(payload)
+
+
+class AdminPaymentReconciliationView(APIView):
+    """Read-only payment reconciliation across provider webhooks, internal payments and access grants."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        serializer = AdminReconciliationQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = get_payment_reconciliation_report(**serializer.validated_data)
         return Response(payload)
 
 

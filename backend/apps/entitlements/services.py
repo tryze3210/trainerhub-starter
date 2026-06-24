@@ -5,11 +5,39 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
+from apps.audit.services import AuditService
 from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus
 from apps.events.services import DomainEventService
 
 
 class EntitlementService:
+    @staticmethod
+    def _activation_context(entitlement: Entitlement) -> dict[str, Any]:
+        return {
+            'entitlement_id': str(entitlement.id),
+            'user_id': str(entitlement.user_id),
+            'source_type': entitlement.source_type,
+            'source_order_id': str(entitlement.source_order_id or ''),
+            'source_subscription_id': str(entitlement.source_subscription_id or ''),
+            'source_reference': entitlement.source_reference or '',
+            'target_type': entitlement.target_type,
+            'target_id': str(entitlement.target_id or ''),
+            'status': entitlement.status,
+            'starts_at': entitlement.starts_at.isoformat() if entitlement.starts_at else None,
+            'ends_at': entitlement.ends_at.isoformat() if entitlement.ends_at else None,
+            'metadata': entitlement.metadata or {},
+        }
+
+    @staticmethod
+    def _revocation_context(*, entitlement: Entitlement, previous_status: str, reason: str, revoked_by: str) -> dict[str, Any]:
+        return {
+            **EntitlementService._activation_context(entitlement),
+            'previous_status': previous_status,
+            'reason': reason,
+            'revoked_by': revoked_by,
+            'revoked_at': (entitlement.metadata or {}).get('revoked_at', ''),
+        }
+
     @staticmethod
     def _emit_granted(entitlement: Entitlement) -> None:
         DomainEventService().emit(
@@ -17,19 +45,49 @@ class EntitlementService:
             aggregate_type='entitlement',
             aggregate_id=str(entitlement.id),
             idempotency_key=f'entitlement:{entitlement.id}:granted',
-            payload={
-                'entitlement_id': str(entitlement.id),
-                'user_id': str(entitlement.user_id),
-                'source_type': entitlement.source_type,
-                'source_order_id': str(entitlement.source_order_id or ''),
-                'source_subscription_id': str(entitlement.source_subscription_id or ''),
-                'target_type': entitlement.target_type,
-                'target_id': str(entitlement.target_id or ''),
-                'status': entitlement.status,
-                'starts_at': entitlement.starts_at.isoformat() if entitlement.starts_at else None,
-                'ends_at': entitlement.ends_at.isoformat() if entitlement.ends_at else None,
-                'metadata': entitlement.metadata or {},
-            },
+            payload=EntitlementService._activation_context(entitlement),
+        )
+
+    @staticmethod
+    def _audit_granted(entitlement: Entitlement) -> None:
+        AuditService.log(
+            actor=entitlement.user,
+            event_type='entitlement.activated',
+            entity_type='entitlement',
+            entity_id=str(entitlement.id),
+            context=EntitlementService._activation_context(entitlement),
+        )
+
+    @staticmethod
+    def _emit_revoked(*, entitlement: Entitlement, previous_status: str, reason: str, revoked_by: str) -> None:
+        revoked_at = (entitlement.metadata or {}).get('revoked_at') or timezone.now().isoformat()
+        DomainEventService().emit(
+            event_type='entitlement.revoked',
+            aggregate_type='entitlement',
+            aggregate_id=str(entitlement.id),
+            idempotency_key=f'entitlement:{entitlement.id}:revoked:{revoked_at}',
+            payload=EntitlementService._revocation_context(
+                entitlement=entitlement,
+                previous_status=previous_status,
+                reason=reason,
+                revoked_by=revoked_by,
+            ),
+        )
+
+    @staticmethod
+    def _audit_revoked(*, entitlement: Entitlement, previous_status: str, reason: str, revoked_by: str, request=None) -> None:
+        AuditService.log(
+            actor=entitlement.user,
+            event_type='entitlement.revoked',
+            entity_type='entitlement',
+            entity_id=str(entitlement.id),
+            context=EntitlementService._revocation_context(
+                entitlement=entitlement,
+                previous_status=previous_status,
+                reason=reason,
+                revoked_by=revoked_by,
+            ),
+            request=request,
         )
 
     @staticmethod
@@ -62,6 +120,8 @@ class EntitlementService:
             source_reference = str(source_subscription.id)
         if source_reference:
             metadata['source_reference'] = str(source_reference)
+        metadata.setdefault('activated_via', source_type)
+        metadata.setdefault('activated_at', timezone.now().isoformat())
         if not target_type:
             raise ValueError('target_type is required')
         if target_id is not None:
@@ -75,7 +135,9 @@ class EntitlementService:
             'target_type': target_type,
             'target_id': target_id,
         }
-        entitlement, _ = Entitlement.objects.update_or_create(
+        existing = Entitlement.objects.select_for_update().filter(**lookup).first()
+        previous_status = existing.status if existing else None
+        entitlement, created = Entitlement.objects.update_or_create(
             **lookup,
             defaults={
                 'status': EntitlementStatus.ACTIVE,
@@ -85,11 +147,57 @@ class EntitlementService:
             },
         )
         EntitlementService._emit_granted(entitlement)
+        if created or previous_status != EntitlementStatus.ACTIVE:
+            EntitlementService._audit_granted(entitlement)
         return entitlement
 
     @staticmethod
     @transaction.atomic
-    def revoke_by_source(*, source_type: str | None = None, source_order=None, source_subscription=None, source: str | None = None, source_reference: str | None = None):
+    def revoke(*, entitlement: Entitlement, reason: str = '', revoked_by: str = 'system', request=None) -> bool:
+        entitlement = Entitlement.objects.select_for_update().get(pk=entitlement.pk)
+        if entitlement.status == EntitlementStatus.REVOKED:
+            return False
+
+        previous_status = entitlement.status
+        metadata = dict(entitlement.metadata or {})
+        revoked_at = timezone.now().isoformat()
+        metadata.update({
+            'revoked_at': revoked_at,
+            'revoked_by': revoked_by,
+            'revocation_reason': reason,
+        })
+        entitlement.status = EntitlementStatus.REVOKED
+        entitlement.metadata = metadata
+        entitlement.save(update_fields=['status', 'metadata', 'updated_at'])
+
+        EntitlementService._emit_revoked(
+            entitlement=entitlement,
+            previous_status=previous_status,
+            reason=reason,
+            revoked_by=revoked_by,
+        )
+        EntitlementService._audit_revoked(
+            entitlement=entitlement,
+            previous_status=previous_status,
+            reason=reason,
+            revoked_by=revoked_by,
+            request=request,
+        )
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def revoke_by_source(
+        *,
+        source_type: str | None = None,
+        source_order=None,
+        source_subscription=None,
+        source: str | None = None,
+        source_reference: str | None = None,
+        reason: str = '',
+        revoked_by: str = 'system',
+        request=None,
+    ):
         source_type = source_type or source
         queryset = Entitlement.objects.filter(status=EntitlementStatus.ACTIVE)
         if source_type:
@@ -101,7 +209,15 @@ class EntitlementService:
         if source_reference:
             queryset = queryset.filter(metadata__source_reference=source_reference)
         entitlement_ids = list(queryset.values_list('id', flat=True)[:500])
-        updated = queryset.update(status=EntitlementStatus.REVOKED, updated_at=timezone.now())
+        updated = 0
+        for entitlement in Entitlement.objects.filter(id__in=entitlement_ids).order_by('created_at'):
+            if EntitlementService.revoke(
+                entitlement=entitlement,
+                reason=reason,
+                revoked_by=revoked_by,
+                request=request,
+            ):
+                updated += 1
         if updated:
             DomainEventService().emit(
                 event_type='entitlement.revoked_by_source',
@@ -120,6 +236,8 @@ class EntitlementService:
                     'source_reference': source_reference,
                     'updated_count': updated,
                     'entitlement_ids': [str(value) for value in entitlement_ids],
+                    'reason': reason,
+                    'revoked_by': revoked_by,
                 },
             )
         return updated

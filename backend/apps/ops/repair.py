@@ -615,7 +615,7 @@ class ReconciliationRepairService:
             raise ValidationError({'entity_type': 'revoke_entitlement requires entity_type=entitlement.'})
 
         from apps.entitlements.models import Entitlement, EntitlementStatus
-        from apps.events.services import DomainEventService
+        from apps.entitlements.services import EntitlementService
 
         entitlement = Entitlement.objects.select_for_update().get(pk=entity_id)
         if entitlement.status != EntitlementStatus.ACTIVE and not force:
@@ -630,25 +630,12 @@ class ReconciliationRepairService:
             )
 
         previous_status = entitlement.status
-        entitlement.status = EntitlementStatus.REVOKED
-        metadata = dict(entitlement.metadata or {})
-        metadata['reconciliation_repair'] = {'reason': reason, 'revoked_at': timezone.now().isoformat()}
-        entitlement.metadata = metadata
-        entitlement.save(update_fields=['status', 'metadata', 'updated_at'])
-
-        DomainEventService().emit(
-            event_type='entitlement.revoked',
-            aggregate_type='entitlement',
-            aggregate_id=str(entitlement.id),
-            idempotency_key=f'entitlement:{entitlement.id}:reconciliation_revoked',
-            payload={
-                'entitlement_id': str(entitlement.id),
-                'user_id': str(entitlement.user_id),
-                'previous_status': previous_status,
-                'status': entitlement.status,
-                'reason': reason,
-            },
+        EntitlementService.revoke(
+            entitlement=entitlement,
+            reason=reason or 'reconciliation_repair',
+            revoked_by='reconciliation_repair',
         )
+        entitlement.refresh_from_db(fields=['status', 'metadata', 'updated_at'])
         return RepairResult(
             action='revoke_entitlement',
             status='completed',
