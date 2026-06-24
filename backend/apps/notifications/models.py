@@ -41,8 +41,13 @@ class NotificationType:
 
     # Event-level types used by notifications_notificationdelivery.type.
     ORDER_PAID = 'order_paid'
+    PAYMENT_SUCCEEDED = 'payment_succeeded'
     PAYMENT_FAILED = 'payment_failed'
+    PAYMENT_REFUNDED = 'payment_refunded'
+    ACCESS_GRANTED = 'access_granted'
     SUBSCRIPTION_ACTIVATED = 'subscription_activated'
+    SUBSCRIPTION_EXPIRING = 'subscription_expiring'
+    PAYOUT_PAID = 'payout_paid'
     ADMIN_ANNOUNCEMENT = 'admin_announcement'
 
     LEGACY_CHOICES = [
@@ -55,8 +60,13 @@ class NotificationType:
 
     DELIVERY_CHOICES = [
         (ORDER_PAID, 'Order paid'),
+        (PAYMENT_SUCCEEDED, 'Payment succeeded'),
         (PAYMENT_FAILED, 'Payment failed'),
+        (PAYMENT_REFUNDED, 'Payment refunded'),
+        (ACCESS_GRANTED, 'Access granted'),
         (SUBSCRIPTION_ACTIVATED, 'Subscription activated'),
+        (SUBSCRIPTION_EXPIRING, 'Subscription expiring'),
+        (PAYOUT_PAID, 'Payout paid'),
         (ADMIN_ANNOUNCEMENT, 'Admin announcement'),
     ]
 

@@ -66,6 +66,7 @@ export default function AdminCockpitPage() {
                 <Link href="/admin/marketplace" className="button">Marketplace command</Link>
                 <Link href="/admin/moderation" className="button secondary">Moderation</Link>
                 <Link href="/admin/payouts" className="button secondary">Payout ops</Link>
+                <Link href="/admin/payments" className="button secondary">Payment ops</Link>
                 <Link href="/admin/analytics" className="button secondary">Analytics</Link>
                 <Link href="/admin/operations" className="button secondary">Operations</Link>
                 <Link href="/admin/reviews" className="button ghost">Reviews</Link>

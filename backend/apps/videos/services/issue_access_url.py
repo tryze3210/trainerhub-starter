@@ -1,5 +1,6 @@
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
+from apps.entitlements.access_audit import AccessControlAuditService
 from common.storage.client import storage_service
 from apps.videos.models import Video
 
@@ -12,14 +13,14 @@ class IssueVideoAccessUrlService:
             return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
         if video.is_free:
             return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
-        if user.is_authenticated and hasattr(user, "customer_profile"):
-            from apps.purchases.models import Purchase
-            from apps.products.models import ProductItem
-            has_paid_access = Purchase.objects.filter(
-                customer=user.customer_profile,
-                status="paid",
-                product__items__video=video,
-            ).exists()
-            if has_paid_access:
+        if user.is_authenticated:
+            decision = AccessControlAuditService.check(
+                user=user,
+                target_type="video",
+                target_id=str(video.id),
+                include_admin_override=False,
+            )
+            if decision.get("allowed"):
                 return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
-        raise PermissionDenied("You do not have access to this video.")
+            raise PermissionDenied(f"You do not have access to this video: {decision.get('code')}")
+        raise PermissionDenied("Authentication is required to access this video.")

@@ -115,6 +115,10 @@ export default function CabinetPage() {
             <h3 className="title-md">Access center</h3>
             <p>Коммерческие доступы, библиотека и entitlement readiness.</p>
           </Link>
+          <Link href="/billing" className="card">
+            <h3 className="title-md">Billing</h3>
+            <p>Покупки, подписки, чеки, статусы платежей и активные доступы.</p>
+          </Link>
           <Link href="/orders" className="card">
             <h3 className="title-md">Заказы</h3>
             <p>История checkout и order flow.</p>

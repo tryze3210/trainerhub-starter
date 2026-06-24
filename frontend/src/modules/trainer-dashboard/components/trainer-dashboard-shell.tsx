@@ -9,6 +9,7 @@ const links = [
   { href: '/trainer/onboarding', label: 'Onboarding' },
   { href: '/trainer/application-status', label: 'Application status' },
   { href: '/trainer/dashboard/products', label: 'Products' },
+  { href: '/trainer/dashboard/sales', label: 'Sales' },
   { href: '/trainer/dashboard/revenue', label: 'Revenue' },
   { href: '/trainer/dashboard/payouts', label: 'Payouts' },
   { href: '/trainer/dashboard/analytics', label: 'Analytics' },

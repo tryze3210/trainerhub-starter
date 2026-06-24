@@ -1,6 +1,6 @@
 import { apiRequest, normalizeListResponse, type PaginatedResponse } from '@/lib/api-client';
 
-export type SubscriptionStatus = 'pending' | 'active' | 'past_due' | 'cancelled' | 'expired' | string;
+export type SubscriptionStatus = 'trial' | 'pending' | 'active' | 'past_due' | 'cancelled' | 'expired' | string;
 
 export type AdminSubscriptionPlan = {
   id?: string;
@@ -51,6 +51,7 @@ export type AdminSubscriptionItem = {
 export type AdminSubscriptionOverview = {
   summary?: {
     total_count?: number;
+    trial_count?: number;
     active_count?: number;
     pending_count?: number;
     past_due_count?: number;

@@ -80,6 +80,22 @@ class NotificationEventProjectionService:
             cta_label='Повторить оплату',
             cta_url_key='checkout_url',
         ),
+        'payment.refunded': NotificationProjectionTemplate(
+            notification_type=NotificationType.PAYMENT,
+            title='Возврат оформлен',
+            body='Возврат по платежу обработан. Доступ по заказу может быть отозван согласно правилам возврата.',
+            recipient_keys=('user_id', 'customer_id', 'buyer_id'),
+            cta_label='Открыть платежи',
+            cta_url_key='billing_url',
+        ),
+        'payment.refund_partial': NotificationProjectionTemplate(
+            notification_type=NotificationType.PAYMENT,
+            title='Частичный возврат оформлен',
+            body='Частичный возврат по платежу обработан. Доступ остается активным, если заказ не возвращен полностью.',
+            recipient_keys=('user_id', 'customer_id', 'buyer_id'),
+            cta_label='Открыть платежи',
+            cta_url_key='billing_url',
+        ),
         'payment.cancelled': NotificationProjectionTemplate(
             notification_type=NotificationType.PAYMENT,
             title='Платеж отменен',
@@ -215,6 +231,14 @@ class NotificationEventProjectionService:
             recipient_keys=('user_id', 'customer_id', 'buyer_id'),
             cta_label='Обновить оплату',
             cta_url_key='billing_url',
+        ),
+        'subscription.expiring': NotificationProjectionTemplate(
+            notification_type=NotificationType.SUBSCRIPTION,
+            title='Подписка скоро закончится',
+            body='Оплаченный период подписки скоро завершится. Проверьте продление в биллинге.',
+            recipient_keys=('user_id', 'customer_id', 'buyer_id'),
+            cta_label='Открыть подписки',
+            cta_url_key='subscriptions_url',
         ),
         'payout.accrued': NotificationProjectionTemplate(
             notification_type=NotificationType.SYSTEM,

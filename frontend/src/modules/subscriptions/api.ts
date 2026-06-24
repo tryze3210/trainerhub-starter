@@ -79,6 +79,7 @@ export type SubscriptionLifecyclePolicy = {
 export type SubscriptionLifecycleSummary = {
   summary: {
     total_count: number;
+    trial_count: number;
     active_count: number;
     past_due_count: number;
     cancelled_count: number;
@@ -97,6 +98,7 @@ export type SubscriptionLifecycleSummary = {
 export type SubscriptionCenter = {
   summary: {
     total_count: number;
+    trial_count?: number;
     active_count: number;
     cancelled_count: number;
     expired_count: number;
@@ -131,6 +133,7 @@ export type SubscriptionEntitlementReconcileResult = {
 export type AdminSubscriptionOverview = {
   summary: {
     total_count: number;
+    trial_count?: number;
     active_count: number;
     pending_count: number;
     past_due_count: number;

@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.subscriptions.api.lifecycle_serializers import (
+    SubscriptionExpiringNotificationSerializer,
     SubscriptionLifecycleActionSerializer,
     SubscriptionLifecycleReconcileSerializer,
     SubscriptionLifecycleSummaryQuerySerializer,
@@ -208,3 +209,15 @@ class SubscriptionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
             request=request,
         )
         return Response({'expired_count': count, 'entitlement_reconciliation': reconcile})
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser], url_path='admin/notify-expiring')
+    def admin_notify_expiring(self, request):
+        serializer = SubscriptionExpiringNotificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = SubscriptionLifecycleService.notify_expiring_subscriptions(
+            days_before=serializer.validated_data['days_before'],
+            limit=serializer.validated_data['limit'],
+            actor=request.user,
+            request=request,
+        )
+        return Response(payload)

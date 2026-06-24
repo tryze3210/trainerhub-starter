@@ -35,6 +35,7 @@ class SubscriptionPlan(UUIDModel):
 
 
 class SubscriptionStatus(models.TextChoices):
+    TRIAL = 'trial', 'Trial'
     PENDING = 'pending', 'Pending'
     ACTIVE = 'active', 'Active'
     PAST_DUE = 'past_due', 'Past due'

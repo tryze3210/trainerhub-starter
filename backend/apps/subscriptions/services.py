@@ -171,7 +171,7 @@ class SubscriptionService:
         now = now or timezone.now()
         due_ids = list(
             Subscription.objects.filter(
-                status__in=[SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+                status__in=[SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
                 ends_at__lt=now,
             ).values_list('id', flat=True)
         )

@@ -19,6 +19,11 @@ class SubscriptionLifecycleSummaryQuerySerializer(serializers.Serializer):
     days = serializers.IntegerField(required=False, min_value=1, max_value=365, default=30)
 
 
+class SubscriptionExpiringNotificationSerializer(serializers.Serializer):
+    days_before = serializers.IntegerField(required=False, min_value=1, max_value=90, default=7)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=1000, default=250)
+
+
 class AdminSubscriptionLifecycleListQuerySerializer(serializers.Serializer):
     status = serializers.ChoiceField(required=False, choices=SubscriptionStatus.choices)
     search = serializers.CharField(required=False, allow_blank=True, max_length=255)

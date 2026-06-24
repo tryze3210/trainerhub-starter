@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.entitlements.models import EntitlementStatus
 from apps.payments.models import Payment, PaymentWebhookEvent
 
 
@@ -20,6 +21,63 @@ class PaymentSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+
+class AdminPaymentSerializer(PaymentSerializer):
+    buyer_email = serializers.SerializerMethodField()
+    buyer_id = serializers.SerializerMethodField()
+    order_status = serializers.CharField(source='order.status', read_only=True)
+    order_type = serializers.CharField(source='order.order_type', read_only=True)
+    order_total_amount = serializers.DecimalField(source='order.total_amount', max_digits=12, decimal_places=2, read_only=True)
+    refund_operations = serializers.SerializerMethodField()
+    entitlement_summary = serializers.SerializerMethodField()
+
+    class Meta(PaymentSerializer.Meta):
+        fields = PaymentSerializer.Meta.fields + [
+            'buyer_id',
+            'buyer_email',
+            'order_status',
+            'order_type',
+            'order_total_amount',
+            'refund_operations',
+            'entitlement_summary',
+        ]
+
+    def get_buyer_id(self, obj):
+        return str(obj.order.user_id) if obj.order_id else ''
+
+    def get_buyer_email(self, obj):
+        return getattr(obj.order.user, 'email', '') if obj.order_id else ''
+
+    def get_refund_operations(self, obj):
+        operations = (obj.provider_payload or {}).get('refund_operations') or []
+        return operations if isinstance(operations, list) else []
+
+    def get_entitlement_summary(self, obj):
+        entitlements = list(getattr(obj.order, 'granted_entitlements', []).all())
+        active = sum(1 for item in entitlements if item.status == EntitlementStatus.ACTIVE)
+        revoked = sum(1 for item in entitlements if item.status == EntitlementStatus.REVOKED)
+        expired = sum(1 for item in entitlements if item.status == EntitlementStatus.EXPIRED)
+        total = len(entitlements)
+
+        if active:
+            status = 'active'
+        elif revoked:
+            status = 'revoked'
+        elif expired:
+            status = 'expired'
+        elif obj.status == 'succeeded':
+            status = 'missing'
+        else:
+            status = 'not_granted'
+
+        return {
+            'status': status,
+            'total': total,
+            'active': active,
+            'revoked': revoked,
+            'expired': expired,
+        }
 
 
 class PaymentWebhookSerializer(serializers.Serializer):

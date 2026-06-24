@@ -12,7 +12,7 @@ import {
   type SubscriptionStatus,
 } from '@/modules/admin-subscriptions/api';
 
-const STATUS_OPTIONS = ['', 'pending', 'active', 'past_due', 'cancelled', 'expired'];
+const STATUS_OPTIONS = ['', 'trial', 'pending', 'active', 'past_due', 'cancelled', 'expired'];
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -27,6 +27,7 @@ function money(value?: string | number | null, currency = 'RUB'): string {
 }
 
 function statusClass(status?: SubscriptionStatus): string {
+  if (status === 'trial') return 'success';
   if (status === 'active') return 'success';
   if (status === 'past_due') return 'warning';
   if (status === 'cancelled' || status === 'expired') return 'secondary';
@@ -91,6 +92,7 @@ export function AdminSubscriptionOperationsDashboard() {
   const computed = useMemo(() => {
     return {
       total: getSummaryNumber(overview, 'total_count') || items.length,
+      trial: getSummaryNumber(overview, 'trial_count') || items.filter((item) => item.status === 'trial').length,
       active: getSummaryNumber(overview, 'active_count') || items.filter((item) => item.status === 'active').length,
       pastDue: getSummaryNumber(overview, 'past_due_count') || items.filter((item) => item.status === 'past_due').length,
       cancelled: getSummaryNumber(overview, 'cancelled_count') || items.filter((item) => item.status === 'cancelled').length,
@@ -155,7 +157,7 @@ export function AdminSubscriptionOperationsDashboard() {
         <div className="card stat-card">
           <span className="muted">Всего</span>
           <strong>{computed.total}</strong>
-          <small>subscriptions</small>
+          <small>trial: {computed.trial}</small>
         </div>
         <div className="card stat-card">
           <span className="muted">Active</span>

@@ -57,6 +57,12 @@ class EntitlementService:
             entity_id=str(entitlement.id),
             context=EntitlementService._activation_context(entitlement),
         )
+        try:
+            from apps.notifications.domain.triggers import DomainNotificationTriggers
+
+            DomainNotificationTriggers().on_access_granted(user=entitlement.user, entitlement=entitlement)
+        except Exception:
+            pass
 
     @staticmethod
     def _emit_revoked(*, entitlement: Entitlement, previous_status: str, reason: str, revoked_by: str) -> None:

@@ -129,14 +129,15 @@ def get_user_active_entitlements(*, user):
 
 
 def has_active_entitlement(*, user, target_type: str, target_id: Any) -> bool:
-    resolved = resolve_access_target(target_type=target_type, target_id=target_id)
-    now = timezone.now()
-    target_ids = _target_id_candidates(resolved.get('target_id'), target_id)
-    specific_query = Entitlement.objects.filter(user=user, target_type=resolved['target_type']).filter(_active_filter(now))
-    specific_query = specific_query.filter(target_id__in=target_ids) if target_ids else specific_query.none()
+    from apps.entitlements.access_audit import AccessControlAuditService
 
-    library_query = Entitlement.objects.filter(user=user, target_type=EntitlementTargetType.LIBRARY).filter(_active_filter(now))
-    return specific_query.exists() or library_query.exists()
+    decision = AccessControlAuditService.check(
+        user=user,
+        target_type=target_type,
+        target_id=target_id,
+        include_admin_override=False,
+    )
+    return bool(decision.get('allowed'))
 
 
 class EntitlementAccessCenterSelector:
@@ -181,6 +182,16 @@ class EntitlementAccessCenterSelector:
         }
 
     def check(self, *, user, target_type: str, target_id: Any) -> dict[str, Any]:
+        from apps.entitlements.access_audit import AccessControlAuditService
+
+        return AccessControlAuditService.check(
+            user=user,
+            target_type=target_type,
+            target_id=target_id,
+            include_admin_override=False,
+        )
+
+    def legacy_check(self, *, user, target_type: str, target_id: Any) -> dict[str, Any]:
         resolved = resolve_access_target(target_type=target_type, target_id=target_id)
         allowed = has_active_entitlement(user=user, target_type=target_type, target_id=target_id)
         entitlement = None

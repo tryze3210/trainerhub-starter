@@ -11,6 +11,7 @@ const publicLinks = [
 ];
 
 const privateLinks = [
+  { href: '/billing', label: 'Billing' },
   { href: '/subscriptions', label: 'Подписки' },
   { href: '/orders', label: 'Заказы' },
   { href: '/payments', label: 'Платежи' },
@@ -65,6 +66,9 @@ export function SessionNav() {
             </Link>
             <Link href="/admin/payouts" aria-current={pathname?.startsWith('/admin/payouts') ? 'page' : undefined}>
               Payout ops
+            </Link>
+            <Link href="/admin/payments" aria-current={pathname?.startsWith('/admin/payments') ? 'page' : undefined}>
+              Payment ops
             </Link>
             <Link href="/admin/analytics" aria-current={pathname?.startsWith('/admin/analytics') ? 'page' : undefined}>
               Analytics

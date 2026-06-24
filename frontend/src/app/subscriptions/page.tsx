@@ -27,6 +27,7 @@ function formatDate(value?: string | null): string {
 
 function getStatusLabel(status?: string): string {
   const value = (status || '').toLowerCase();
+  if (value === 'trial') return 'Пробный период';
   if (value === 'active') return 'Активна';
   if (value === 'pending') return 'Ожидает оплаты';
   if (value === 'past_due') return 'Проблема оплаты';
@@ -37,6 +38,7 @@ function getStatusLabel(status?: string): string {
 
 function getStatusClass(status?: string): string {
   const value = (status || '').toLowerCase();
+  if (value === 'trial') return 'badge success';
   if (value === 'active') return 'badge success';
   if (value === 'pending') return 'badge warning';
   if (value === 'past_due' || value === 'cancelled' || value === 'canceled' || value === 'expired') return 'badge danger';
@@ -165,9 +167,9 @@ export default function SubscriptionsPage() {
 
         <section className="grid-4">
           <StatCard label="Всего" value={summary?.total_count ?? 0} />
+          <StatCard label="Trial" value={lifecycleSummary?.trial_count ?? summary?.trial_count ?? 0} />
           <StatCard label="Активные" value={summary?.active_count ?? 0} />
           <StatCard label="Автопродление" value={summary?.auto_renew_count ?? 0} />
-          <StatCard label="Оплачено за период" value={formatMoney(summary?.period_spend, summary?.currency || 'RUB')} />
         </section>
 
         <section className="grid-4">

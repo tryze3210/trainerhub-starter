@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.audit.services import AuditService
+from apps.notifications.domain.triggers import DomainNotificationTriggers
 from apps.payouts.models import BalanceEntry, PayoutRequest, TrainerWallet
 from apps.trainers.models import TrainerProfile
 
@@ -23,6 +24,13 @@ ACTIVE_PAYOUT_STATUSES = {
 
 
 class PayoutService:
+    @staticmethod
+    def _safe_notify(callback):
+        try:
+            callback()
+        except Exception:
+            pass
+
     @staticmethod
     def _uuid_or_none(value):
         try:
@@ -278,6 +286,8 @@ class PayoutService:
             source_id=payout.id,
         )
         AuditService.log(actor=actor, event_type="payout.paid", entity_type="payout_request", entity_id=str(payout.id), request=request)
+        payout = PayoutRequest.objects.select_related("trainer", "trainer__user").get(pk=payout.pk)
+        cls._safe_notify(lambda: DomainNotificationTriggers().on_payout_paid(user=payout.trainer.user, payout=payout))
         return payout
 
     @classmethod

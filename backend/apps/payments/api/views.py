@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.audit.services import AuditService
-from apps.payments.api.serializers import PaymentRefundSerializer, PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
+from apps.payments.api.serializers import AdminPaymentSerializer, PaymentRefundSerializer, PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
 from apps.payments.models import Payment, PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payments.webhook_security import PaymentWebhookPayloadError, PaymentWebhookSecurity, PaymentWebhookSignatureError
@@ -111,6 +111,44 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             'order_status': payment.order.status,
             'redirect_path': redirect_path,
         }, status=status.HTTP_200_OK)
+
+
+class AdminPaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    serializer_class = AdminPaymentSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        queryset = (
+            Payment.objects
+            .select_related('order', 'order__user')
+            .prefetch_related('order__granted_entitlements')
+            .order_by('-created_at')
+        )
+
+        status_value = self.request.query_params.get('status')
+        provider = self.request.query_params.get('provider')
+        order_id = self.request.query_params.get('order_id')
+        external_payment_id = self.request.query_params.get('external_payment_id')
+        buyer_email = self.request.query_params.get('buyer_email')
+
+        if status_value:
+            queryset = queryset.filter(status=status_value)
+        if provider:
+            queryset = queryset.filter(provider=provider)
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        if external_payment_id:
+            queryset = queryset.filter(external_payment_id=external_payment_id)
+        if buyer_email:
+            queryset = queryset.filter(order__user__email__icontains=buyer_email)
+
+        if self.action == 'list':
+            try:
+                limit = int(self.request.query_params.get('limit') or 100)
+            except (TypeError, ValueError):
+                limit = 100
+            return queryset[: max(1, min(limit, 500))]
+        return queryset
 
 
 class PaymentWebhookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

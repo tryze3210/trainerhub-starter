@@ -21,7 +21,7 @@ def get_active_subscription_for_user(user):
     return (
         Subscription.objects.filter(
             user=user,
-            status=SubscriptionStatus.ACTIVE,
+            status__in=[SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE],
             starts_at__lte=now,
         )
         .filter(Q(ends_at__isnull=True) | Q(ends_at__gt=now))
@@ -48,7 +48,7 @@ def serialize_subscription(subscription: Subscription, *, now=None) -> dict:
 
     entitlement_count = subscription.granted_entitlements.filter(status=EntitlementStatus.ACTIVE).count()
     ends_at = subscription.ends_at
-    is_active = subscription.status == SubscriptionStatus.ACTIVE and (ends_at is None or ends_at > now)
+    is_active = subscription.status in {SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE} and (ends_at is None or ends_at > now)
     remaining_days = None
     if ends_at:
         remaining_days = max(0, (ends_at - now).days)
@@ -118,6 +118,7 @@ def get_user_subscription_center(user, *, days: int = 30) -> dict:
     return {
         'summary': {
             'total_count': len(items),
+            'trial_count': sum(1 for item in items if item['status'] == SubscriptionStatus.TRIAL),
             'active_count': len(active_items),
             'cancelled_count': sum(1 for item in items if item['status'] == SubscriptionStatus.CANCELLED),
             'expired_count': sum(1 for item in items if item['status'] == SubscriptionStatus.EXPIRED),
@@ -142,8 +143,8 @@ def get_admin_subscription_overview(*, days: int = 30) -> dict:
     qs = Subscription.objects.all()
     by_status = dict(qs.values_list('status').annotate(count=Count('id')))
     new_count = qs.filter(created_at__gte=since).count()
-    due_soon = qs.filter(status=SubscriptionStatus.ACTIVE, ends_at__gte=now, ends_at__lte=now + timedelta(days=7)).count()
-    expired_due = qs.filter(status__in=[SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE], ends_at__lt=now).count()
+    due_soon = qs.filter(status__in=[SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE], ends_at__gte=now, ends_at__lte=now + timedelta(days=7)).count()
+    expired_due = qs.filter(status__in=[SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE], ends_at__lt=now).count()
     mrr = qs.filter(status=SubscriptionStatus.ACTIVE).select_related('plan').aggregate(total=Sum('plan__price'))['total'] or Decimal('0.00')
 
     failed_payments = Payment.objects.filter(
@@ -160,6 +161,7 @@ def get_admin_subscription_overview(*, days: int = 30) -> dict:
     return {
         'summary': {
             'total_count': qs.count(),
+            'trial_count': by_status.get(SubscriptionStatus.TRIAL, 0),
             'active_count': by_status.get(SubscriptionStatus.ACTIVE, 0),
             'pending_count': by_status.get(SubscriptionStatus.PENDING, 0),
             'past_due_count': by_status.get(SubscriptionStatus.PAST_DUE, 0),

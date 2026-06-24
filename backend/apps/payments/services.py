@@ -257,6 +257,7 @@ class PaymentService:
                     request=request,
                 )
                 cls._safe_notify(lambda: DomainNotificationTriggers().on_order_paid(user=order.user, order=order))
+                cls._safe_notify(lambda: DomainNotificationTriggers().on_payment_succeeded(user=order.user, payment=payment))
                 cls._emit_payment_event(
                     event_type='payment.succeeded',
                     payment=payment,
@@ -483,6 +484,15 @@ class PaymentService:
                     'cancelled_subscriptions_count': cancelled_subscriptions_count,
                     'provider_payload': payment.provider_payload or {},
                 },
+            )
+            cls._safe_notify(
+                lambda: DomainNotificationTriggers().on_payment_refunded(
+                    user=order.user,
+                    payment=payment,
+                    refund_id=refund_id,
+                    refund_kind=refund_kind,
+                    amount=refund_amount,
+                )
             )
             if is_full_refund:
                 emit_event(
@@ -1030,7 +1040,25 @@ class PaymentWebhookService:
                 event.payment = payment
 
                 if normalized.event_type in cls.SUCCESS_EVENTS:
-                    PaymentService.mark_succeeded(payment=payment, provider_payload=normalized.payload)
+                    payment = PaymentService.mark_succeeded(payment=payment, provider_payload=normalized.payload)
+                    metadata = normalized.payload.get('metadata') if isinstance(normalized.payload.get('metadata'), dict) else {}
+                    subscription_id = (
+                        normalized.payload.get('subscription_id')
+                        or normalized.payload.get('SubscriptionId')
+                        or metadata.get('subscription_id')
+                    )
+                    if subscription_id:
+                        from apps.subscriptions.lifecycle import SubscriptionLifecycleService
+                        from apps.subscriptions.models import Subscription
+
+                        subscription = Subscription.objects.select_for_update().get(pk=subscription_id)
+                        renewal_result = SubscriptionLifecycleService.apply_renewal_webhook(
+                            subscription=subscription,
+                            payment=payment,
+                            payload={**normalized.payload, 'external_event_id': normalized.external_event_id},
+                            actor=payment.order.user,
+                        )
+                        event.payload = {**(event.payload or {}), 'subscription_renewal': renewal_result}
                     event.status = PaymentWebhookEvent.Status.PROCESSED
                 elif normalized.event_type in cls.FAILED_EVENTS:
                     PaymentService.mark_failed(payment=payment, provider_payload=normalized.payload)
@@ -1061,7 +1089,7 @@ class PaymentWebhookService:
                     event.error_message = f'Unsupported webhook event_type: {normalized.event_type}'
 
                 event.processed_at = timezone.now()
-                event.save(update_fields=['payment', 'status', 'error_message', 'processed_at', 'updated_at'])
+                event.save(update_fields=['payment', 'payload', 'status', 'error_message', 'processed_at', 'updated_at'])
 
                 cls._emit_webhook_event(
                     event=event,

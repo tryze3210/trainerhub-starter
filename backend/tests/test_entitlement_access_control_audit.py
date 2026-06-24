@@ -208,6 +208,69 @@ def test_access_check_denies_cancelled_subscription_entitlement():
 
 
 @pytest.mark.django_db
+def test_v90_selector_blocks_refund_revoked_source_for_runtime_access():
+    from apps.entitlements.selectors import has_active_entitlement
+
+    user = get_user_model().objects.create_user(email="access-selector-refund@example.com", password="pass12345")
+    target_id = "video-runtime-refund"
+    order = Order.objects.create(
+        user=user,
+        order_type=OrderType.ONE_TIME,
+        status=OrderStatus.REFUNDED,
+        currency="RUB",
+        total_amount=Decimal("499.00"),
+    )
+    Entitlement.objects.create(
+        user=user,
+        source_type=EntitlementSourceType.ORDER,
+        source_order=order,
+        target_type=EntitlementTargetType.VIDEO,
+        target_id=target_id,
+        status=EntitlementStatus.ACTIVE,
+    )
+
+    assert has_active_entitlement(user=user, target_type="video", target_id=target_id) is False
+
+
+@pytest.mark.django_db
+def test_v90_trial_and_past_due_subscription_access_are_allowed_until_period_end():
+    user = get_user_model().objects.create_user(email="access-trial@example.com", password="pass12345")
+    plan = SubscriptionPlan.objects.create(title="Trial Library", price=Decimal("1000.00"), currency="RUB")
+    now = timezone.now()
+    for status in [SubscriptionStatus.TRIAL, SubscriptionStatus.PAST_DUE]:
+        subscription = Subscription.objects.create(
+            user=user,
+            plan=plan,
+            status=status,
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=3),
+        )
+        Entitlement.objects.create(
+            user=user,
+            source_type=EntitlementSourceType.SUBSCRIPTION,
+            source_subscription=subscription,
+            target_type=EntitlementTargetType.LIBRARY,
+            target_id="library",
+            status=EntitlementStatus.ACTIVE,
+            starts_at=subscription.starts_at,
+            ends_at=subscription.ends_at,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+        response = client.get(
+            "/api/v1/entitlements/me/access-check/",
+            {"target_type": "video", "target_id": f"{status}-video"},
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["allowed"] is True
+        assert payload["source"] == "library"
+        assert any(rule["code"] == "source_subscription_valid" for rule in payload["rules"])
+
+
+@pytest.mark.django_db
 def test_access_check_admin_override_is_explicit_and_read_only():
     admin = get_user_model().objects.create_superuser(email="access-admin@example.com", password="pass12345")
     client = APIClient()

@@ -62,7 +62,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         from django.utils import timezone
 
         now = timezone.now()
-        return obj.status == SubscriptionStatus.ACTIVE and (obj.ends_at is None or obj.ends_at > now)
+        return obj.status in {SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE} and (obj.ends_at is None or obj.ends_at > now)
 
     def get_remaining_days(self, obj):
         from django.utils import timezone
@@ -80,7 +80,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def get_lifecycle(self, obj):
         now_active = self.get_is_active(obj)
         return {
-            'can_cancel': obj.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.PENDING},
+            'can_cancel': obj.status in {SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.PENDING},
             'can_resume': obj.status in {SubscriptionStatus.CANCELLED, SubscriptionStatus.PAST_DUE}
             and (obj.ends_at is None or obj.ends_at > timezone.now()),
             'can_sync_entitlements': True,

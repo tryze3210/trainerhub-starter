@@ -18,7 +18,7 @@ from apps.subscriptions.models import Subscription, SubscriptionStatus
 from apps.subscriptions.services import SubscriptionService
 
 
-ACTIVE_ACCESS_STATUSES = {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
+ACTIVE_ACCESS_STATUSES = {SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
 TERMINAL_STATUSES = {SubscriptionStatus.CANCELLED, SubscriptionStatus.EXPIRED}
 PAYMENT_PROBLEM_STATUSES = {PaymentStatus.FAILED, PaymentStatus.CANCELLED}
 
@@ -64,7 +64,7 @@ class SubscriptionLifecycleService:
             'terminal_statuses': sorted(TERMINAL_STATUSES),
             'actions': {
                 'cancel': {
-                    'allowed_from': [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.PENDING],
+                    'allowed_from': [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.PENDING],
                     'result_status': SubscriptionStatus.CANCELLED,
                     'revokes_entitlements': True,
                     'requires_reason': False,
@@ -76,15 +76,22 @@ class SubscriptionLifecycleService:
                     'requires_unexpired_period': True,
                 },
                 'mark_past_due': {
-                    'allowed_from': [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING],
+                    'allowed_from': [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING],
                     'result_status': SubscriptionStatus.PAST_DUE,
                     'admin_only': True,
                 },
                 'expire_due': {
-                    'allowed_from': [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+                    'allowed_from': [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
                     'result_status': SubscriptionStatus.EXPIRED,
                     'admin_only': True,
                     'revokes_due_entitlements': True,
+                },
+                'renew_from_webhook': {
+                    'allowed_from': [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+                    'result_status': SubscriptionStatus.ACTIVE,
+                    'requires_success_payment': True,
+                    'idempotent_by_payment': True,
+                    'extends_period': True,
                 },
                 'sync_entitlements': {
                     'admin_only': True,
@@ -93,10 +100,6 @@ class SubscriptionLifecycleService:
                 },
             },
             'virtual_statuses': {
-                'trialing': {
-                    'persisted': False,
-                    'reason': 'Current DB schema has no trialing status. Use metadata/checkout workflow before adding migration.',
-                },
                 'paused': {
                     'persisted': False,
                     'reason': 'Current DB schema has no paused status. Keep access policy explicit until a dedicated migration is introduced.',
@@ -112,7 +115,7 @@ class SubscriptionLifecycleService:
         current_end = subscription.ends_at
         is_period_current = current_end is None or current_end > now
         can_renew = (
-            subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
+            subscription.status in {SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
             and subscription.auto_renew
             and is_period_current
         )
@@ -125,6 +128,8 @@ class SubscriptionLifecycleService:
             reason = 'auto_renew_disabled'
         elif not is_period_current:
             reason = 'period_expired'
+        elif subscription.status == SubscriptionStatus.TRIAL:
+            reason = 'trial_active'
         elif subscription.status == SubscriptionStatus.PAST_DUE:
             reason = 'payment_recovery_required'
         return {
@@ -152,6 +157,119 @@ class SubscriptionLifecycleService:
         if subscription.ends_at and subscription.ends_at <= now:
             return False
         return True
+
+    @classmethod
+    @transaction.atomic
+    def apply_renewal_webhook(
+        cls,
+        *,
+        subscription: Subscription,
+        payment=None,
+        payload: dict | None = None,
+        actor=None,
+        request=None,
+    ) -> dict[str, Any]:
+        payload = dict(payload or {})
+        subscription = (
+            Subscription.objects.select_for_update()
+            .select_related('plan', 'user')
+            .get(pk=subscription.pk)
+        )
+        if subscription.status in TERMINAL_STATUSES:
+            raise ValueError('Terminal subscription cannot be renewed.')
+
+        payment_payload = dict(getattr(payment, 'provider_payload', None) or {})
+        renewal_key = (
+            str(payload.get('renewal_id') or payload.get('external_event_id') or '')
+            or (f'payment:{payment.id}' if payment else '')
+            or f'subscription:{subscription.id}:{subscription.updated_at.isoformat()}'
+        )
+        applied_keys = list(payment_payload.get('subscription_renewal_keys') or [])
+        if payment is not None and renewal_key in applied_keys:
+            return {
+                'subscription_id': str(subscription.id),
+                'payment_id': str(payment.id),
+                'status': subscription.status,
+                'changed': False,
+                'reason': 'already_applied',
+                'renewal_key': renewal_key,
+                'starts_at': subscription.starts_at.isoformat() if subscription.starts_at else None,
+                'ends_at': subscription.ends_at.isoformat() if subscription.ends_at else None,
+            }
+
+        now = cls._now()
+        previous_status = subscription.status
+        previous_ends_at = subscription.ends_at
+        period_days = subscription.plan.period_days or 30
+        next_start = previous_ends_at if previous_ends_at and previous_ends_at > now else now
+        next_end = next_start + timedelta(days=period_days)
+
+        if not subscription.starts_at:
+            subscription.starts_at = now
+        subscription.ends_at = next_end
+        subscription.status = SubscriptionStatus.ACTIVE
+        subscription.cancelled_at = None
+        subscription.auto_renew = True
+        subscription.save(update_fields=['status', 'starts_at', 'ends_at', 'cancelled_at', 'auto_renew', 'updated_at'])
+
+        sync_result = cls.sync_subscription_entitlements(
+            subscription=subscription,
+            actor=actor or getattr(subscription, 'user', None),
+            request=request,
+            reason='subscription_renewal_webhook',
+        )
+
+        if payment is not None:
+            payment_payload['subscription_renewal_applied'] = True
+            payment_payload['subscription_renewal_keys'] = [*applied_keys, renewal_key]
+            payment_payload['subscription_id'] = str(subscription.id)
+            payment.provider_payload = payment_payload
+            payment.save(update_fields=['provider_payload', 'updated_at'])
+
+        AuditService.log(
+            actor=actor or subscription.user,
+            event_type='subscription.renewed',
+            entity_type='subscription',
+            entity_id=str(subscription.id),
+            context={
+                'payment_id': str(payment.id) if payment else '',
+                'renewal_key': renewal_key,
+                'previous_status': previous_status,
+                'previous_ends_at': previous_ends_at.isoformat() if previous_ends_at else None,
+                'new_ends_at': subscription.ends_at.isoformat() if subscription.ends_at else None,
+                'payload': payload,
+                'entitlement_sync': sync_result.as_dict(),
+            },
+            request=request,
+        )
+        DomainEventService().emit(
+            event_type='subscription.renewed',
+            aggregate_type='subscription',
+            aggregate_id=str(subscription.id),
+            idempotency_key=f'subscription:{subscription.id}:renewed:{renewal_key}',
+            payload={
+                'subscription_id': str(subscription.id),
+                'payment_id': str(payment.id) if payment else None,
+                'renewal_key': renewal_key,
+                'previous_status': previous_status,
+                'previous_ends_at': previous_ends_at.isoformat() if previous_ends_at else None,
+                'starts_at': subscription.starts_at.isoformat() if subscription.starts_at else None,
+                'ends_at': subscription.ends_at.isoformat() if subscription.ends_at else None,
+            },
+        )
+        return {
+            'subscription_id': str(subscription.id),
+            'payment_id': str(payment.id) if payment else '',
+            'status': subscription.status,
+            'changed': True,
+            'reason': 'renewed',
+            'renewal_key': renewal_key,
+            'previous_status': previous_status,
+            'previous_ends_at': previous_ends_at.isoformat() if previous_ends_at else None,
+            'starts_at': subscription.starts_at.isoformat() if subscription.starts_at else None,
+            'ends_at': subscription.ends_at.isoformat() if subscription.ends_at else None,
+            'entitlement_sync': sync_result.as_dict(),
+        }
 
     @classmethod
     @transaction.atomic
@@ -302,6 +420,57 @@ class SubscriptionLifecycleService:
         }
 
     @classmethod
+    def notify_expiring_subscriptions(cls, *, days_before: int = 7, limit: int = 250, actor=None, request=None) -> dict[str, Any]:
+        from apps.notifications.domain.triggers import DomainNotificationTriggers
+
+        now = cls._now()
+        days_before = max(1, min(int(days_before), 90))
+        limit = max(1, min(int(limit), 1000))
+        window_end = now + timedelta(days=days_before)
+        subscriptions = list(
+            Subscription.objects
+            .select_related('user', 'plan')
+            .filter(
+                status__in=ACTIVE_ACCESS_STATUSES,
+                ends_at__gt=now,
+                ends_at__lte=window_end,
+            )
+            .order_by('ends_at')[:limit]
+        )
+        trigger = DomainNotificationTriggers()
+        notified_ids = []
+        for subscription in subscriptions:
+            days_left = max(0, (subscription.ends_at - now).days) if subscription.ends_at else None
+            trigger.on_subscription_expiring(
+                user=subscription.user,
+                subscription=subscription,
+                days_left=days_left,
+            )
+            notified_ids.append(str(subscription.id))
+
+        AuditService.log(
+            actor=actor,
+            event_type='subscription.expiring_notifications_queued',
+            entity_type='subscription',
+            entity_id='batch',
+            context={
+                'days_before': days_before,
+                'limit': limit,
+                'window_end': window_end.isoformat(),
+                'notified_count': len(notified_ids),
+                'subscription_ids': notified_ids,
+            },
+            request=request,
+        )
+        return {
+            'days_before': days_before,
+            'limit': limit,
+            'window_end': window_end.isoformat(),
+            'notified_count': len(notified_ids),
+            'subscription_ids': notified_ids,
+        }
+
+    @classmethod
     def get_lifecycle_summary(cls, *, user=None, days: int = 30) -> dict[str, Any]:
         now = cls._now()
         since = now - timedelta(days=days)
@@ -334,6 +503,7 @@ class SubscriptionLifecycleService:
         return {
             'summary': {
                 'total_count': subscriptions.count(),
+                'trial_count': status_breakdown.get(SubscriptionStatus.TRIAL, 0),
                 'active_count': status_breakdown.get(SubscriptionStatus.ACTIVE, 0),
                 'past_due_count': status_breakdown.get(SubscriptionStatus.PAST_DUE, 0),
                 'cancelled_count': status_breakdown.get(SubscriptionStatus.CANCELLED, 0),

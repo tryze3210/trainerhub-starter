@@ -25,10 +25,9 @@ INVALID_ORDER_STATUSES = {
     OrderStatus.DISPUTED,
     OrderStatus.CHARGED_BACK,
 }
-ACTIVE_SUBSCRIPTION_STATUSES = {SubscriptionStatus.ACTIVE}
+ACTIVE_SUBSCRIPTION_STATUSES = {SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
 INVALID_SUBSCRIPTION_STATUSES = {
     SubscriptionStatus.PENDING,
-    SubscriptionStatus.PAST_DUE,
     SubscriptionStatus.CANCELLED,
     SubscriptionStatus.EXPIRED,
 }
