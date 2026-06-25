@@ -98,5 +98,5 @@ class VideoAccessUrlApi(views.APIView):
 
     def post(self, request, video_id):
         video = get_object_or_404(Video.objects.select_related("media_asset", "trainer"), pk=video_id, is_deleted=False, status="ready")
-        url = IssueVideoAccessUrlService().execute(user=request.user, video=video)
-        return Response({"playback_url": url, "expires_in": 300})
+        payload = IssueVideoAccessUrlService().execute(user=request.user, video=video, request=request)
+        return Response(payload)

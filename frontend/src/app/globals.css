@@ -715,6 +715,21 @@ small {
   letter-spacing: -0.03em;
 }
 
+.progress-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 180ms ease;
+}
+
 .divider {
   width: 100%;
   height: 1px;

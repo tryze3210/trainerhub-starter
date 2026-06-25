@@ -151,7 +151,16 @@ export type Review = {
   title: string;
   body: string;
   status: string;
+  verified_purchase?: boolean;
+  quality_flags?: string[];
+  moderation_note?: string;
+  moderated_by_id?: string;
+  moderated_at?: string | null;
+  trainer_reply?: string;
+  trainer_reply_by_id?: string;
+  trainer_replied_at?: string | null;
   created_at: string;
+  updated_at?: string | null;
 };
 
 export type ReviewSummary = {
@@ -159,6 +168,7 @@ export type ReviewSummary = {
   target_id: string;
   reviews_count: number;
   average_rating: number;
+  rating_distribution?: Record<string, number>;
 };
 
 export type ReviewPayload = {
@@ -1068,8 +1078,48 @@ export interface ProgramLessonDraft {
   title: string;
   description?: string;
   position: number;
+  materials?: LessonMaterial[];
   duration_seconds?: number | null;
   is_preview?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
+export type LessonMaterial = {
+  title: string;
+  url?: string;
+  asset_id?: string | null;
+  kind?: 'link' | 'file' | 'pdf' | 'image' | string;
+};
+
+export interface CourseLessonDraft {
+  id: string;
+  course_id?: string | null;
+  video_id?: string | null;
+  video_asset_id?: string | null;
+  title: string;
+  description?: string;
+  position: number;
+  materials?: LessonMaterial[];
+  duration_seconds?: number | null;
+  is_preview?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
+export interface CourseDraft {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  price_amount: string;
+  currency: string;
+  status?: string;
+  metadata?: Record<string, unknown>;
+  lessons?: CourseLessonDraft[];
+  current_version_number?: number | null;
   created_at?: string;
   updated_at?: string;
   [key: string]: unknown;
@@ -1125,3 +1175,199 @@ export interface BundleDraft {
   updated_at?: string;
   [key: string]: unknown;
 }
+
+export type ContentRuntimeLesson = {
+  id: string;
+  lesson_id: string;
+  slug?: string;
+  title: string;
+  description?: string;
+  position: number;
+  duration_minutes?: number;
+  is_preview?: boolean;
+  video_asset_id?: string | null;
+  materials?: LessonMaterial[];
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type ContentRuntimeAccess = {
+  allowed: boolean;
+  code: string;
+  reason: string;
+  target_type: string;
+  target_id: string;
+  entitlement_id?: string | null;
+  source?: string | null;
+  rules?: Array<Record<string, unknown>>;
+  audit?: Record<string, unknown>;
+};
+
+export type ContentRuntimePayload = {
+  allowed: boolean;
+  blocked: boolean;
+  runtime: 'program_lesson' | 'course_lesson' | string;
+  lesson: ContentRuntimeLesson;
+  program?: {
+    id: string;
+    program_id: string;
+    slug: string;
+    title: string;
+    trainer_slug?: string;
+    trainer_name?: string;
+  };
+  course?: {
+    id: string;
+    course_id: string;
+    slug: string;
+    title: string;
+    metadata?: Record<string, unknown>;
+  };
+  access: ContentRuntimeAccess;
+};
+
+export type StudentLearningLesson = {
+  id: string;
+  lesson_id: string;
+  program_id?: string;
+  content_type?: 'program' | 'course' | string;
+  title: string;
+  description?: string;
+  position: number;
+  is_preview?: boolean;
+  duration_minutes?: number;
+  materials_count?: number;
+  runtime_url: string;
+  is_completed?: boolean;
+  completed_at?: string | null;
+};
+
+export type StudentLearningMaterial = LessonMaterial & {
+  lesson_id?: string;
+  lesson_title?: string;
+};
+
+export type StudentLearningItem = {
+  id: string;
+  kind: 'course' | 'program' | 'video' | string;
+  target_id: string;
+  title: string;
+  slug?: string;
+  description?: string;
+  trainer_name?: string;
+  trainer_slug?: string;
+  status: string;
+  progress_percent: number;
+  last_activity_at?: string | null;
+  entitlement_id?: string;
+  lessons: StudentLearningLesson[];
+  materials: StudentLearningMaterial[];
+  access_url?: string;
+  access?: ContentRuntimeAccess;
+  created_at?: string | null;
+};
+
+export type StudentLearningAreaPayload = {
+  summary: {
+    items_count: number;
+    courses_count: number;
+    programs_count: number;
+    videos_count: number;
+    lessons_count: number;
+    materials_count: number;
+    library_access?: boolean;
+    unresolved_count?: number;
+  };
+  items: StudentLearningItem[];
+  next_lesson?: StudentLearningLesson | null;
+  materials: StudentLearningMaterial[];
+  unresolved?: Array<Record<string, unknown>>;
+};
+
+export type AssignmentSubmission = {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  student_email?: string;
+  answer_text: string;
+  attachments?: Array<Record<string, unknown>>;
+  status: 'submitted' | 'reviewed' | 'needs_revision' | 'approved' | string;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by_id?: string | null;
+  review_comment?: string;
+  score?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  assignment?: Assignment;
+};
+
+export type Assignment = {
+  id: string;
+  trainer_id: string;
+  trainer_email?: string;
+  title: string;
+  description?: string;
+  content_type: 'program' | 'course' | string;
+  content_id: string;
+  lesson_id?: string;
+  due_at?: string | null;
+  status: 'draft' | 'published' | 'archived' | string;
+  metadata?: Record<string, unknown>;
+  created_at?: string | null;
+  updated_at?: string | null;
+  submission?: AssignmentSubmission | null;
+  submissions_count?: number;
+  reviewed_count?: number;
+  access?: {
+    allowed: boolean;
+    code?: string;
+    reason?: string;
+  };
+};
+
+export type AssignmentsPayload = {
+  summary: {
+    total: number;
+    published?: number;
+    draft?: number;
+    submissions?: number;
+    submitted?: number;
+    pending?: number;
+    needs_revision?: number;
+    approved?: number;
+  };
+  items: Assignment[];
+};
+
+export type AssignmentSubmissionsPayload = {
+  summary: {
+    total: number;
+    submitted?: number;
+    needs_revision?: number;
+    approved?: number;
+  };
+  items: AssignmentSubmission[];
+};
+
+export type AssignmentSubmitPayload = {
+  answer_text?: string;
+  attachments?: Array<Record<string, unknown>>;
+};
+
+export type AssignmentTrainerCreatePayload = {
+  title: string;
+  description?: string;
+  content_type: 'program' | 'course';
+  content_id: string;
+  lesson_id?: string;
+  due_at?: string | null;
+  status?: 'draft' | 'published' | 'archived';
+  metadata?: Record<string, unknown>;
+};
+
+export type AssignmentReviewPayload = {
+  status?: 'reviewed' | 'needs_revision' | 'approved';
+  review_comment?: string;
+  score?: string | null;
+};

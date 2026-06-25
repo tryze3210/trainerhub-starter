@@ -11,6 +11,8 @@ const publicLinks = [
 ];
 
 const privateLinks = [
+  { href: '/learning', label: 'Обучение' },
+  { href: '/assignments', label: 'Задания' },
   { href: '/billing', label: 'Billing' },
   { href: '/subscriptions', label: 'Подписки' },
   { href: '/orders', label: 'Заказы' },

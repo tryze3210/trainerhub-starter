@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, views, viewsets
 from rest_framework.response import Response
 
 from apps.content.api.serializers import (
@@ -7,6 +7,8 @@ from apps.content.api.serializers import (
     PublishedVideoSerializer,
 )
 from apps.content.models import PublishedBundle, PublishedProgram, PublishedVideo
+from apps.content.runtime import ContentAccessRuntime
+from apps.content.student_learning import StudentLearningAreaSelector
 
 
 class NonPaginatedPublicContentMixin:
@@ -49,3 +51,37 @@ class PublishedBundleViewSet(NonPaginatedPublicContentMixin, viewsets.ReadOnlyMo
     queryset = PublishedBundle.objects.select_related('trainer_profile').prefetch_related('items').filter(is_active=True, visibility='public')
     serializer_class = PublishedBundleSerializer
     lookup_field = 'slug'
+
+
+class ProgramLessonRuntimeApi(views.APIView):
+    permission_classes = [permissions.AllowAny]
+    runtime = ContentAccessRuntime()
+
+    def get(self, request, program_slug, lesson_ref):
+        status_code, payload = self.runtime.open_program_lesson(
+            user=request.user,
+            program_slug=program_slug,
+            lesson_ref=lesson_ref,
+        )
+        return Response(payload, status=status_code)
+
+
+class CourseLessonRuntimeApi(views.APIView):
+    permission_classes = [permissions.AllowAny]
+    runtime = ContentAccessRuntime()
+
+    def get(self, request, course_id, lesson_id):
+        status_code, payload = self.runtime.open_course_lesson(
+            user=request.user,
+            course_id=course_id,
+            lesson_id=lesson_id,
+        )
+        return Response(payload, status=status_code)
+
+
+class StudentLearningAreaApi(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    selector = StudentLearningAreaSelector()
+
+    def get(self, request):
+        return Response(self.selector.build(user=request.user))

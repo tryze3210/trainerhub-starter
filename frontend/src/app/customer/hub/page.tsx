@@ -121,7 +121,10 @@ export default function CustomerHubPage() {
               <div className="card">
                 <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
                   <h2 className="title-md" style={{ margin: 0 }}>Моя библиотека</h2>
-                  <Link className="button secondary" href="/entitlements">Все доступы</Link>
+                  <div className="inline">
+                    <Link className="button secondary" href="/learning">Обучение</Link>
+                    <Link className="button secondary" href="/entitlements">Все доступы</Link>
+                  </div>
                 </div>
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.library.items.length === 0 ? (

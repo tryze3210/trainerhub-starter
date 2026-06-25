@@ -17,6 +17,9 @@ export type Review = {
   moderation_note?: string;
   moderated_by_id?: string;
   moderated_at?: string | null;
+  trainer_reply?: string;
+  trainer_reply_by_id?: string;
+  trainer_replied_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -26,6 +29,7 @@ export type ReviewSummary = {
   target_id: string;
   reviews_count: number;
   average_rating: number;
+  rating_distribution?: Record<string, number>;
 };
 
 export type ReviewEligibility = {
@@ -106,6 +110,13 @@ export const reviewsApi = {
       auth: true,
       method: 'POST',
       body: JSON.stringify({ decision, note }),
+    }),
+
+  replyToReview: (reviewId: string, reply: string): Promise<Review> =>
+    apiRequest<Review>(`/reviews/trainer/${reviewId}/reply/`, {
+      auth: true,
+      method: 'POST',
+      body: JSON.stringify({ reply }),
     }),
 
   getTrainerQuality: (days = 30): Promise<TrainerReviewQuality> =>

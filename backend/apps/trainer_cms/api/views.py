@@ -5,15 +5,19 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.trainer_cms.api.serializers import (
     BundleItemDraftSerializer,
+    CourseLessonDraftSerializer,
     ProgramLessonDraftSerializer,
     TrainerBundleDraftSerializer,
+    TrainerCourseDraftSerializer,
     TrainerProgramDraftSerializer,
     TrainerVideoDraftSerializer,
 )
 from apps.trainer_cms.models import (
     BundleItemDraft,
+    CourseLessonDraft,
     ProgramLessonDraft,
     TrainerBundleDraft,
+    TrainerCourseDraft,
     TrainerProgramDraft,
     TrainerVideoDraft,
 )
@@ -117,6 +121,27 @@ class TrainerProgramDraftViewSet(TrainerOwnedMixin, viewsets.ModelViewSet):
         return response.Response(self.get_serializer(draft).data)
 
 
+class TrainerCourseDraftViewSet(TrainerOwnedMixin, viewsets.ModelViewSet):
+    serializer_class = TrainerCourseDraftSerializer
+    service = TrainerCMSService()
+
+    def get_queryset(self):
+        return (
+            TrainerCourseDraft.objects.filter(trainer_id=_trainer_uuid_for_user(self.request.user))
+            .prefetch_related("lessons")
+            .order_by("-created_at")
+        )
+
+    @action(detail=True, methods=["post"], url_path="publish")
+    def publish(self, request, pk=None):
+        draft = self.get_object()
+        try:
+            self.service.publish_course(draft, actor_id=_trainer_uuid_for_user(request.user))
+        except ValueError as exc:
+            _raise_validation_error(exc)
+        return response.Response(self.get_serializer(draft).data)
+
+
 class ProgramLessonDraftViewSet(TrainerCMSAccessMixin, viewsets.ModelViewSet):
     serializer_class = ProgramLessonDraftSerializer
 
@@ -132,6 +157,23 @@ class ProgramLessonDraftViewSet(TrainerCMSAccessMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(program_draft=self._program())
+
+
+class CourseLessonDraftViewSet(TrainerCMSAccessMixin, viewsets.ModelViewSet):
+    serializer_class = CourseLessonDraftSerializer
+
+    def _course(self):
+        return get_object_or_404(
+            TrainerCourseDraft,
+            id=self.kwargs["course_id"],
+            trainer_id=_trainer_uuid_for_user(self.request.user),
+        )
+
+    def get_queryset(self):
+        return CourseLessonDraft.objects.filter(course_draft=self._course()).order_by("position", "created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(course_draft=self._course())
 
 
 class TrainerBundleDraftViewSet(TrainerOwnedMixin, viewsets.ModelViewSet):

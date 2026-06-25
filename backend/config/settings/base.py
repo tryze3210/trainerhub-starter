@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.trainer_profiles",
     "apps.reviews",
     "apps.progress",
+    "apps.assignments",
     "apps.billing",
     "apps.onboarding",
     "apps.habits",

@@ -16,6 +16,7 @@ class EntitlementSourceType(models.TextChoices):
 
 class EntitlementTargetType(models.TextChoices):
     VIDEO = 'video', 'Video'
+    COURSE = 'course', 'Course'
     PROGRAM = 'program', 'Program'
     BUNDLE = 'bundle', 'Bundle'
     LIBRARY = 'library', 'Library'

@@ -2,6 +2,8 @@ import { apiRequest, normalizeListResponse } from '@/lib/api-client';
 import type {
   BundleDraft,
   BundleItemDraft,
+  CourseDraft,
+  CourseLessonDraft,
   MediaAsset,
   ProgramDraft,
   ProgramLessonDraft,
@@ -95,6 +97,100 @@ export const uploadApi = {
     return normalizeListResponse(payload);
   },
 
+  createCourseDraft: (payload: {
+    title: string;
+    slug: string;
+    description: string;
+    price_amount?: string;
+    currency?: string;
+    metadata?: Record<string, unknown>;
+  }) =>
+    apiRequest<CourseDraft>('/trainer-cms/courses/', {
+      auth: true,
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateCourseDraft: (
+    draftId: string,
+    payload: Partial<{
+      title: string;
+      slug: string;
+      description: string;
+      price_amount: string;
+      currency: string;
+      metadata: Record<string, unknown>;
+    }>
+  ) =>
+    apiRequest<CourseDraft>(`/trainer-cms/courses/${draftId}/`, {
+      auth: true,
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  publishCourseDraft: (draftId: string) =>
+    apiRequest<CourseDraft>(`/trainer-cms/courses/${draftId}/publish/`, {
+      auth: true,
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  async listMyCourses(): Promise<CourseDraft[]> {
+    const payload = await apiRequest<CourseDraft[] | { results: CourseDraft[] }>('/trainer-cms/courses/', {
+      auth: true,
+    });
+    return normalizeListResponse(payload);
+  },
+
+  async listCourseLessons(courseId: string): Promise<CourseLessonDraft[]> {
+    const payload = await apiRequest<CourseLessonDraft[] | { results: CourseLessonDraft[] }>(
+      `/trainer-cms/courses/${courseId}/lessons/`,
+      { auth: true }
+    );
+    return normalizeListResponse(payload);
+  },
+
+  createCourseLesson: (
+    courseId: string,
+    payload: {
+      title: string;
+      description?: string;
+      position: number;
+      video_asset_id?: string | null;
+      materials?: Array<Record<string, unknown>>;
+      is_preview?: boolean;
+    }
+  ) =>
+    apiRequest<CourseLessonDraft>(`/trainer-cms/courses/${courseId}/lessons/`, {
+      auth: true,
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateCourseLesson: (
+    courseId: string,
+    lessonId: string,
+    payload: Partial<{
+      title: string;
+      description: string;
+      position: number;
+      video_asset_id: string | null;
+      materials: Array<Record<string, unknown>>;
+      is_preview: boolean;
+    }>
+  ) =>
+    apiRequest<CourseLessonDraft>(`/trainer-cms/courses/${courseId}/lessons/${lessonId}/`, {
+      auth: true,
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteCourseLesson: (courseId: string, lessonId: string) =>
+    apiRequest<void>(`/trainer-cms/courses/${courseId}/lessons/${lessonId}/`, {
+      auth: true,
+      method: 'DELETE',
+    }),
+
   createProgramDraft: (payload: {
     title: string;
     slug: string;
@@ -153,6 +249,7 @@ export const uploadApi = {
       description?: string;
       position: number;
       video_asset_id?: string | null;
+      materials?: Array<Record<string, unknown>>;
       is_preview?: boolean;
     }
   ) =>
@@ -170,6 +267,7 @@ export const uploadApi = {
       description: string;
       position: number;
       video_asset_id: string | null;
+      materials: Array<Record<string, unknown>>;
       is_preview: boolean;
     }>
   ) =>

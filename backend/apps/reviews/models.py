@@ -32,6 +32,9 @@ class Review(models.Model):
     moderation_note = models.TextField(blank=True)
     moderated_by_id = models.CharField(max_length=64, blank=True)
     moderated_at = models.DateTimeField(blank=True, null=True)
+    trainer_reply = models.TextField(blank=True)
+    trainer_reply_by_id = models.CharField(max_length=64, blank=True)
+    trainer_replied_at = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,5 +45,6 @@ class Review(models.Model):
             models.Index(fields=['author_user_id', 'target_type', 'target_id']),
             models.Index(fields=['trainer_id', 'status']),
             models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['trainer_reply_by_id', 'trainer_replied_at']),
         ]
         ordering = ['-created_at']

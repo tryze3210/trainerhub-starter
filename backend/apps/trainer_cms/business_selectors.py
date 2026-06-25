@@ -121,9 +121,16 @@ class TrainerBusinessDashboardSelector:
     @staticmethod
     def _content_section(*, trainer_id) -> dict[str, Any]:
         from apps.content.models import PublishedBundle, PublishedProgram, PublishedVideo
-        from apps.trainer_cms.models import PublishStatus, TrainerBundleDraft, TrainerProgramDraft, TrainerVideoDraft
+        from apps.trainer_cms.models import (
+            PublishStatus,
+            TrainerBundleDraft,
+            TrainerCourseDraft,
+            TrainerProgramDraft,
+            TrainerVideoDraft,
+        )
 
         draft_video_qs = TrainerVideoDraft.objects.filter(trainer_id=trainer_id)
+        draft_course_qs = TrainerCourseDraft.objects.filter(trainer_id=trainer_id)
         draft_program_qs = TrainerProgramDraft.objects.filter(trainer_id=trainer_id)
         draft_bundle_qs = TrainerBundleDraft.objects.filter(trainer_id=trainer_id)
 
@@ -133,11 +140,13 @@ class TrainerBusinessDashboardSelector:
 
         draft_status_counts = {
             "videos": _safe_status_rows(draft_video_qs),
+            "courses": _safe_status_rows(draft_course_qs),
             "programs": _safe_status_rows(draft_program_qs),
             "bundles": _safe_status_rows(draft_bundle_qs),
         }
         pending_review_count = (
             draft_video_qs.filter(status=PublishStatus.REVIEW).count()
+            + draft_course_qs.filter(status=PublishStatus.REVIEW).count()
             + draft_program_qs.filter(status=PublishStatus.REVIEW).count()
             + draft_bundle_qs.filter(status=PublishStatus.REVIEW).count()
         )
@@ -166,9 +175,10 @@ class TrainerBusinessDashboardSelector:
         return {
             "drafts": {
                 "videos": draft_video_qs.count(),
+                "courses": draft_course_qs.count(),
                 "programs": draft_program_qs.count(),
                 "bundles": draft_bundle_qs.count(),
-                "total": draft_video_qs.count() + draft_program_qs.count() + draft_bundle_qs.count(),
+                "total": draft_video_qs.count() + draft_course_qs.count() + draft_program_qs.count() + draft_bundle_qs.count(),
             },
             "published": {
                 "videos": published_video_qs.filter(is_active=True).count(),

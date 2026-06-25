@@ -5,6 +5,7 @@ from apps.trainer_cms.models import (
     ContentVersion,
     PublishStatus,
     TrainerBundleDraft,
+    TrainerCourseDraft,
     TrainerProgramDraft,
     TrainerVideoDraft,
 )
@@ -78,6 +79,37 @@ class TrainerCMSService:
         draft.status = PublishStatus.PUBLISHED
         draft.save(update_fields=['current_version_number', 'status', 'updated_at'])
         self.publisher.publish_program_from_draft(draft)
+        return draft
+
+    @transaction.atomic
+    def publish_course(self, draft: TrainerCourseDraft, *, actor_id):
+        lessons = list(draft.lessons.order_by('position', 'created_at'))
+        lesson_count = len(lessons)
+        if lesson_count == 0:
+            raise ValueError('course requires at least one lesson before publish')
+        if any(not lesson.video_asset_id for lesson in lessons):
+            raise ValueError('each course lesson must reference a video asset before publish')
+        next_version = draft.current_version_number + 1
+        ContentVersion.objects.create(
+            trainer_id=draft.trainer_id,
+            entity_type=ContentVersion.EntityType.COURSE,
+            entity_id=draft.id,
+            version_number=next_version,
+            snapshot={
+                'title': draft.title,
+                'slug': draft.slug,
+                'description': draft.description,
+                'price_amount': str(draft.price_amount),
+                'currency': draft.currency,
+                'lesson_count': lesson_count,
+                'materials_count': sum(len(lesson.materials or []) for lesson in lessons),
+                'metadata': draft.metadata,
+            },
+            published_by_id=actor_id,
+        )
+        draft.current_version_number = next_version
+        draft.status = PublishStatus.PUBLISHED
+        draft.save(update_fields=['current_version_number', 'status', 'updated_at'])
         return draft
 
     @transaction.atomic

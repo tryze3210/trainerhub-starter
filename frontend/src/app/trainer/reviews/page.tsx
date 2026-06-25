@@ -21,6 +21,7 @@ function formatDate(value?: string | null) {
 
 export default function TrainerReviewsPage() {
   const [payload, setPayload] = useState<TrainerReviewQuality | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
 
   async function load() {
@@ -35,6 +36,17 @@ export default function TrainerReviewsPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  async function saveReply(reviewId: string) {
+    try {
+      setMsg('');
+      await reviewsApi.replyToReview(reviewId, replyDrafts[reviewId] || '');
+      setReplyDrafts((current) => ({ ...current, [reviewId]: '' }));
+      await load();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Не удалось сохранить ответ тренера');
+    }
+  }
 
   return (
     <ProtectedPage title="Trainer reviews" description="Кабинет качества для тренера.">
@@ -97,6 +109,24 @@ export default function TrainerReviewsPage() {
                     </div>
                     <p className="muted">{item.target_title || item.target_id} · {formatDate(item.created_at)}</p>
                     <p>{item.body}</p>
+                    {item.trainer_reply ? (
+                      <div className="card compact">
+                        <span className="badge secondary">Ответ тренера</span>
+                        <p style={{ marginTop: 8 }}>{item.trainer_reply}</p>
+                      </div>
+                    ) : null}
+                    <div className="stack" style={{ gap: 8 }}>
+                      <textarea
+                        className="textarea"
+                        rows={3}
+                        value={replyDrafts[item.id] ?? item.trainer_reply ?? ''}
+                        onChange={(event) => setReplyDrafts((current) => ({ ...current, [item.id]: event.target.value }))}
+                        placeholder="Ответить ученику публично"
+                      />
+                      <button className="button secondary" type="button" onClick={() => void saveReply(item.id)}>
+                        Сохранить ответ
+                      </button>
+                    </div>
                   </article>
                 )) : <p className="muted">Отзывов пока нет.</p>}
               </div>

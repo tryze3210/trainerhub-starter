@@ -65,6 +65,7 @@ class ContentPublishingService:
                     'description': lesson_draft.description,
                     'position': lesson_draft.position,
                     'video_asset_id': lesson_draft.video_asset_id,
+                    'materials': lesson_draft.materials or [],
                     'is_preview': lesson_draft.is_preview,
                 },
             )

@@ -18,6 +18,9 @@ class ReviewSerializer(serializers.Serializer):
     moderation_note = serializers.CharField(required=False, allow_blank=True)
     moderated_by_id = serializers.CharField(required=False, allow_blank=True)
     moderated_at = serializers.CharField(required=False, allow_null=True)
+    trainer_reply = serializers.CharField(required=False, allow_blank=True)
+    trainer_reply_by_id = serializers.CharField(required=False, allow_blank=True)
+    trainer_replied_at = serializers.CharField(required=False, allow_null=True)
     created_at = serializers.CharField(allow_null=True)
     updated_at = serializers.CharField(required=False, allow_null=True)
 
@@ -27,6 +30,7 @@ class ReviewSummarySerializer(serializers.Serializer):
     target_id = serializers.CharField()
     reviews_count = serializers.IntegerField()
     average_rating = serializers.FloatField()
+    rating_distribution = serializers.DictField(child=serializers.IntegerField(), required=False)
 
 
 class ReviewEligibilitySerializer(serializers.Serializer):
@@ -47,6 +51,10 @@ class ReviewCreateSerializer(serializers.Serializer):
 class ReviewModerationSerializer(serializers.Serializer):
     decision = serializers.ChoiceField(choices=['publish', 'reject', 'flag'])
     note = serializers.CharField(required=False, allow_blank=True)
+
+
+class ReviewReplySerializer(serializers.Serializer):
+    reply = serializers.CharField()
 
 
 class TargetReviewPayloadSerializer(serializers.Serializer):

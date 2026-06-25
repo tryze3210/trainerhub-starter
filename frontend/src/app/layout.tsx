@@ -44,6 +44,7 @@ export default function RootLayout({
 
                 <div className="inline">
                   <Link href="/catalog">Каталог</Link>
+                  <Link href="/learning">Обучение</Link>
                   <Link href="/trainers">Тренеры</Link>
                   <Link href="/subscriptions">Подписки</Link>
                 </div>

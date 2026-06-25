@@ -53,6 +53,7 @@ export function StorefrontReviewsPanel({ targetType, targetId }: { targetType: s
 
   const eligibility = payload?.eligibility;
   const canReview = Boolean(isAuthenticated && eligibility?.can_review);
+  const distribution = payload?.summary.rating_distribution || {};
 
   return (
     <section className="card">
@@ -64,6 +65,11 @@ export function StorefrontReviewsPanel({ targetType, targetId }: { targetType: s
             <p className="muted">
               Средняя оценка: <strong>{payload?.summary.average_rating ?? 0}</strong> · Отзывов: <strong>{payload?.summary.reviews_count ?? 0}</strong>
             </p>
+            <div className="inline">
+              {[5, 4, 3, 2, 1].map((value) => (
+                <span className="badge secondary" key={value}>{value}: {distribution[String(value)] || 0}</span>
+              ))}
+            </div>
           </div>
           {eligibility?.verified_purchase ? <span className="badge success">Проверенная покупка</span> : null}
         </div>
@@ -123,6 +129,12 @@ export function StorefrontReviewsPanel({ targetType, targetId }: { targetType: s
                   </div>
                 </div>
                 <p style={{ marginTop: 10 }}>{item.body}</p>
+                {item.trainer_reply ? (
+                  <div className="card compact" style={{ marginTop: 10 }}>
+                    <span className="badge secondary">Ответ тренера</span>
+                    <p style={{ marginTop: 8 }}>{item.trainer_reply}</p>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

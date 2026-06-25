@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { trainerProductsApi, type TrainerProduct, type TrainerProductPayload } from '@/modules/trainer-products/api';
+import { CourseProgramBuilderPanel } from '@/modules/trainer-products/components/course-program-builder-panel';
 
 const emptyForm: TrainerProductPayload = {
   title: '',
@@ -134,8 +135,11 @@ export function TrainerProductBuilderDashboard() {
   }
 
   return (
-    <div className="grid grid-2 gap-4">
-      <section className="card">
+    <div className="stack gap-4">
+      <CourseProgramBuilderPanel />
+
+      <div className="grid grid-2 gap-4">
+        <section className="card">
         <div className="card-header">
           <div>
             <h2>Products</h2>
@@ -166,9 +170,9 @@ export function TrainerProductBuilderDashboard() {
             </button>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="card">
+        <section className="card">
         <div className="card-header">
           <div>
             <h2>{selectedProduct ? 'Edit product' : 'Create product'}</h2>
@@ -293,7 +297,8 @@ export function TrainerProductBuilderDashboard() {
             </ul>
           </div>
         ) : null}
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

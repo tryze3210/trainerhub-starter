@@ -44,3 +44,30 @@ class Video(UUIDModel, TimeStampedModel, SoftDeleteModel):
 
     def __str__(self):
         return self.title
+
+
+class VideoAccessLog(UUIDModel, TimeStampedModel):
+    class Decision(models.TextChoices):
+        GRANTED = "granted", "Granted"
+        DENIED = "denied", "Denied"
+
+    class AccessReason(models.TextChoices):
+        ADMIN = "admin", "Admin"
+        TRAINER_OWNER = "trainer_owner", "Trainer owner"
+        FREE_VIDEO = "free_video", "Free video"
+        ENTITLEMENT = "entitlement", "Entitlement"
+        DENIED = "denied", "Denied"
+
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="video_access_logs")
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name="access_logs")
+    media_asset = models.ForeignKey(MediaAsset, on_delete=models.PROTECT, related_name="access_logs")
+    decision = models.CharField(max_length=32, choices=Decision.choices)
+    reason = models.CharField(max_length=64, choices=AccessReason.choices)
+    access_token_hash = models.CharField(max_length=64, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    referer = models.TextField(blank=True)
+    origin = models.TextField(blank=True)
+    anti_leech = models.JSONField(default=dict, blank=True)
+    entitlement_decision = models.JSONField(default=dict, blank=True)

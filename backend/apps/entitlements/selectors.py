@@ -272,6 +272,8 @@ def _access_url(target_type: str, slug: str | None) -> str:
         return f'/catalog/videos/{slug}'
     if target_type == EntitlementTargetType.PROGRAM or target_type == 'program':
         return f'/catalog/programs/{slug}'
+    if target_type == EntitlementTargetType.COURSE or target_type == 'course':
+        return '/customer/access'
     if target_type == EntitlementTargetType.BUNDLE or target_type == 'bundle':
         return f'/catalog/bundles/{slug}'
     return '/customer/access'

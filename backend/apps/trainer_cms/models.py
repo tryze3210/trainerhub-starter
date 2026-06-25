@@ -36,6 +36,19 @@ class TrainerProgramDraft(TimeStampedModel):
     current_version_number = models.PositiveIntegerField(default=0)
 
 
+class TrainerCourseDraft(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    trainer_id = models.UUIDField(db_index=True)
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255)
+    description = models.TextField(blank=True)
+    price_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField(max_length=3, default="RUB")
+    status = models.CharField(max_length=32, choices=PublishStatus.choices, default=PublishStatus.DRAFT)
+    current_version_number = models.PositiveIntegerField(default=0)
+    metadata = models.JSONField(default=dict, blank=True)
+
+
 class ProgramLessonDraft(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     program_draft = models.ForeignKey(TrainerProgramDraft, on_delete=models.CASCADE, related_name="lessons")
@@ -43,6 +56,18 @@ class ProgramLessonDraft(TimeStampedModel):
     description = models.TextField(blank=True)
     position = models.PositiveIntegerField()
     video_asset_id = models.UUIDField(null=True, blank=True)
+    materials = models.JSONField(default=list, blank=True)
+    is_preview = models.BooleanField(default=False)
+
+
+class CourseLessonDraft(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    course_draft = models.ForeignKey(TrainerCourseDraft, on_delete=models.CASCADE, related_name="lessons")
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    position = models.PositiveIntegerField()
+    video_asset_id = models.UUIDField(null=True, blank=True)
+    materials = models.JSONField(default=list, blank=True)
     is_preview = models.BooleanField(default=False)
 
 
@@ -73,6 +98,7 @@ class ContentVersion(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     class EntityType(models.TextChoices):
         VIDEO = "video", "Video"
+        COURSE = "course", "Course"
         PROGRAM = "program", "Program"
         BUNDLE = "bundle", "Bundle"
 

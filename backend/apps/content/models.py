@@ -69,6 +69,7 @@ class PublishedLesson(TimeStampedModel):
     description = models.TextField(blank=True)
     position = models.PositiveIntegerField(default=1)
     video_asset_id = models.UUIDField(null=True, blank=True)
+    materials = models.JSONField(default=list, blank=True)
     is_preview = models.BooleanField(default=False)
     duration_minutes = models.PositiveIntegerField(default=0)
 

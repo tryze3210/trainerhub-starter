@@ -108,6 +108,26 @@ class ReviewService:
         return review
 
     @staticmethod
+    @transaction.atomic
+    def reply_to_review(*, review: Review, trainer, reply: str) -> Review:
+        text = (reply or '').strip()
+        if not text:
+            raise ValidationError({'reply': 'Reply text is required'})
+        if str(getattr(trainer, 'id', '') or '') != str(review.trainer_id) and not getattr(trainer, 'is_staff', False):
+            raise ValidationError({'detail': 'Only the owning trainer can reply to this review'})
+        review.trainer_reply = text
+        review.trainer_reply_by_id = str(getattr(trainer, 'id', '') or '')
+        review.trainer_replied_at = timezone.now()
+        review.save(update_fields=['trainer_reply', 'trainer_reply_by_id', 'trainer_replied_at', 'updated_at'])
+        ReviewService._try_audit(
+            actor=trainer,
+            action='review.trainer_reply',
+            review=review,
+            note=text,
+        )
+        return review
+
+    @staticmethod
     def _quality_flags(rating: int, body: str) -> list[str]:
         flags: list[str] = []
         if rating <= 2:

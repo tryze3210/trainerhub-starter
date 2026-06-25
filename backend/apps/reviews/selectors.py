@@ -10,7 +10,7 @@ from django.utils import timezone
 from apps.reviews.models import Review
 
 
-CONTENT_TARGET_TYPES = {'video', 'program', 'bundle'}
+CONTENT_TARGET_TYPES = {'video', 'program', 'course', 'bundle'}
 
 
 def normalize_target(target_type: str, target_id: Any) -> tuple[str, str]:
@@ -22,6 +22,9 @@ def normalize_target(target_type: str, target_id: Any) -> tuple[str, str]:
         'programs': 'program',
         'published_program': 'program',
         'publishedprogram': 'program',
+        'courses': 'course',
+        'course_draft': 'course',
+        'trainer_course_draft': 'course',
         'bundles': 'bundle',
         'published_bundle': 'bundle',
         'publishedbundle': 'bundle',
@@ -53,11 +56,23 @@ def get_rating_summary(target_type: str, target_id: Any) -> dict[str, Any]:
         target_id=normalized_id,
         status=Review.STATUS_PUBLISHED,
     ).aggregate(count=Count('id'), average=Avg('rating'))
+    distribution = {str(value): 0 for value in range(1, 6)}
+    for row in (
+        Review.objects.filter(
+            target_type=normalized_type,
+            target_id=normalized_id,
+            status=Review.STATUS_PUBLISHED,
+        )
+        .values('rating')
+        .annotate(count=Count('id'))
+    ):
+        distribution[str(row['rating'])] = int(row['count'] or 0)
     return {
         'target_type': normalized_type,
         'target_id': normalized_id,
         'reviews_count': int(aggregate.get('count') or 0),
         'average_rating': _round_rating(aggregate.get('average')),
+        'rating_distribution': distribution,
     }
 
 
@@ -96,6 +111,33 @@ def resolve_review_target(target_type: str, target_id: Any) -> dict[str, Any]:
         'content': {},
     }
     if normalized_type not in CONTENT_TARGET_TYPES:
+        return payload
+    if normalized_type == 'course':
+        try:
+            from apps.trainer_cms.models import TrainerCourseDraft
+            course = TrainerCourseDraft.objects.filter(id=normalized_id).first()
+        except Exception:
+            course = None
+        if course:
+            payload.update(
+                {
+                    'target_id': str(course.id),
+                    'target_title': course.title,
+                    'target_slug': course.slug,
+                    'trainer_id': str(course.trainer_id),
+                    'content': {
+                        'id': str(course.id),
+                        'source_draft_id': str(course.id),
+                        'slug': course.slug,
+                        'title': course.title,
+                        'description': course.description,
+                        'target_type': 'course',
+                        'trainer_id': str(course.trainer_id),
+                        'currency': course.currency,
+                        'price_amount': str(course.price_amount),
+                    },
+                }
+            )
         return payload
     try:
         from apps.entitlements.selectors import resolve_access_target
@@ -273,6 +315,9 @@ def review_to_dict(review: Review) -> dict[str, Any]:
         'moderation_note': review.moderation_note,
         'moderated_by_id': review.moderated_by_id,
         'moderated_at': review.moderated_at.isoformat() if review.moderated_at else None,
+        'trainer_reply': review.trainer_reply,
+        'trainer_reply_by_id': review.trainer_reply_by_id,
+        'trainer_replied_at': review.trainer_replied_at.isoformat() if review.trainer_replied_at else None,
         'created_at': review.created_at.isoformat() if review.created_at else None,
         'updated_at': review.updated_at.isoformat() if getattr(review, 'updated_at', None) else None,
     }

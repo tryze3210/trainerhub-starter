@@ -5,6 +5,7 @@ from apps.reviews import selectors
 from apps.reviews.api.serializers import (
     ReviewCreateSerializer,
     ReviewModerationSerializer,
+    ReviewReplySerializer,
     ReviewSerializer,
     TargetReviewPayloadSerializer,
 )
@@ -81,3 +82,20 @@ class TrainerReviewQualityView(views.APIView):
     def get(self, request):
         days = int(request.query_params.get('days') or 30)
         return response.Response(selectors.get_trainer_quality_dashboard(trainer_user=request.user, days=days))
+
+
+class TrainerReviewReplyView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, review_id: str):
+        serializer = ReviewReplySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        review = Review.objects.filter(id=review_id).first()
+        if not review:
+            raise NotFound('Review not found')
+        updated = ReviewService.reply_to_review(
+            review=review,
+            trainer=request.user,
+            reply=serializer.validated_data['reply'],
+        )
+        return response.Response(ReviewSerializer(ReviewService.serialize_review(updated)).data)

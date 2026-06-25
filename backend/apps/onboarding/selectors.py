@@ -4,7 +4,13 @@ from typing import Any
 
 from apps.content.models import PublishedBundle, PublishedProgram, PublishedVideo
 from apps.onboarding.models import OnboardingStepState
-from apps.trainer_cms.models import PublishStatus, TrainerBundleDraft, TrainerProgramDraft, TrainerVideoDraft
+from apps.trainer_cms.models import (
+    PublishStatus,
+    TrainerBundleDraft,
+    TrainerCourseDraft,
+    TrainerProgramDraft,
+    TrainerVideoDraft,
+)
 from apps.trainers.models import TrainerApplication
 
 ONBOARDING_STEPS = [
@@ -124,6 +130,7 @@ def _is_first_publish_completed(user) -> bool:
         return False
     draft_exists = (
         TrainerVideoDraft.objects.filter(trainer_id=trainer_uuid, status__in=[PublishStatus.REVIEW, PublishStatus.PUBLISHED]).exists()
+        or TrainerCourseDraft.objects.filter(trainer_id=trainer_uuid, status__in=[PublishStatus.REVIEW, PublishStatus.PUBLISHED]).exists()
         or TrainerProgramDraft.objects.filter(trainer_id=trainer_uuid, status__in=[PublishStatus.REVIEW, PublishStatus.PUBLISHED]).exists()
         or TrainerBundleDraft.objects.filter(trainer_id=trainer_uuid, status__in=[PublishStatus.REVIEW, PublishStatus.PUBLISHED]).exists()
     )

@@ -9,7 +9,13 @@ from apps.progress.api.serializers import (
     SaveVideoProgressSerializer,
     VideoProgressSerializer,
 )
-from apps.progress.selectors import get_lesson_progress_for_user, get_program_progress_for_user, get_progress_summary, get_video_progress_for_user
+from apps.progress.selectors import (
+    get_lesson_progress_for_user,
+    get_program_progress_for_user,
+    get_progress_summary,
+    get_trainer_student_progress,
+    get_video_progress_for_user,
+)
 from apps.progress.services import ProgressService
 
 
@@ -56,3 +62,12 @@ class MyProgressSummaryViewSet(viewsets.ViewSet):
 
     def list(self, request):
         return Response(get_progress_summary(user=request.user))
+
+
+class TrainerStudentProgressViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        if getattr(request.user, 'role', None) != 'trainer' and not getattr(request.user, 'is_staff', False):
+            return Response({'detail': 'Trainer role required.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response(get_trainer_student_progress(trainer_user=request.user))

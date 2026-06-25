@@ -1,26 +1,185 @@
+from __future__ import annotations
+
+import hashlib
+import hmac
+import secrets
+from typing import Any
+
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from apps.entitlements.access_audit import AccessControlAuditService
 from common.storage.client import storage_service
-from apps.videos.models import Video
+from apps.videos.models import Video, VideoAccessLog
+
+
+def _client_ip(request) -> str | None:
+    if request is None:
+        return None
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip() or None
+    return request.META.get("REMOTE_ADDR") or None
+
+
+def _host_from_url(value: str) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    without_scheme = text.split("://", 1)[-1]
+    return without_scheme.split("/", 1)[0].lower()
+
+
+def _allowed_hosts() -> set[str]:
+    hosts = {str(item).lower() for item in getattr(settings, "ALLOWED_HOSTS", []) if item and item != "*"}
+    frontend_origin = getattr(settings, "FRONTEND_URL", "") or getattr(settings, "PUBLIC_FRONTEND_URL", "")
+    frontend_host = _host_from_url(frontend_origin)
+    if frontend_host:
+        hosts.add(frontend_host)
+    extra = getattr(settings, "MEDIA_ALLOWED_REFERER_HOSTS", [])
+    hosts.update(str(item).lower() for item in extra if item)
+    return hosts
+
+
+def _anti_leech_payload(request) -> dict[str, Any]:
+    if request is None:
+        return {"status": "unknown", "allowed": True, "reason": "no_request_context"}
+    referer = request.META.get("HTTP_REFERER", "")
+    origin = request.META.get("HTTP_ORIGIN", "")
+    candidate = _host_from_url(origin) or _host_from_url(referer)
+    allowed_hosts = _allowed_hosts()
+    if not candidate:
+        return {"status": "pass", "allowed": True, "reason": "no_referer_or_origin", "host": ""}
+    if not allowed_hosts:
+        return {"status": "pass", "allowed": True, "reason": "no_allowed_hosts_configured", "host": candidate}
+    allowed = candidate in allowed_hosts
+    return {
+        "status": "pass" if allowed else "warning",
+        "allowed": True,
+        "reason": "referer_origin_allowed" if allowed else "referer_origin_unrecognized",
+        "host": candidate,
+        "allowed_hosts": sorted(allowed_hosts),
+    }
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _sign_token(*, video_id: str, user_id: str, expires_at) -> str:
+    secret = getattr(settings, "SECRET_KEY", "trainerhub")
+    nonce = secrets.token_urlsafe(12)
+    payload = f"{video_id}:{user_id}:{int(expires_at.timestamp())}:{nonce}"
+    signature = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}:{signature}"
 
 
 class IssueVideoAccessUrlService:
-    def execute(self, *, user, video: Video) -> str:
-        if user.is_authenticated and user.role == "admin":
-            return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
-        if user.is_authenticated and user.role == "trainer" and hasattr(user, "trainer_profile") and video.trainer_id == user.trainer_profile.id:
-            return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
-        if video.is_free:
-            return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
-        if user.is_authenticated:
-            decision = AccessControlAuditService.check(
+    def execute(self, *, user, video: Video, request=None) -> dict[str, Any]:
+        ttl_seconds = int(getattr(settings, "MEDIA_READ_TTL_SECONDS", 300))
+        expires_at = timezone.now() + timezone.timedelta(seconds=ttl_seconds)
+        anti_leech = _anti_leech_payload(request)
+        entitlement_decision: dict[str, Any] = {}
+        reason = VideoAccessLog.AccessReason.DENIED
+
+        if user.is_authenticated and (getattr(user, "role", "") == "admin" or getattr(user, "is_staff", False)):
+            reason = VideoAccessLog.AccessReason.ADMIN
+        elif user.is_authenticated and user.role == "trainer" and hasattr(user, "trainer_profile") and video.trainer_id == user.trainer_profile.id:
+            reason = VideoAccessLog.AccessReason.TRAINER_OWNER
+        elif video.is_free:
+            reason = VideoAccessLog.AccessReason.FREE_VIDEO
+        elif user.is_authenticated:
+            entitlement_decision = AccessControlAuditService.check(
                 user=user,
                 target_type="video",
                 target_id=str(video.id),
                 include_admin_override=False,
             )
-            if decision.get("allowed"):
-                return storage_service.create_presigned_read(video.media_asset.bucket_name, video.media_asset.object_key, settings.MEDIA_READ_TTL_SECONDS)
-            raise PermissionDenied(f"You do not have access to this video: {decision.get('code')}")
-        raise PermissionDenied("Authentication is required to access this video.")
+            if entitlement_decision.get("allowed"):
+                reason = VideoAccessLog.AccessReason.ENTITLEMENT
+            else:
+                self._log(
+                    user=user,
+                    video=video,
+                    request=request,
+                    decision=VideoAccessLog.Decision.DENIED,
+                    reason=VideoAccessLog.AccessReason.DENIED,
+                    anti_leech=anti_leech,
+                    entitlement_decision=entitlement_decision,
+                )
+                raise PermissionDenied(f"You do not have access to this video: {entitlement_decision.get('code')}")
+        else:
+            self._log(
+                user=user if getattr(user, "is_authenticated", False) else None,
+                video=video,
+                request=request,
+                decision=VideoAccessLog.Decision.DENIED,
+                reason=VideoAccessLog.AccessReason.DENIED,
+                anti_leech=anti_leech,
+                entitlement_decision={"code": "authentication_required"},
+            )
+            raise PermissionDenied("Authentication is required to access this video.")
+
+        access_token = _sign_token(
+            video_id=str(video.id),
+            user_id=str(getattr(user, "id", "") or "anonymous"),
+            expires_at=expires_at,
+        )
+        playback_url = storage_service.create_presigned_read(
+            video.media_asset.bucket_name,
+            video.media_asset.object_key,
+            ttl_seconds,
+        )
+        log = self._log(
+            user=user if getattr(user, "is_authenticated", False) else None,
+            video=video,
+            request=request,
+            decision=VideoAccessLog.Decision.GRANTED,
+            reason=reason,
+            anti_leech=anti_leech,
+            entitlement_decision=entitlement_decision,
+            access_token=access_token,
+            expires_at=expires_at,
+        )
+        return {
+            "playback_url": playback_url,
+            "access_token": access_token,
+            "expires_in": ttl_seconds,
+            "expires_at": expires_at.isoformat(),
+            "access_log_id": str(log.id),
+            "delivery_policy": {
+                "signed_url": True,
+                "ttl_seconds": ttl_seconds,
+                "anti_leech": anti_leech,
+                "reason": reason,
+            },
+        }
+
+    @staticmethod
+    def _log(
+        *,
+        user,
+        video: Video,
+        request,
+        decision: str,
+        reason: str,
+        anti_leech: dict[str, Any],
+        entitlement_decision: dict[str, Any],
+        access_token: str = "",
+        expires_at=None,
+    ) -> VideoAccessLog:
+        return VideoAccessLog.objects.create(
+            user=user,
+            video=video,
+            media_asset=video.media_asset,
+            decision=decision,
+            reason=reason,
+            access_token_hash=_token_hash(access_token) if access_token else "",
+            expires_at=expires_at,
+            ip_address=_client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", "") if request is not None else "",
+            referer=request.META.get("HTTP_REFERER", "") if request is not None else "",
+            origin=request.META.get("HTTP_ORIGIN", "") if request is not None else "",
+            anti_leech=anti_leech,
+            entitlement_decision=entitlement_decision,
+        )

@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'apps.public_catalog',
     'apps.trainer_profiles',
     'apps.reviews',
+    'apps.progress',
+    'apps.assignments',
 ]
 
 MIDDLEWARE = [
