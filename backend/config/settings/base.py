@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "apps.reviews",
     "apps.progress",
     "apps.assignments",
+    "apps.messaging",
     "apps.billing",
     "apps.onboarding",
     "apps.habits",

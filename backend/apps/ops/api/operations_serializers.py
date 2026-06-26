@@ -120,6 +120,8 @@ class AdminProductionReadinessSerializer(serializers.Serializer):
     api_surface = serializers.ListField(child=serializers.DictField())
     frontend_surface = serializers.ListField(child=serializers.DictField())
     seed_data = serializers.ListField(child=serializers.DictField())
+    role_matrix = serializers.ListField(child=serializers.DictField(), required=False)
+    ci_gate = serializers.DictField(required=False)
     smoke_commands = serializers.ListField(child=serializers.DictField(), required=False)
     management_commands = serializers.ListField(child=serializers.DictField(), required=False)
     recommendations = serializers.ListField(child=serializers.DictField(), required=False)

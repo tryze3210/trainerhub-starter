@@ -1371,3 +1371,43 @@ export type AssignmentReviewPayload = {
   review_comment?: string;
   score?: string | null;
 };
+
+export type Message = {
+  id: string;
+  conversation: string;
+  sender?: string | null;
+  sender_email?: string;
+  message_type: 'user' | 'system' | string;
+  body: string;
+  delivery_status: string;
+  metadata?: Record<string, unknown>;
+  created_at?: string | null;
+};
+
+export type ConversationParticipant = {
+  user_id: string;
+  email?: string;
+  role: string;
+  unread_count: number;
+};
+
+export type Conversation = {
+  id: string;
+  kind: string;
+  booking_reservation_id?: string | null;
+  trainer_id?: string | null;
+  client_id?: string | null;
+  subject?: string;
+  unread_count: number;
+  last_message_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  last_message?: Message | null;
+  participants?: ConversationParticipant[];
+  created_message?: Message;
+};
+
+export type MessagingInbox = {
+  results: Conversation[];
+  unread_total: number;
+};

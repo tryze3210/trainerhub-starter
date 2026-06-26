@@ -1,12 +1,12 @@
-# MANIFEST — TrainerHub v103
+# MANIFEST — TrainerHub v105
 
-This manifest describes the current repository state after v103 Reviews / Feedback Loop.
+This manifest describes the current repository state after v105 Launch Hardening.
 
 ## Current Version
 
-- Current roadmap version: `v103`
+- Current roadmap version: `v105`
 - Closed block: `v70-v95`
-- Active block: `v97-v105` content, learning, progress, messaging, launch hardening
+- Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Latest local roadmap commit before v101: `d9e11de Implement CRM booking attendance and readiness roadmap`
 
 ## Core Backend Modules
@@ -29,6 +29,7 @@ Commercial and access modules:
 - `products`
 - `progress`
 - `assignments`
+- `messaging`
 
 Operations modules:
 
@@ -59,6 +60,7 @@ Trainer/customer modules:
 - `customer-hub`
 - `student-learning`
 - `assignments`
+- `messaging`
 - `notifications`
 - `subscriptions`
 - `trainer-sales`
@@ -94,6 +96,7 @@ Customer:
 - `/customer/hub`
 - `/learning`
 - `/assignments`
+- `/messages`
 - `/entitlements`
 - `/notifications`
 - `/orders`
@@ -139,6 +142,7 @@ Migrations:
 - `backend/apps/progress/migrations/0001_v101_progress_tracking.py`
 - `backend/apps/assignments/migrations/0001_v102_assignments_homework.py`
 - `backend/apps/reviews/migrations/0004_v103_feedback_loop.py`
+- `backend/apps/messaging/migrations/0001_v104_messaging_core.py`
 
 Backend services/read models:
 
@@ -158,6 +162,10 @@ Backend services/read models:
 - `backend/apps/reviews/services.py` — review moderation and trainer reply loop
 - `backend/apps/reviews/selectors.py` — course review target resolution and rating aggregation
 - `backend/apps/reviews/api/views.py` — review moderation, trainer quality and reply endpoints
+- `backend/apps/messaging/services/conversations.py` — direct conversations, unread counters, notification hooks
+- `backend/apps/messaging/selectors/inbox.py` — messaging inbox and message payloads
+- `backend/apps/messaging/api/views.py` — messaging inbox, send, read and system-message endpoints
+- `backend/apps/ops/production_readiness.py` — v105 launch readiness, role matrix, API contracts and smoke commands
 - `backend/apps/ops/production_readiness.py` — v95 readiness gate
 - `backend/apps/ops/management/commands/check_production_readiness.py`
 
@@ -175,9 +183,11 @@ Frontend modules:
 - `frontend/src/modules/progress/api.ts`
 - `frontend/src/modules/assignments/api.ts`
 - `frontend/src/modules/reviews/api.ts`
+- `frontend/src/modules/messaging/api.ts`
 - `frontend/src/components/storefront-reviews-panel.tsx`
 - `frontend/src/app/learning/page.tsx`
 - `frontend/src/app/assignments/page.tsx`
+- `frontend/src/app/messages/page.tsx`
 - `frontend/src/app/trainer/dashboard/assignments/page.tsx`
 
 Tests:
@@ -195,6 +205,13 @@ Tests:
 - `backend/tests/test_progress_tracking_v101.py`
 - `backend/tests/test_assignments_homework_v102.py`
 - `backend/tests/test_reviews_feedback_loop_v103.py`
+- `backend/tests/test_messaging_core_v104.py`
+- `backend/tests/test_production_readiness_v95.py` — updated to assert v105 launch gate
+
+Launch hardening:
+
+- `.github/workflows/ci.yml` — includes `launch-hardening`
+- `scripts/ci/launch_gate.sh`
 
 ## Commands
 

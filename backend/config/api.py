@@ -21,5 +21,6 @@ urlpatterns = [
     path("ops/", include("apps.ops.api.urls")),
     path("progress/", include("apps.progress.api.urls")),
     path("assignments/", include("apps.assignments.api.urls")),
+    path("messaging/", include("apps.messaging.api.urls")),
     path("products/", include("apps.products.api.trainer_urls")),
 ]

@@ -1,8 +1,8 @@
-# TrainerHub — current version v103
+# TrainerHub — current version v105
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v103 Reviews / Feedback Loop. The v70-v95 platform-readiness block is closed; the content-learning product block now tracks lesson completion, learning progress, homework, submissions, reviews, moderation, rating aggregation, and trainer feedback.
+This README describes the current roadmap state after v105 Launch Hardening. The v70-v95 platform-readiness block is closed; the v97-v105 content-learning launch block now tracks lesson completion, learning progress, homework, reviews, trainer-student messaging, role matrix checks, seed data, API contracts, smoke tests, and CI launch gates.
 
 ## Current Roadmap State
 
@@ -39,13 +39,11 @@ Completed in the current line:
 - v101 — Progress Tracking
 - v102 — Assignments / Homework
 - v103 — Reviews / Feedback Loop
-
-The v70-v95 production-readiness roadmap is now closed at the platform gate level.
-
-Next roadmap:
-
 - v104 — Messaging Core
 - v105 — Launch Hardening
+
+The v70-v95 production-readiness roadmap is now closed at the platform gate level.
+The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
 
 ## Main User Surfaces
 
@@ -61,6 +59,7 @@ Customer:
 
 - `/learning` — student learning area with courses, programs, lessons, materials, and runtime lesson access.
 - `/assignments` — homework list, answer submission, trainer review status, score/comment feedback.
+- `/messages` — trainer-student inbox, direct conversations, message sending and read state.
 - `/billing` — purchases, subscriptions, payment statuses, invoices/receipts-ready data, active access.
 - `/subscriptions` — subscription state, renewal projection, lifecycle actions.
 - `/cabinet` — customer account hub with billing and access entry points.
@@ -109,13 +108,14 @@ cd backend
 python manage.py check
 python manage.py makemigrations --check --dry-run
 python manage.py check_production_readiness --json
+bash scripts/ci/launch_gate.sh
 ```
 
 Targeted roadmap tests:
 
 ```bash
 cd backend
-pytest tests/test_notifications_v91_domain_triggers.py tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_production_readiness_v95.py tests/test_course_program_builder_v97.py tests/test_content_access_runtime_v98.py tests/test_video_delivery_hardening_v99.py tests/test_student_learning_area_v100.py tests/test_progress_tracking_v101.py tests/test_assignments_homework_v102.py tests/test_reviews_feedback_loop_v103.py
+pytest tests/test_notifications_v91_domain_triggers.py tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_production_readiness_v95.py tests/test_course_program_builder_v97.py tests/test_content_access_runtime_v98.py tests/test_video_delivery_hardening_v99.py tests/test_student_learning_area_v100.py tests/test_progress_tracking_v101.py tests/test_assignments_homework_v102.py tests/test_reviews_feedback_loop_v103.py tests/test_messaging_core_v104.py
 ```
 
 Frontend:
@@ -330,6 +330,47 @@ Important API areas:
 - `POST /api/v1/reviews/admin/{review_id}/moderate/`
 - `GET /api/v1/reviews/trainer/quality/`
 - `POST /api/v1/reviews/trainer/{review_id}/reply/`
+
+## Messaging Core
+
+v104 adds the trainer-student messaging core.
+
+Implemented capabilities:
+
+- direct trainer-student conversations;
+- user and system messages;
+- unread counters and mark-read flow;
+- message events;
+- in-app notification hook for recipients;
+- domain event/outbox hook for `messaging.message_sent`;
+- `/messages` frontend inbox.
+
+Important API areas:
+
+- `GET /api/v1/messaging/me/inbox/`
+- `POST /api/v1/messaging/conversations/start/`
+- `GET /api/v1/messaging/conversations/{conversation_id}/messages/`
+- `POST /api/v1/messaging/conversations/{conversation_id}/send/`
+- `POST /api/v1/messaging/conversations/{conversation_id}/mark-read/`
+- `POST /api/v1/messaging/conversations/{conversation_id}/system/`
+
+## Launch Hardening
+
+v105 closes the content-learning launch block.
+
+Implemented capabilities:
+
+- production readiness gate updated to `v105`;
+- role matrix included in readiness output;
+- new API contracts for learning, progress, homework, reviews and messaging;
+- launch gate script for CI and local release checks;
+- CI `launch-hardening` job;
+- readiness seed data and smoke command registry updated.
+
+Important commands:
+
+- `cd backend && python manage.py check_production_readiness --json --fail-on-degraded`
+- `bash scripts/ci/launch_gate.sh`
 
 ## Subscription Lifecycle
 

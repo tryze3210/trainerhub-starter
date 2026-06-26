@@ -59,6 +59,16 @@ URL_CONTRACTS = [
     UrlContract('booking_attendance_history', 'booking-attendance-history', '/api/v1/booking/attendance/'),
     UrlContract('notifications_admin_center', 'admin-notification-center', '/api/v1/notifications/admin/center/'),
     UrlContract('ops_production_readiness', 'ops-admin-production-readiness', '/api/v1/ops/admin/production-readiness/'),
+    UrlContract('content_learning_area', 'content-student-learning-area', '/api/v1/content/student/learning-area/'),
+    UrlContract('content_program_runtime', 'content-runtime-program-lesson', '/api/v1/content/runtime/programs/example-program/lessons/example-lesson/', ('example-program', 'example-lesson')),
+    UrlContract('content_course_runtime', 'content-runtime-course-lesson', '/api/v1/content/runtime/courses/00000000-0000-0000-0000-000000000000/lessons/00000000-0000-0000-0000-000000000000/', ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000')),
+    UrlContract('progress_lessons', 'progress-lessons-list', '/api/v1/progress/lessons/'),
+    UrlContract('progress_summary', 'progress-summary-list', '/api/v1/progress/summary/'),
+    UrlContract('assignments_student', 'assignments-student-list', '/api/v1/assignments/student/'),
+    UrlContract('assignments_trainer', 'assignments-trainer-list', '/api/v1/assignments/trainer/'),
+    UrlContract('reviews_trainer_quality', 'reviews-trainer-quality', '/api/v1/reviews/trainer/quality/'),
+    UrlContract('messaging_inbox', 'messaging-inbox', '/api/v1/messaging/me/inbox/'),
+    UrlContract('messaging_start', 'messaging-start-conversation', '/api/v1/messaging/conversations/start/'),
 ]
 
 
@@ -70,6 +80,13 @@ SYMBOL_CONTRACTS = [
     SymbolContract('domain_notifications', 'apps.notifications.domain.triggers', 'DomainNotificationTriggers', 'Commerce notification triggers.'),
     SymbolContract('trainer_crm_selector', 'apps.customers.selectors', 'TrainerCRMSelector', 'Trainer CRM read model.'),
     SymbolContract('booking_attendance_service', 'apps.booking.services.attendance', 'BookingAttendanceService', 'Attendance and check-in service.'),
+    SymbolContract('course_program_builder', 'apps.trainer_cms.services', 'TrainerCMSService', 'Course/program builder and publishing snapshots.'),
+    SymbolContract('content_access_runtime', 'apps.content.runtime', 'ContentAccessRuntime', 'Entitlement-gated lesson runtime.'),
+    SymbolContract('student_learning_area', 'apps.content.student_learning', 'StudentLearningAreaSelector', 'Student learning area read model.'),
+    SymbolContract('progress_service', 'apps.progress.services', 'ProgressService', 'Lesson completion and progress tracking.'),
+    SymbolContract('assignment_service', 'apps.assignments.services', 'AssignmentService', 'Homework submission and trainer review.'),
+    SymbolContract('review_feedback_loop', 'apps.reviews.services', 'ReviewService', 'Review moderation, aggregation and trainer replies.'),
+    SymbolContract('messaging_conversations', 'apps.messaging.services.conversations', 'ConversationService', 'Trainer-student messaging core.'),
 ]
 
 
@@ -80,6 +97,12 @@ PERMISSION_CONTRACTS = [
     PermissionContract('booking_schedule_permissions', 'apps.booking.api.views', 'TrainerScheduleView', (IsAuthenticated,), 'Trainer schedule requires auth.'),
     PermissionContract('booking_checkin_permissions', 'apps.booking.api.views', 'AttendanceCheckInView', (IsAuthenticated,), 'Attendance check-in requires auth.'),
     PermissionContract('ops_readiness_permissions', 'apps.ops.api.views', 'AdminProductionReadinessView', (IsAdminUser,), 'Production readiness is admin-only.'),
+    PermissionContract('student_learning_permissions', 'apps.content.api.views', 'StudentLearningAreaApi', (IsAuthenticated,), 'Student learning area requires auth.'),
+    PermissionContract('student_assignments_permissions', 'apps.assignments.api.views', 'StudentAssignmentViewSet', (IsAuthenticated,), 'Student homework requires auth.'),
+    PermissionContract('trainer_assignments_permissions', 'apps.assignments.api.views', 'TrainerAssignmentViewSet', (IsAuthenticated,), 'Trainer homework dashboard requires auth.'),
+    PermissionContract('trainer_review_reply_permissions', 'apps.reviews.api.views', 'TrainerReviewReplyView', (IsAuthenticated,), 'Trainer review replies require auth and owner guard.'),
+    PermissionContract('messaging_inbox_permissions', 'apps.messaging.api.views', 'MyInboxView', (IsAuthenticated,), 'Messaging inbox requires auth.'),
+    PermissionContract('messaging_start_permissions', 'apps.messaging.api.views', 'StartConversationView', (IsAuthenticated,), 'Starting conversations requires auth.'),
 ]
 
 
@@ -91,14 +114,24 @@ FILE_CONTRACTS = [
     FileContract('booking_v94_test', 'backend/tests/test_booking_v94_attendance_checkin.py', 'Attendance check-in regression test exists.'),
     FileContract('customer_crm_v92_test', 'backend/tests/test_customer_crm_v92.py', 'CRM regression test exists.'),
     FileContract('notifications_v91_test', 'backend/tests/test_notifications_v91_domain_triggers.py', 'Notification regression test exists.'),
+    FileContract('course_builder_v97_test', 'backend/tests/test_course_program_builder_v97.py', 'Course/program builder regression test exists.'),
+    FileContract('content_runtime_v98_test', 'backend/tests/test_content_access_runtime_v98.py', 'Content runtime regression test exists.'),
+    FileContract('video_delivery_v99_test', 'backend/tests/test_video_delivery_hardening_v99.py', 'Video delivery regression test exists.'),
+    FileContract('student_learning_v100_test', 'backend/tests/test_student_learning_area_v100.py', 'Student learning regression test exists.'),
+    FileContract('progress_v101_test', 'backend/tests/test_progress_tracking_v101.py', 'Progress tracking regression test exists.'),
+    FileContract('assignments_v102_test', 'backend/tests/test_assignments_homework_v102.py', 'Assignments/homework regression test exists.'),
+    FileContract('reviews_v103_test', 'backend/tests/test_reviews_feedback_loop_v103.py', 'Reviews/feedback regression test exists.'),
+    FileContract('messaging_v104_test', 'backend/tests/test_messaging_core_v104.py', 'Messaging core regression test exists.'),
+    FileContract('launch_gate_script', 'scripts/ci/launch_gate.sh', 'Launch hardening CI gate exists.'),
 ]
 
 
 SMOKE_COMMANDS = [
     {'key': 'django_check', 'title': 'Django system checks', 'command': 'cd backend && python manage.py check'},
     {'key': 'migration_check', 'title': 'Migration drift check', 'command': 'cd backend && python manage.py makemigrations --check --dry-run'},
-    {'key': 'backend_contracts', 'title': 'Backend roadmap tests', 'command': 'cd backend && pytest tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_notifications_v91_domain_triggers.py'},
+    {'key': 'backend_contracts', 'title': 'Backend roadmap tests', 'command': 'cd backend && pytest tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_notifications_v91_domain_triggers.py tests/test_course_program_builder_v97.py tests/test_content_access_runtime_v98.py tests/test_video_delivery_hardening_v99.py tests/test_student_learning_area_v100.py tests/test_progress_tracking_v101.py tests/test_assignments_homework_v102.py tests/test_reviews_feedback_loop_v103.py tests/test_messaging_core_v104.py'},
     {'key': 'readiness_gate', 'title': 'Production readiness gate', 'command': 'cd backend && python manage.py check_production_readiness --json --fail-on-degraded'},
+    {'key': 'launch_gate', 'title': 'Launch hardening gate', 'command': 'bash scripts/ci/launch_gate.sh'},
     {'key': 'frontend_typecheck', 'title': 'Frontend typecheck', 'command': 'cd frontend && npm run typecheck'},
     {'key': 'frontend_build', 'title': 'Frontend build', 'command': 'cd frontend && npm run build'},
 ]
@@ -110,7 +143,27 @@ FRONTEND_SURFACE = [
     {'key': 'trainer_sales', 'href': '/trainer/dashboard/sales', 'description': 'Trainer sales dashboard.'},
     {'key': 'trainer_crm', 'href': '/trainer/dashboard/crm', 'description': 'Trainer CRM dashboard.'},
     {'key': 'trainer_schedule', 'href': '/trainer/dashboard/schedule', 'description': 'Trainer booking/attendance dashboard.'},
+    {'key': 'learning_area', 'href': '/learning', 'description': 'Student learning area.'},
+    {'key': 'assignments', 'href': '/assignments', 'description': 'Student homework area.'},
+    {'key': 'trainer_assignments', 'href': '/trainer/dashboard/assignments', 'description': 'Trainer homework dashboard.'},
+    {'key': 'messages', 'href': '/messages', 'description': 'Trainer-student messaging inbox.'},
+    {'key': 'trainer_reviews', 'href': '/trainer/reviews', 'description': 'Trainer reviews and feedback dashboard.'},
 ]
+
+
+ROLE_MATRIX = [
+    {'role': 'anonymous', 'allowed': ['/catalog', '/trainers', 'preview lessons'], 'blocked': ['/learning', '/assignments', '/messages', '/billing']},
+    {'role': 'customer', 'allowed': ['/learning', '/assignments', '/messages', '/billing', '/subscriptions'], 'blocked': ['/trainer/dashboard/*', '/admin/*']},
+    {'role': 'trainer', 'allowed': ['/trainer/dashboard/*', '/trainer/reviews', '/messages', '/payouts'], 'blocked': ['/admin/*']},
+    {'role': 'admin', 'allowed': ['/admin/*', '/api/v1/ops/admin/production-readiness/'], 'blocked': []},
+]
+
+
+CI_GATE = {
+    'workflow': '.github/workflows/ci.yml',
+    'required_jobs': ['backend-quality', 'frontend-build', 'launch-hardening'],
+    'launch_script': 'scripts/ci/launch_gate.sh',
+}
 
 
 def _rank(status: str) -> int:
@@ -237,13 +290,18 @@ def get_platform_production_readiness(
     payload: dict[str, Any] = {
         'status': status,
         'generated_at': timezone.now(),
-        'version': 'v95',
+        'version': 'v105',
         'scope': 'full platform production readiness',
         'summary': summary,
         'checks': checks,
         'api_surface': [{'key': item.key, 'name': item.name, 'expected_path': item.expected_path} for item in URL_CONTRACTS],
         'frontend_surface': FRONTEND_SURFACE,
-        'seed_data': [{'key': 'seed_demo', 'command': 'python scripts/bootstrap/seed_demo.py', 'description': 'Create local demo trainer/user data.'}],
+        'seed_data': [
+            {'key': 'seed_demo', 'command': 'python scripts/bootstrap/seed_demo.py', 'description': 'Create local demo trainer/user data.'},
+            {'key': 'migrate', 'command': 'cd backend && python manage.py migrate', 'description': 'Apply database schema before seed/smoke checks.'},
+        ],
+        'role_matrix': ROLE_MATRIX,
+        'ci_gate': CI_GATE,
     }
     if include_commands:
         payload['smoke_commands'] = SMOKE_COMMANDS

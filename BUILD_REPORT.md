@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v103
+# BUILD REPORT — TrainerHub v105
 
 ## Summary
 
-Current version: `v103`
+Current version: `v105`
 
 The repository has been updated through:
 
@@ -18,8 +18,10 @@ The repository has been updated through:
 - progress tracking: v101
 - assignments/homework: v102
 - reviews/feedback loop: v103
+- messaging core: v104
+- launch hardening: v105
 
-v103 adds course reviews, rating distribution, moderation-backed publication, and public trainer replies.
+v105 closes the launch block with readiness contracts, role matrix, seed/smoke command registry and CI launch gate.
 
 ## Verification Performed In This Workspace
 
@@ -56,6 +58,12 @@ Frontend route smoke checks were run through a local Next.js dev server for:
 - `/trainer/dashboard/assignments`
 - `/trainer/reviews`
 - `/admin/reviews`
+- `/messages`
+
+Launch checks:
+
+- `python manage.py check_production_readiness --json --fail-on-degraded`
+- `bash scripts/ci/launch_gate.sh`
 
 ## Known Local Limitation
 
@@ -118,8 +126,5 @@ Current completed roadmap block:
 
 - v102 — Assignments / Homework
 - v103 — Reviews / Feedback Loop
-
-Next roadmap block:
-
 - v104 — Messaging Core
 - v105 — Launch Hardening
