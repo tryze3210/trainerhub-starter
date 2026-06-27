@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v153
+# MANIFEST — TrainerHub v154
 
-This manifest describes the current repository state after v153 Premium Storefront Stabilization.
+This manifest describes the current repository state after v154 Premium Product Detail Landing Pages.
 
 ## Current Version
 
-- Current roadmap version: `v153`
+- Current roadmap version: `v154`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v153` premium brand foundation, marketing homepage and marketplace catalog stabilization
+- Current storefront block: `v151-v154` premium brand foundation, marketing homepage, marketplace catalog and product detail landing pages
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v153 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v154 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -251,6 +251,7 @@ UI design system modules and contracts:
 - `docs/design-system/v152_premium_marketing_home_page.md` — v152 premium marketing homepage notes.
 - `docs/design-system/v153_premium_storefront_stabilization.md` — v153 premium storefront stabilization notes.
 - `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md` — v154-prep marketplace catalog foundation notes.
+- `docs/design-system/v154_premium_product_detail_landing_pages.md` — v154 premium product detail landing notes.
 
 Admin dashboard redesign modules:
 
@@ -359,6 +360,22 @@ Premium storefront stabilization modules:
 - `docs/design-system/v153_premium_storefront_stabilization.md` — v153 storefront stabilization notes.
 - `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md` — v154-prep marketplace foundation notes.
 
+Premium product detail landing modules:
+
+- `frontend/src/modules/public-storefront/components/content-detail-page.tsx` — v154 product detail orchestrator.
+- `frontend/src/modules/public-storefront/components/product-landing-hero.tsx` — v154 product hero.
+- `frontend/src/modules/public-storefront/components/product-purchase-panel.tsx` — v154 sticky purchase panel.
+- `frontend/src/modules/public-storefront/components/product-includes-section.tsx` — v154 includes section.
+- `frontend/src/modules/public-storefront/components/product-outcome-section.tsx` — v154 outcome section.
+- `frontend/src/modules/public-storefront/components/product-trainer-section.tsx` — v154 trainer card.
+- `frontend/src/modules/public-storefront/components/product-access-section.tsx` — v154 access timeline.
+- `frontend/src/modules/public-storefront/components/product-detail-skeleton.tsx` — v154 premium loading state.
+- `frontend/src/modules/public-storefront/components/product-detail-state.tsx` — v154 premium error state.
+- `frontend/src/modules/public-storefront/components/product-detail-utils.ts` — v154 product detail labels, facts and fallbacks.
+- `frontend/src/app/catalog/programs/[slug]/page.tsx` — v154 Russian program metadata.
+- `frontend/src/app/catalog/videos/[slug]/page.tsx` — v154 Russian video metadata.
+- `frontend/src/app/catalog/bundles/[slug]/page.tsx` — v154 Russian bundle metadata.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -404,8 +421,9 @@ Premium storefront stabilization modules:
 | v150 | Premium UX completion | Done |
 | v151 | Premium brand foundation | Done |
 | v152 | Premium marketing homepage | Done |
-| v153 | Premium storefront stabilization | Current |
+| v153 | Premium storefront stabilization | Done |
 | v154-prep | Marketplace catalog premium foundation | Done |
+| v154 | Premium product detail landing pages | Current |
 
 ## Current Frontend Modules
 

@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v153
+# BUILD REPORT — TrainerHub v154
 
 ## Summary
 
-Current version: `v153`
+Current version: `v154`
 
 The repository has been updated through:
 
@@ -59,8 +59,9 @@ The repository has been updated through:
 - premium marketing homepage: v152
 - premium storefront stabilization: v153
 - marketplace catalog premium foundation: v154-prep
+- premium product detail landing pages: v154
 
-v153 stabilizes the premium homepage contract and upgrades the public catalog into a premium marketplace surface.
+v154 upgrades public product detail routes into premium landing pages for programs, videos and bundles.
 
 ## Verification Performed In This Workspace
 
@@ -78,11 +79,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v153.
+- README current version and roadmap/status table updated to v154.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v153 premium storefront stabilization status.
+- BUILD_REPORT updated with v154 premium product detail landing status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v153.
+- Frontend design-system contract extended for v131-v154.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -105,7 +106,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v153 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v154 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 

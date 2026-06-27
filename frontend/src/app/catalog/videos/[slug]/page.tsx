@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   return {
     title: `Видео ${slug} — TrainerHub`,
-    description: 'Публичная карточка видео с ценой, тренером и CTA на покупку.',
+    description: 'Страница видеоурока с описанием, ценой, тренером и доступом после оплаты.',
   };
 }
 

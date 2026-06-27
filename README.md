@@ -1,8 +1,8 @@
-# TrainerHub — current version v153
+# TrainerHub — current version v154
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v153 Premium Storefront Stabilization. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v153 premium storefront block is now implemented and v154 marketplace foundation prep is documented.
+This README describes the current roadmap state after v154 Premium Product Detail Landing Pages. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v154 premium storefront block is now implemented.
 
 ## Current Roadmap State
 
@@ -61,8 +61,9 @@ Roadmap status table:
 | v150 | Premium UX Completion | Done |
 | v151 | Premium Brand Foundation | Done |
 | v152 | Premium Marketing Home Page | Done |
-| v153 | Premium Storefront Stabilization | Current |
+| v153 | Premium Storefront Stabilization | Done |
 | v154-prep | Marketplace Catalog Premium Foundation | Done |
+| v154 | Premium Product Detail Landing Pages | Current |
 
 Completed implementation line:
 
@@ -138,6 +139,7 @@ Completed implementation line:
 - v152 — Premium Marketing Home Page
 - v153 — Premium Storefront Stabilization
 - v154-prep — Marketplace Catalog Premium Foundation
+- v154 — Premium Product Detail Landing Pages
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -563,6 +565,27 @@ Covered behavior:
 - premium catalog hero, featured product, filter bar and product grid;
 - premium loading, empty and error states;
 - trust/access explanation for marketplace purchases.
+
+## Premium Product Detail Landing Pages
+
+v154 turns `/catalog/programs/[slug]`, `/catalog/videos/[slug]` and `/catalog/bundles/[slug]` into premium product landing pages.
+
+Updated product layer:
+
+- `frontend/src/modules/public-storefront/components/content-detail-page.tsx`
+- `frontend/src/modules/public-storefront/components/product-landing-hero.tsx`
+- `frontend/src/modules/public-storefront/components/product-purchase-panel.tsx`
+- `frontend/src/modules/public-storefront/components/product-includes-section.tsx`
+- `frontend/src/modules/public-storefront/components/product-access-section.tsx`
+- `docs/design-system/v154_premium_product_detail_landing_pages.md`
+
+Covered behavior:
+
+- premium product hero and product facts;
+- sticky purchase panel with trust hints;
+- “Что входит в доступ” and “Что происходит после оплаты” sections;
+- trainer/author card and outcome cards;
+- premium loading/error states and Russian SEO metadata.
 
 ## Demo Data / Seed Scenarios
 

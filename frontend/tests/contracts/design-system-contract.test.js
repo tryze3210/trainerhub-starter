@@ -28,6 +28,7 @@ const requiredFiles = [
   '../docs/design-system/v152_premium_marketing_home_page.md',
   '../docs/design-system/v153_premium_storefront_stabilization.md',
   '../docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md',
+  '../docs/design-system/v154_premium_product_detail_landing_pages.md',
   'src/modules/public-storefront/components/marketing-home-page.tsx',
   'src/modules/public-storefront/components/hero-business-console.tsx',
   'src/modules/public-storefront/components/platform-map-section.tsx',
@@ -36,6 +37,11 @@ const requiredFiles = [
   'src/modules/public-storefront/components/product-experience-timeline.tsx',
   'src/modules/public-storefront/components/final-premium-cta.tsx',
   'src/modules/public-storefront/components/premium-marketplace-card.tsx',
+  'src/modules/public-storefront/components/content-detail-page.tsx',
+  'src/modules/public-storefront/components/product-landing-hero.tsx',
+  'src/modules/public-storefront/components/product-purchase-panel.tsx',
+  'src/modules/public-storefront/components/product-includes-section.tsx',
+  'src/modules/public-storefront/components/product-access-section.tsx',
 ];
 
 for (const file of requiredFiles) {
@@ -168,6 +174,31 @@ for (const fragment of [
   '.premium-trust-panel',
   '.premium-state-card',
   '.premium-skeleton-card',
+  '.premium-product-page',
+  '.premium-product-layout',
+  '.premium-product-hero',
+  '.premium-product-hero-copy',
+  '.premium-product-title',
+  '.premium-product-subtitle',
+  '.premium-product-meta',
+  '.premium-product-facts',
+  '.premium-product-fact',
+  '.premium-purchase-panel',
+  '.premium-purchase-panel-sticky',
+  '.premium-purchase-price',
+  '.premium-purchase-trust',
+  '.premium-product-section',
+  '.premium-product-section-header',
+  '.premium-product-includes-grid',
+  '.premium-product-include-card',
+  '.premium-product-outcome-grid',
+  '.premium-product-outcome-card',
+  '.premium-product-trainer-card',
+  '.premium-access-timeline',
+  '.premium-access-step',
+  '.premium-mobile-purchase-bar',
+  '.premium-product-state',
+  '.premium-product-skeleton',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -301,6 +332,13 @@ for (const fragment of ['useCountUp', 'requestAnimationFrame', 'durationMs', 'fo
 }
 
 const marketingHome = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/marketing-home-page.tsx'), 'utf8');
+const contentDetail = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/content-detail-page.tsx'), 'utf8');
+const productLanding = [
+  contentDetail,
+  fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
+  fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-includes-section.tsx'), 'utf8'),
+  fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-access-section.tsx'), 'utf8'),
+].join('\n');
 
 for (const fragment of [
   'MarketingHomePage',
@@ -319,4 +357,18 @@ for (const fragment of [
   }
 }
 
-console.log('v131-v153 design system contract ok');
+for (const fragment of [
+  'ProductLandingHero',
+  'ProductPurchasePanel',
+  'ProductIncludesSection',
+  'ProductAccessSection',
+  'Купить доступ',
+  'Что входит в доступ',
+  'Что происходит после оплаты',
+]) {
+  if (!productLanding.includes(fragment)) {
+    throw new Error(`content detail premium UI missing fragment: ${fragment}`);
+  }
+}
+
+console.log('v131-v154 design system contract ok');

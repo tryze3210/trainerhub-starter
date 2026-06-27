@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   return {
-    title: `Bundle ${slug} — TrainerHub`,
-    description: 'Публичная карточка bundle-предложения с ценой, тренером и CTA на покупку.',
+    title: `Набор ${slug} — TrainerHub`,
+    description: 'Страница набора материалов с описанием, ценой, тренером и доступом после оплаты.',
   };
 }
 
