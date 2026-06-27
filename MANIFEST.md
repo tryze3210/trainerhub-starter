@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v152
+# MANIFEST — TrainerHub v153
 
-This manifest describes the current repository state after v152 Premium Marketing Home Page.
+This manifest describes the current repository state after v153 Premium Storefront Stabilization.
 
 ## Current Version
 
-- Current roadmap version: `v152`
+- Current roadmap version: `v153`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current marketing block: `v151-v152` premium brand foundation and marketing homepage
+- Current storefront block: `v151-v153` premium brand foundation, marketing homepage and marketplace catalog stabilization
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v152 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v153 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -249,6 +249,8 @@ UI design system modules and contracts:
 - `docs/design-system/v150_premium_ux_completion.md` — v150 premium UX completion notes.
 - `docs/design-system/v151_premium_brand_foundation.md` — v151 premium brand foundation notes.
 - `docs/design-system/v152_premium_marketing_home_page.md` — v152 premium marketing homepage notes.
+- `docs/design-system/v153_premium_storefront_stabilization.md` — v153 premium storefront stabilization notes.
+- `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md` — v154-prep marketplace catalog foundation notes.
 
 Admin dashboard redesign modules:
 
@@ -348,6 +350,15 @@ Premium marketing homepage modules:
 - `frontend/src/design-system/use-count-up.ts` — v152 animated count-up helper.
 - `docs/design-system/v152_premium_marketing_home_page.md` — v152 premium homepage notes.
 
+Premium storefront stabilization modules:
+
+- `frontend/src/modules/public-storefront/components/marketplace-catalog-page.tsx` — v153 premium marketplace catalog page.
+- `frontend/src/modules/public-storefront/components/premium-marketplace-card.tsx` — v153 premium product card.
+- `frontend/src/app/globals.css` — v153 catalog hero, featured product, filter, card, state and trust styles.
+- `frontend/tests/contracts/design-system-contract.test.js` — v153 premium storefront contract checks.
+- `docs/design-system/v153_premium_storefront_stabilization.md` — v153 storefront stabilization notes.
+- `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md` — v154-prep marketplace foundation notes.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -392,7 +403,9 @@ Premium marketing homepage modules:
 | v149 | Command palette / fast search | Done |
 | v150 | Premium UX completion | Done |
 | v151 | Premium brand foundation | Done |
-| v152 | Premium marketing homepage | Current |
+| v152 | Premium marketing homepage | Done |
+| v153 | Premium storefront stabilization | Current |
+| v154-prep | Marketplace catalog premium foundation | Done |
 
 ## Current Frontend Modules
 

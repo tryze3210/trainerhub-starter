@@ -63,7 +63,7 @@ export function AnimatedCard({ children, className, delayMs = 0, ...props }: Ani
   const { ref, visible } = useReveal(delayMs);
 
   return (
-    <article className={cx('animated-card', visible && 'animated-section-visible', className)} ref={ref} {...props}>
+    <article className={cx('animated-card', visible && 'animated-card-visible', className)} ref={ref} {...props}>
       {children}
     </article>
   );
@@ -73,7 +73,7 @@ export function AnimatedMetric({ children, className, delayMs = 0, ...props }: A
   const { ref, visible } = useReveal(delayMs);
 
   return (
-    <article className={cx('animated-card', visible && 'animated-section-visible', className)} ref={ref} {...props}>
+    <article className={cx('animated-metric', visible && 'animated-metric-visible', className)} ref={ref} {...props}>
       {children}
     </article>
   );

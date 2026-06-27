@@ -1,8 +1,8 @@
-# TrainerHub — current version v152
+# TrainerHub — current version v153
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v152 Premium Marketing Home Page. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v152 premium marketing block is now implemented.
+This README describes the current roadmap state after v153 Premium Storefront Stabilization. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v153 premium storefront block is now implemented and v154 marketplace foundation prep is documented.
 
 ## Current Roadmap State
 
@@ -60,7 +60,9 @@ Roadmap status table:
 | v149 | Command Palette / Fast Search | Done |
 | v150 | Premium UX Completion | Done |
 | v151 | Premium Brand Foundation | Done |
-| v152 | Premium Marketing Home Page | Current |
+| v152 | Premium Marketing Home Page | Done |
+| v153 | Premium Storefront Stabilization | Current |
+| v154-prep | Marketplace Catalog Premium Foundation | Done |
 
 Completed implementation line:
 
@@ -134,6 +136,8 @@ Completed implementation line:
 - v150 — Premium UX Completion
 - v151 — Premium Brand Foundation
 - v152 — Premium Marketing Home Page
+- v153 — Premium Storefront Stabilization
+- v154-prep — Marketplace Catalog Premium Foundation
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -536,6 +540,29 @@ Covered behavior:
 - editorial pain section, platform map, role workspaces, proof band, animated timeline and cinematic CTA;
 - scroll reveal sections, platform pulse, count-up metrics and reduced-motion support;
 - responsive marketing layout for desktop, tablet and mobile.
+
+## Premium Storefront Stabilization
+
+v153 stabilizes the premium homepage contract and upgrades `/catalog` into a premium marketplace surface.
+
+Updated storefront layer:
+
+- `frontend/src/modules/public-storefront/components/marketplace-catalog-page.tsx`
+- `frontend/src/modules/public-storefront/components/premium-marketplace-card.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/src/design-system/animated.tsx`
+- `frontend/src/design-system/use-count-up.ts`
+- `docs/design-system/v153_premium_storefront_stabilization.md`
+- `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md`
+
+Covered behavior:
+
+- homepage className/CSS contract stabilization;
+- animated primitives exported from the design system;
+- explicit reduced-motion fallback;
+- premium catalog hero, featured product, filter bar and product grid;
+- premium loading, empty and error states;
+- trust/access explanation for marketplace purchases.
 
 ## Demo Data / Seed Scenarios
 

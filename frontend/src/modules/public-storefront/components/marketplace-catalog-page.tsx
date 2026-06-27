@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { DSBadge, DSEmptyState, DSPageHeader, DSSection, DSSelect, DSSkeleton, DSTextField, DSTransitionPanel } from '@/design-system';
+
+import { AnimatedSection } from '@/design-system';
 import {
   buildContentCheckoutHref,
   getStorefrontDescription,
@@ -13,21 +14,73 @@ import {
   type StorefrontItem,
 } from '@/modules/public-storefront/api';
 
-const TYPE_LABELS: Record<StorefrontEntityType, string> = {
-  video: 'Видео',
-  program: 'Программа',
-  bundle: 'Bundle',
+import { PremiumMarketplaceCard } from './premium-marketplace-card';
+
+type CatalogFilter = {
+  id: string;
+  label: string;
+  match: (item: StorefrontItem) => boolean;
 };
 
-function metric(value: number | string | undefined): string {
-  if (value === undefined || value === null || value === '') return '—';
-  return String(value);
-}
+const filters: CatalogFilter[] = [
+  { id: 'all', label: 'Все', match: () => true },
+  { id: 'program', label: 'Программы', match: (item) => item.entity_type === 'program' },
+  { id: 'video', label: 'Видео', match: (item) => item.entity_type === 'video' },
+  { id: 'subscription', label: 'Подписки', match: (item) => `${item.title} ${item.description}`.toLowerCase().includes('подпис') },
+  { id: 'bundle', label: 'Наборы', match: (item) => item.entity_type === 'bundle' },
+  { id: 'beginner', label: 'Для новичков', match: (item) => `${item.difficulty} ${item.description}`.toLowerCase().includes('нов') },
+  { id: 'strength', label: 'Сила', match: (item) => `${item.title} ${item.category} ${item.description}`.toLowerCase().includes('сил') },
+  { id: 'mobility', label: 'Мобильность', match: (item) => `${item.title} ${item.category} ${item.description}`.toLowerCase().includes('моб') },
+  { id: 'weight', label: 'Похудение', match: (item) => `${item.title} ${item.category} ${item.description}`.toLowerCase().includes('похуд') },
+  { id: 'premium', label: 'Премиум', match: (item) => Boolean(item.is_featured) },
+];
 
-export function MarketplaceCatalogPage() {
+const fallbackItems: StorefrontItem[] = [
+  {
+    id: 'demo-strength',
+    slug: 'demo-strength',
+    title: 'Сила и мобильность',
+    short_description: 'Структурная программа для уверенного старта силовых тренировок и восстановления движения.',
+    category: 'Сила',
+    difficulty: 'Для новичков',
+    price_amount: '6900',
+    currency: 'RUB',
+    duration_minutes: 420,
+    trainer_name: 'TrainerHub Studio',
+    is_featured: true,
+    entity_type: 'program',
+  },
+  {
+    id: 'demo-video',
+    slug: 'demo-video',
+    title: 'Техника базовых упражнений',
+    short_description: 'Видеоуроки с короткими объяснениями, которые помогают тренироваться без лишней путаницы.',
+    category: 'Видео',
+    difficulty: 'любой уровень',
+    price_amount: '1900',
+    currency: 'RUB',
+    duration_minutes: 95,
+    trainer_name: 'TrainerHub Academy',
+    entity_type: 'video',
+  },
+  {
+    id: 'demo-bundle',
+    slug: 'demo-bundle',
+    title: 'Премиум-набор для запуска формы',
+    short_description: 'Программа, видео и материалы в одном доступе для системного старта.',
+    category: 'Премиум',
+    difficulty: 'средний уровень',
+    price_amount: '9900',
+    currency: 'RUB',
+    duration_minutes: 560,
+    trainer_name: 'TrainerHub Pro',
+    is_featured: true,
+    entity_type: 'bundle',
+  },
+];
+
+function useCatalogItems() {
   const [items, setItems] = useState<StorefrontItem[]>([]);
-  const [query, setQuery] = useState('');
-  const [type, setType] = useState<'all' | StorefrontEntityType>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -39,9 +92,12 @@ export function MarketplaceCatalogPage() {
         setLoading(true);
         setError('');
         const catalog = await publicStorefrontApi.listCatalog();
-        if (mounted) setItems(catalog);
+        if (mounted) setItems(catalog.length > 0 ? catalog : fallbackItems);
       } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : 'Не удалось загрузить каталог');
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Не удалось загрузить каталог. Попробуйте обновить страницу.');
+          setItems(fallbackItems);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -53,125 +109,206 @@ export function MarketplaceCatalogPage() {
     };
   }, []);
 
-  const filtered = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return items.filter((item) => {
-      const matchesType = type === 'all' || item.entity_type === type;
-      const haystack = [
-        item.title,
-        item.description,
-        item.category,
-        item.difficulty,
-        item.trainer_name,
-        item.entity_type,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return matchesType && (normalized ? haystack.includes(normalized) : true);
-    });
-  }, [items, query, type]);
+  return { items, loading, error };
+}
 
-  const featured = filtered.filter((item) => item.is_featured).slice(0, 3);
-
+function PremiumCatalogFilters({
+  activeFilter,
+  onFilterChange,
+}: {
+  activeFilter: string;
+  onFilterChange: (filterId: string) => void;
+}) {
   return (
-    <main className="stack page-shell">
-      <DSPageHeader
-        eyebrow="TrainerHub marketplace"
-        title="Каталог видео, программ и bundle-предложений"
-        description="Публичная витрина показывает коммерческие карточки: тип контента, цену, тренера, уровень, duration и явный CTA на покупку или подписку."
-        actions={
-          <>
-            <Link className="btn btn-primary" href="/trainers">Смотреть тренеров</Link>
-            <Link className="btn" href="/subscriptions">Подписки</Link>
-          </>
-        }
-      />
+    <div className="premium-filter-bar" aria-label="Фильтры каталога">
+      {filters.map((filter) => (
+        <button
+          className={`premium-filter-chip ${activeFilter === filter.id ? 'premium-filter-chip-active' : ''}`}
+          key={filter.id}
+          onClick={() => onFilterChange(filter.id)}
+          type="button"
+        >
+          {filter.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-      <DSSection title="Фильтры каталога" description="Поиск по названию, тренеру, категории, уровню и типу контента." actions={<DSBadge>{filtered.length} items</DSBadge>}>
-        <div className="card compact stack">
-          <span className="badge secondary">Discovery</span>
-        <div className="grid-2">
-          <DSTextField
-            label="Поиск"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Йога, силовая, марафон, имя тренера..."
-          />
-          <DSSelect label="Тип контента" value={type} onChange={(event) => setType(event.target.value as 'all' | StorefrontEntityType)}>
-              <option value="all">Все</option>
-              <option value="video">Видео</option>
-              <option value="program">Программы</option>
-              <option value="bundle">Bundles</option>
-          </DSSelect>
+function PremiumFeaturedProduct({ item }: { item: StorefrontItem }) {
+  return (
+    <section className="premium-featured-product" aria-labelledby="featured-product-title">
+      <div className="premium-featured-product-grid">
+        <div>
+          <span className="premium-eyebrow">Рекомендуем начать с этого</span>
+          <h2 id="featured-product-title">{item.title}</h2>
+          <p>{getStorefrontDescription(item)}</p>
+          <div className="premium-marketplace-card-chips">
+            <span>{item.entity_type === 'program' ? 'программа' : item.entity_type === 'video' ? 'видео' : 'набор'}</span>
+            <span>{item.difficulty || 'любой уровень'}</span>
+            <span>{item.duration_minutes ? `${item.duration_minutes} мин` : 'материалы внутри'}</span>
           </div>
         </div>
-      </DSSection>
-
-      {featured.length > 0 ? (
-        <DSSection title="Выделенные предложения" description="Featured marketplace items.">
-          <DSTransitionPanel active>
-          <div className="grid-3">
-            {featured.map((item) => (
-              <article className="card stack" key={`${item.entity_type}:${item.id}:featured`}>
-                <DSBadge>{TYPE_LABELS[item.entity_type]}</DSBadge>
-                <h3>{item.title}</h3>
-                <p>{getStorefrontDescription(item)}</p>
-                <strong>{getStorefrontPrice(item)}</strong>
-                <Link className="btn btn-primary" href={getStorefrontHref(item)}>
-                  Открыть
-                </Link>
-              </article>
-            ))}
+        <aside>
+          <span>{item.trainer_name || 'TrainerHub'}</span>
+          <strong>{getStorefrontPrice(item)}</strong>
+          <div className="premium-marketplace-card-actions">
+            <Link href={getStorefrontHref(item)} className="premium-secondary-button">
+              Подробнее
+            </Link>
+            <Link href={buildContentCheckoutHref(item)} className="premium-primary-button">
+              Купить
+            </Link>
           </div>
-          </DSTransitionPanel>
-        </DSSection>
-      ) : null}
+        </aside>
+      </div>
+    </section>
+  );
+}
 
-      <DSSection title="Все предложения" description="Каталог видео, программ и bundles.">
-        <span className="badge secondary">Catalog</span>
+function PremiumCatalogState({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="premium-state-card">
+      <strong>{title}</strong>
+      {description ? <p>{description}</p> : null}
+    </div>
+  );
+}
 
-        {error ? <div className="card danger">{error}</div> : null}
+function PremiumSkeletonGrid() {
+  return (
+    <div className="premium-product-grid">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div className="premium-skeleton-card" key={index}>
+          <span />
+          <strong />
+          <i />
+          <i />
+        </div>
+      ))}
+    </div>
+  );
+}
 
-        {loading ? (
-          <div className="grid-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <article className="card" key={index}>
-                <DSSkeleton lines={4} />
-              </article>
-            ))}
+export function MarketplaceCatalogPage() {
+  const { items, loading, error } = useCatalogItems();
+  const [activeFilter, setActiveFilter] = useState('all');
+
+  const filtered = useMemo(() => {
+    const filter = filters.find((item) => item.id === activeFilter) ?? filters[0];
+    return items.filter(filter.match);
+  }, [activeFilter, items]);
+
+  const featured = items.find((item) => item.is_featured) ?? items[0] ?? fallbackItems[0];
+
+  return (
+    <main className="premium-landing premium-catalog-page">
+      <section className="premium-catalog-hero" aria-labelledby="catalog-title">
+        <div className="premium-container premium-catalog-hero-grid">
+          <div>
+            <span className="premium-eyebrow">MARKETPLACE</span>
+            <h1 className="premium-hero-title" id="catalog-title">
+              Каталог программ и тренеров
+            </h1>
+            <p className="premium-hero-subtitle">
+              Выбирайте программы, видеоуроки и подписки от тренеров. Покупайте доступ, продолжайте обучение в личном
+              кабинете и отслеживайте прогресс.
+            </p>
           </div>
-        ) : filtered.length === 0 ? (
-          <DSEmptyState title="Ничего не найдено" description="Измени поиск или фильтр типа контента." />
-        ) : (
-          <DSTransitionPanel active className="grid-3">
-            {filtered.map((item) => (
-              <article className="card stack" key={`${item.entity_type}:${item.id}`}>
-                <div className="section-heading">
-                  <DSBadge>{TYPE_LABELS[item.entity_type]}</DSBadge>
-                  <strong>{getStorefrontPrice(item)}</strong>
-                </div>
-                <h3>{item.title}</h3>
-                <p>{getStorefrontDescription(item)}</p>
-                <div className="grid-2 compact">
-                  <span className="muted">Тренер: {item.trainer_name || 'TrainerHub'}</span>
-                  <span className="muted">Длительность: {metric(item.duration_minutes)} мин</span>
-                  <span className="muted">Уровень: {item.difficulty || 'любой'}</span>
-                  <span className="muted">Категория: {item.category || 'общая'}</span>
-                </div>
-                <div className="actions">
-                  <Link className="btn btn-primary" href={getStorefrontHref(item)}>
-                    Подробнее
-                  </Link>
-                  <Link className="btn" href={buildContentCheckoutHref(item)}>
-                    Купить
-                  </Link>
-                </div>
-              </article>
+          <aside className="premium-catalog-preview" aria-label="Как работает доступ после покупки">
+            {['Доступ после оплаты', 'Прогресс уроков', 'Материалы и задания', 'Связь с тренером'].map((item) => (
+              <span key={item}>{item}</span>
             ))}
-          </DSTransitionPanel>
-        )}
-      </DSSection>
+          </aside>
+        </div>
+      </section>
+
+      <div className="premium-container">
+        <AnimatedSection className="premium-section">
+          <PremiumFeaturedProduct item={featured} />
+        </AnimatedSection>
+
+        <AnimatedSection className="premium-section premium-catalog-products" aria-labelledby="catalog-products-title">
+          <div className="premium-section-header">
+            <span className="premium-eyebrow">PROGRAMS / VIDEO / ACCESS</span>
+            <h2 className="premium-section-title" id="catalog-products-title">
+              Выберите формат под цель обучения
+            </h2>
+          </div>
+
+          <PremiumCatalogFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+
+          {error ? (
+            <PremiumCatalogState title="Не удалось загрузить каталог. Попробуйте обновить страницу." description={error} />
+          ) : null}
+
+          {loading ? (
+            <PremiumSkeletonGrid />
+          ) : filtered.length === 0 ? (
+            <PremiumCatalogState title="Пока нет программ по выбранному фильтру" />
+          ) : (
+            <div className="premium-product-grid">
+              {filtered.map((item) => (
+                <PremiumMarketplaceCard item={item} key={`${item.entity_type}:${item.id}`} />
+              ))}
+            </div>
+          )}
+        </AnimatedSection>
+
+        <AnimatedSection className="premium-section">
+          <div className="premium-trainer-spotlight">
+            <span className="premium-eyebrow">TRAINER SPOTLIGHT</span>
+            <h2>Тренер остаётся в центре продукта</h2>
+            <p>
+              Каталог показывает не только программу, но и контекст: кто ведёт обучение, что входит в доступ и как ученик
+              продолжит работу после покупки.
+            </p>
+            <Link href="/trainers" className="premium-secondary-button">
+              Смотреть тренеров
+            </Link>
+          </div>
+        </AnimatedSection>
+
+        <AnimatedSection className="premium-section" aria-labelledby="access-title">
+          <div className="premium-trust-panel">
+            <div className="premium-section-header">
+              <span className="premium-eyebrow">ACCESS FLOW</span>
+              <h2 className="premium-section-title" id="access-title">
+                Как работает доступ
+              </h2>
+            </div>
+            <div className="premium-row-list">
+              {[
+                'Вы покупаете программу или подписку',
+                'TrainerHub активирует доступ в личном кабинете',
+                'Материалы, уроки и задания остаются в одном месте',
+                'Тренер видит прогресс и может сопровождать обучение',
+              ].map((step, index) => (
+                <div className="premium-row-list__item" key={step}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <p>{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </AnimatedSection>
+
+        <AnimatedSection className="premium-section premium-final-cta-section">
+          <div className="premium-final-cta">
+            <span className="premium-eyebrow">TRAINERHUB MARKETPLACE</span>
+            <h2>Готовы выбрать программу и продолжить обучение в одном кабинете?</h2>
+            <p>Откройте каталог, сравните формат, уровень и тренера, затем получите доступ без ручной переписки.</p>
+            <div className="premium-actions">
+              <Link href="/catalog" className="premium-primary-button">
+                Смотреть каталог
+              </Link>
+              <Link href="/register" className="premium-secondary-button">
+                Создать аккаунт
+              </Link>
+            </div>
+          </div>
+        </AnimatedSection>
+      </div>
     </main>
   );
 }

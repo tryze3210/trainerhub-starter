@@ -26,6 +26,8 @@ const requiredFiles = [
   '../docs/design-system/v150_premium_ux_completion.md',
   '../docs/design-system/v151_premium_brand_foundation.md',
   '../docs/design-system/v152_premium_marketing_home_page.md',
+  '../docs/design-system/v153_premium_storefront_stabilization.md',
+  '../docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md',
   'src/modules/public-storefront/components/marketing-home-page.tsx',
   'src/modules/public-storefront/components/hero-business-console.tsx',
   'src/modules/public-storefront/components/platform-map-section.tsx',
@@ -33,6 +35,7 @@ const requiredFiles = [
   'src/modules/public-storefront/components/commercial-proof-band.tsx',
   'src/modules/public-storefront/components/product-experience-timeline.tsx',
   'src/modules/public-storefront/components/final-premium-cta.tsx',
+  'src/modules/public-storefront/components/premium-marketplace-card.tsx',
 ];
 
 for (const file of requiredFiles) {
@@ -143,6 +146,28 @@ for (const fragment of [
   '.animated-section',
   '.animated-section-visible',
   '.animated-card',
+  '.animated-card-visible',
+  '.animated-metric',
+  '.animated-metric-visible',
+  '.premium-catalog-page',
+  '.premium-catalog-hero',
+  '.premium-catalog-hero-grid',
+  '.premium-catalog-preview',
+  '.premium-featured-product',
+  '.premium-featured-product-grid',
+  '.premium-product-grid',
+  '.premium-marketplace-card',
+  '.premium-marketplace-card-cover',
+  '.premium-marketplace-card-body',
+  '.premium-marketplace-card-meta',
+  '.premium-marketplace-card-price',
+  '.premium-marketplace-card-actions',
+  '.premium-filter-bar',
+  '.premium-filter-chip',
+  '.premium-filter-chip-active',
+  '.premium-trust-panel',
+  '.premium-state-card',
+  '.premium-skeleton-card',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -294,4 +319,4 @@ for (const fragment of [
   }
 }
 
-console.log('v131-v152 design system contract ok');
+console.log('v131-v153 design system contract ok');
