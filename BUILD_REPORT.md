@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v150
+# BUILD REPORT — TrainerHub v152
 
 ## Summary
 
-Current version: `v150`
+Current version: `v152`
 
 The repository has been updated through:
 
@@ -55,8 +55,10 @@ The repository has been updated through:
 - realtime notifications UI: v148
 - command palette / fast search: v149
 - premium UX completion: v150
+- premium brand foundation: v151
+- premium marketing homepage: v152
 
-v150 closes the v146-v150 premium UX block with shared collaboration and activity primitives.
+v152 adds the premium brand foundation, replaces the starter homepage with a strict dark commercial TrainerHub homepage and adds premium animated product moments.
 
 ## Verification Performed In This Workspace
 
@@ -74,11 +76,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v150.
+- README current version and roadmap/status table updated to v152.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v150 premium UX completion status.
+- BUILD_REPORT updated with v152 premium marketing homepage and animated insert status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v150.
+- Frontend design-system contract extended for v131-v152.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -101,7 +103,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v150 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v152 pass, the local workspace verified frontend typecheck, production build, design-system contract tests and patch hygiene. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 
@@ -182,6 +184,8 @@ Current completed roadmap block:
 - v148 — Realtime Notifications UI
 - v149 — Command Palette / Fast Search
 - v150 — Premium UX Completion
+- v151 — Premium Brand Foundation
+- v152 — Premium Marketing Home Page
 
 Previously completed production-launch block:
 
@@ -210,4 +214,4 @@ Recently closed launch block:
 
 Roadmap closure:
 
-The production launch pack remains the active backend release artifact; v150 closes the frontend premium UX block.
+The production launch pack remains the active backend release artifact; v152 is the current premium public marketing artifact.

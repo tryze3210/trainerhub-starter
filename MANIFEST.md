@@ -1,13 +1,14 @@
-# MANIFEST — TrainerHub v150
+# MANIFEST — TrainerHub v152
 
-This manifest describes the current repository state after v150 Premium UX Completion.
+This manifest describes the current repository state after v152 Premium Marketing Home Page.
 
 ## Current Version
 
-- Current roadmap version: `v150`
+- Current roadmap version: `v152`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
+- Current marketing block: `v151-v152` premium brand foundation and marketing homepage
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -227,15 +228,15 @@ Production launch pack modules and contracts:
 
 UI design system modules and contracts:
 
-- `frontend/src/design-system/tokens.ts` — shared frontend design tokens.
+- `frontend/src/design-system/tokens.ts` — shared frontend design tokens, including premium brand foundation aliases.
 - `frontend/src/design-system/components.tsx` — shared UI primitives for buttons, cards, forms, tables, modal shell, command palette and statistics cards.
 - `frontend/src/design-system/feedback.tsx` — shared skeleton, empty state, toast, live indicator, notification feed, presence stack, activity timeline, transition and status feedback primitives.
 - `frontend/src/design-system/layouts.tsx` — shared layout primitives for admin, trainer, student, public and mobile layouts.
 - `frontend/src/design-system/library.tsx` — shared DataTable, chart, premium chart, draggable Kanban, calendar, upload, rich text, video and statistics catalog.
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
-- `frontend/src/app/globals.css` — semantic CSS variables, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v150 design-system contract test.
+- `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v152 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -246,6 +247,8 @@ UI design system modules and contracts:
 - `docs/design-system/v148_realtime_notifications_ui.md` — v148 realtime notifications UI notes.
 - `docs/design-system/v149_command_palette.md` — v149 command palette notes.
 - `docs/design-system/v150_premium_ux_completion.md` — v150 premium UX completion notes.
+- `docs/design-system/v151_premium_brand_foundation.md` — v151 premium brand foundation notes.
+- `docs/design-system/v152_premium_marketing_home_page.md` — v152 premium marketing homepage notes.
 
 Admin dashboard redesign modules:
 
@@ -324,6 +327,27 @@ Premium UX completion modules:
 - `frontend/tests/contracts/design-system-contract.test.js` — v150 premium UX completion contract checks.
 - `docs/design-system/v150_premium_ux_completion.md` — v150 premium UX completion notes.
 
+Premium brand foundation modules:
+
+- `frontend/src/design-system/tokens.ts` — v151 premium token aliases for surfaces, shadows, radii and layout.
+- `frontend/src/app/globals.css` — v151 premium page, section, card, grid, badge, metric and CTA utilities.
+- `frontend/src/app/layout.tsx` — v151 commercial public metadata.
+- `docs/design-system/v151_premium_brand_foundation.md` — v151 premium brand foundation notes.
+
+Premium marketing homepage modules:
+
+- `frontend/src/app/page.tsx` — v152 public homepage entrypoint.
+- `frontend/src/modules/public-storefront/components/marketing-home-page.tsx` — v152 homepage composition.
+- `frontend/src/modules/public-storefront/components/hero-business-console.tsx` — v152 animated premium dashboard preview.
+- `frontend/src/modules/public-storefront/components/platform-map-section.tsx` — v152 platform module map with pulse state.
+- `frontend/src/modules/public-storefront/components/role-workspace-section.tsx` — v152 split role workspace panels.
+- `frontend/src/modules/public-storefront/components/commercial-proof-band.tsx` — v152 commercial proof metrics.
+- `frontend/src/modules/public-storefront/components/product-experience-timeline.tsx` — v152 animated product workflow timeline.
+- `frontend/src/modules/public-storefront/components/final-premium-cta.tsx` — v152 cinematic final CTA.
+- `frontend/src/design-system/animated.tsx` — v152 scroll reveal primitives.
+- `frontend/src/design-system/use-count-up.ts` — v152 animated count-up helper.
+- `docs/design-system/v152_premium_marketing_home_page.md` — v152 premium homepage notes.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -366,7 +390,9 @@ Premium UX completion modules:
 | v147 | Drag and drop Kanban | Done |
 | v148 | Realtime notifications UI | Done |
 | v149 | Command palette / fast search | Done |
-| v150 | Premium UX completion | Current |
+| v150 | Premium UX completion | Done |
+| v151 | Premium brand foundation | Done |
+| v152 | Premium marketing homepage | Current |
 
 ## Current Frontend Modules
 

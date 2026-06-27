@@ -11,6 +11,8 @@ const requiredFiles = [
   'src/design-system/layouts.tsx',
   'src/design-system/library.tsx',
   'src/design-system/theme.tsx',
+  'src/design-system/animated.tsx',
+  'src/design-system/use-count-up.ts',
   'src/design-system/index.ts',
   '../docs/design-system/v131_ui_design_system.md',
   '../docs/design-system/v132_layout_system.md',
@@ -22,6 +24,15 @@ const requiredFiles = [
   '../docs/design-system/v148_realtime_notifications_ui.md',
   '../docs/design-system/v149_command_palette.md',
   '../docs/design-system/v150_premium_ux_completion.md',
+  '../docs/design-system/v151_premium_brand_foundation.md',
+  '../docs/design-system/v152_premium_marketing_home_page.md',
+  'src/modules/public-storefront/components/marketing-home-page.tsx',
+  'src/modules/public-storefront/components/hero-business-console.tsx',
+  'src/modules/public-storefront/components/platform-map-section.tsx',
+  'src/modules/public-storefront/components/role-workspace-section.tsx',
+  'src/modules/public-storefront/components/commercial-proof-band.tsx',
+  'src/modules/public-storefront/components/product-experience-timeline.tsx',
+  'src/modules/public-storefront/components/final-premium-cta.tsx',
 ];
 
 for (const file of requiredFiles) {
@@ -38,10 +49,22 @@ const feedback = fs.readFileSync(path.join(root, 'src/design-system/feedback.tsx
 const layouts = fs.readFileSync(path.join(root, 'src/design-system/layouts.tsx'), 'utf8');
 const library = fs.readFileSync(path.join(root, 'src/design-system/library.tsx'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'src/design-system/theme.tsx'), 'utf8');
+const animated = fs.readFileSync(path.join(root, 'src/design-system/animated.tsx'), 'utf8');
+const countUp = fs.readFileSync(path.join(root, 'src/design-system/use-count-up.ts'), 'utf8');
 
 for (const fragment of [
   '--color-primary',
   '--color-accent',
+  '--color-foreground',
+  '--color-muted',
+  '--color-muted-foreground',
+  '--color-surface-elevated',
+  '--color-surface-glass',
+  '--radius-xl',
+  '--shadow-soft',
+  '--shadow-medium',
+  '--shadow-glow',
+  '--container-max-width',
   '--font-size-h1',
   '--space-md',
   '--radius-md',
@@ -83,6 +106,43 @@ for (const fragment of [
   '.ds-empty-state',
   '.ds-transition-panel',
   '.ds-status-dot',
+  '.premium-landing',
+  '.premium-container',
+  '.premium-hero-grid',
+  '.premium-hero-title',
+  '.premium-hero-subtitle',
+  '.premium-actions',
+  '.premium-primary-button',
+  '.premium-secondary-button',
+  '.premium-console',
+  '.premium-console-card',
+  '.premium-console-glow',
+  '.premium-console-row',
+  '.premium-console-row-enter',
+  '.premium-section',
+  '.premium-section-header',
+  '.premium-editorial-grid',
+  '.premium-row-list',
+  '.premium-platform-map',
+  '.premium-platform-module',
+  '.premium-platform-module-active',
+  '.premium-role-grid',
+  '.premium-role-card',
+  '.premium-timeline-line',
+  '.premium-timeline-line-fill',
+  '.premium-timeline-step',
+  '.premium-timeline-step-active',
+  '.premium-proof-band',
+  '.premium-final-cta',
+  '.premium-eyebrow',
+  '.premium-metric-card',
+  '.premium-count',
+  '.premium-progress',
+  '.premium-progress-fill',
+  '.premium-hero',
+  '.animated-section',
+  '.animated-section-visible',
+  '.animated-card',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -95,7 +155,17 @@ for (const fragment of [
   }
 }
 
-for (const fragment of ['designTokens', 'color', 'spacing', 'typography', 'radius']) {
+for (const fragment of [
+  'designTokens',
+  'color',
+  'spacing',
+  'typography',
+  'radius',
+  'surfaceElevated',
+  'surfaceGlass',
+  'shadow',
+  'containerMaxWidth',
+]) {
   if (!tokens.includes(fragment)) {
     throw new Error(`tokens.ts missing fragment: ${fragment}`);
   }
@@ -193,4 +263,35 @@ for (const fragment of [
   }
 }
 
-console.log('v131-v150 design system contract ok');
+for (const fragment of ['AnimatedSection', 'AnimatedCard', 'AnimatedMetric', 'IntersectionObserver', 'prefers-reduced-motion']) {
+  if (!animated.includes(fragment)) {
+    throw new Error(`animated.tsx missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['useCountUp', 'requestAnimationFrame', 'durationMs', 'formatter', 'prefers-reduced-motion']) {
+  if (!countUp.includes(fragment)) {
+    throw new Error(`use-count-up.ts missing fragment: ${fragment}`);
+  }
+}
+
+const marketingHome = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/marketing-home-page.tsx'), 'utf8');
+
+for (const fragment of [
+  'MarketingHomePage',
+  'HeroBusinessConsole',
+  'PlatformMapSection',
+  'RoleWorkspaceSection',
+  'CommercialProofBand',
+  'ProductExperienceTimeline',
+  'FinalPremiumCta',
+  'Превратите тренерскую экспертизу',
+  'Начать как тренер',
+  'Посмотреть каталог',
+]) {
+  if (!marketingHome.includes(fragment)) {
+    throw new Error(`marketing-home-page.tsx missing fragment: ${fragment}`);
+  }
+}
+
+console.log('v131-v152 design system contract ok');

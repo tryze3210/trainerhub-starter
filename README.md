@@ -1,8 +1,8 @@
-# TrainerHub — current version v150
+# TrainerHub — current version v152
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v150 Premium UX Completion. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed.
+This README describes the current roadmap state after v152 Premium Marketing Home Page. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v152 premium marketing block is now implemented.
 
 ## Current Roadmap State
 
@@ -58,7 +58,9 @@ Roadmap status table:
 | v147 | Drag And Drop Kanban | Done |
 | v148 | Realtime Notifications UI | Done |
 | v149 | Command Palette / Fast Search | Done |
-| v150 | Premium UX Completion | Current |
+| v150 | Premium UX Completion | Done |
+| v151 | Premium Brand Foundation | Done |
+| v152 | Premium Marketing Home Page | Current |
 
 Completed implementation line:
 
@@ -130,6 +132,8 @@ Completed implementation line:
 - v148 — Realtime Notifications UI
 - v149 — Command Palette / Fast Search
 - v150 — Premium UX Completion
+- v151 — Premium Brand Foundation
+- v152 — Premium Marketing Home Page
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -488,6 +492,50 @@ Covered behavior:
 - activity items support tone-aware status indicators;
 - mobile layouts keep collaboration widgets readable;
 - contract checks cover v150 collaboration exports and CSS classes.
+
+## Premium Brand Foundation
+
+v151 upgrades the shared visual foundation for a premium SaaS and trainer marketplace experience.
+
+Updated foundation:
+
+- `frontend/src/app/globals.css`
+- `frontend/src/design-system/tokens.ts`
+- `frontend/src/app/layout.tsx`
+- `docs/design-system/v151_premium_brand_foundation.md`
+
+Covered behavior:
+
+- premium token aliases for surfaces, muted colors, borders, radii, shadows and container width;
+- reusable premium page, section, card, grid, metric, badge and CTA classes;
+- premium glass panel and hero-ready utilities;
+- commercial metadata for the public app shell.
+
+## Premium Marketing Home Page
+
+v152 replaces the starter homepage with a commercial TrainerHub marketing homepage.
+
+Updated homepage layer:
+
+- `frontend/src/app/page.tsx`
+- `frontend/src/modules/public-storefront/components/marketing-home-page.tsx`
+- `frontend/src/modules/public-storefront/components/hero-business-console.tsx`
+- `frontend/src/modules/public-storefront/components/platform-map-section.tsx`
+- `frontend/src/modules/public-storefront/components/role-workspace-section.tsx`
+- `frontend/src/modules/public-storefront/components/commercial-proof-band.tsx`
+- `frontend/src/modules/public-storefront/components/product-experience-timeline.tsx`
+- `frontend/src/modules/public-storefront/components/final-premium-cta.tsx`
+- `frontend/src/design-system/animated.tsx`
+- `frontend/src/design-system/use-count-up.ts`
+- `docs/design-system/v152_premium_marketing_home_page.md`
+
+Covered behavior:
+
+- strict dark premium hero for trainers and online fitness products;
+- animated business console for revenue, students, sessions, progress and purchases;
+- editorial pain section, platform map, role workspaces, proof band, animated timeline and cinematic CTA;
+- scroll reveal sections, platform pulse, count-up metrics and reduced-motion support;
+- responsive marketing layout for desktop, tablet and mobile.
 
 ## Demo Data / Seed Scenarios
 

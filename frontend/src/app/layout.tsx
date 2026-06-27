@@ -5,8 +5,8 @@ import { SessionNav } from '@/components/session-nav';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TrainerHub',
-  description: 'Платформа для онлайн-тренировок, программ и подписок',
+  title: 'TrainerHub — платформа для тренеров, программ и онлайн-продуктов',
+  description: 'Премиальная платформа для тренеров: программы, видеоуроки, подписки, CRM, расписание, оплаты и аналитика.',
 };
 
 export default function RootLayout({

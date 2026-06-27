@@ -1,7 +1,12 @@
 export const designTokens = {
   color: {
     background: 'var(--color-bg)',
+    foreground: 'var(--color-foreground)',
+    muted: 'var(--color-muted)',
+    mutedForeground: 'var(--color-muted-foreground)',
     surface: 'var(--color-surface)',
+    surfaceElevated: 'var(--color-surface-elevated)',
+    surfaceGlass: 'var(--color-surface-glass)',
     surfaceMuted: 'var(--color-surface-muted)',
     surfaceStrong: 'var(--color-surface-strong)',
     dark: 'var(--color-dark)',
@@ -28,6 +33,7 @@ export const designTokens = {
     sm: 'var(--radius-sm)',
     md: 'var(--radius-md)',
     lg: 'var(--radius-lg)',
+    xl: 'var(--radius-xl)',
     pill: 'var(--radius-pill)',
   },
   spacing: {
@@ -42,6 +48,12 @@ export const designTokens = {
     sm: 'var(--shadow-sm)',
     md: 'var(--shadow-md)',
     lg: 'var(--shadow-lg)',
+    soft: 'var(--shadow-soft)',
+    medium: 'var(--shadow-medium)',
+    glow: 'var(--shadow-glow)',
+  },
+  layout: {
+    containerMaxWidth: 'var(--container-max-width)',
   },
   typography: {
     fontFamily: 'var(--font-sans)',
