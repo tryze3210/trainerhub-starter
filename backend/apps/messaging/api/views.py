@@ -3,6 +3,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from apps.access_control.permissions import IsAdminOrSupport
 from apps.messaging.models import Conversation, Message, ConversationParticipant
 from apps.messaging.api.serializers import (
     ConversationSerializer,
@@ -95,7 +96,7 @@ class MarkReadView(APIView):
 
 
 class CreateSystemMessageView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSupport]
 
     def post(self, request, conversation_id):
         conversation = get_object_or_404(Conversation, pk=conversation_id)

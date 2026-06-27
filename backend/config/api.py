@@ -23,4 +23,8 @@ urlpatterns = [
     path("assignments/", include("apps.assignments.api.urls")),
     path("messaging/", include("apps.messaging.api.urls")),
     path("products/", include("apps.products.api.trainer_urls")),
+    path("disputes/", include("apps.disputes.api.urls")),
+    path("finance-documents/", include("apps.finance_documents.api.urls")),
+    path("legal/", include("apps.legal_compliance.api.urls")),
+    path("observability/", include("apps.observability.api.urls")),
 ]

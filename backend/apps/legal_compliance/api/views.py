@@ -10,6 +10,9 @@ from apps.legal_compliance.models import (
     TrainerKYCProfile,
 )
 from apps.legal_compliance.api.serializers import (
+    ConsentLogSerializer,
+    LegalAcceptanceSnapshotSerializer,
+    LegalComplianceStatusSerializer,
     LegalDocumentTemplateSerializer,
     PayoutEligibilitySnapshotSerializer,
     TrainerContractArtifactSerializer,
@@ -42,14 +45,39 @@ class AcceptLegalDocumentView(APIView):
     def post(self, request, document_id):
         document = LegalDocumentTemplate.objects.get(id=document_id, is_active=True)
         actor_type = 'trainer' if request.query_params.get('actor') == 'trainer' else 'user'
-        LegalAcceptanceService.accept_document(
+        acceptance = LegalAcceptanceService.accept_document(
             user=request.user,
             actor_type=actor_type,
             document=document,
             ip_address=request.META.get('REMOTE_ADDR'),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
-        return Response({'status': 'accepted'}, status=status.HTTP_201_CREATED)
+        compliance = LegalAcceptanceService.compliance_status(user=request.user, actor_type=actor_type)
+        return Response(
+            {
+                'status': 'accepted',
+                'acceptance': LegalAcceptanceSnapshotSerializer(acceptance).data,
+                'compliance': LegalComplianceStatusSerializer(compliance).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class MeLegalComplianceStatusView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        actor_type = 'trainer' if request.query_params.get('actor') == 'trainer' else 'user'
+        payload = LegalAcceptanceService.compliance_status(user=request.user, actor_type=actor_type)
+        return Response(LegalComplianceStatusSerializer(payload).data)
+
+
+class MeConsentLogsView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ConsentLogSerializer
+
+    def get_queryset(self):
+        return self.request.user.consent_logs.order_by('-recorded_at')
 
 
 class MeContractsView(generics.ListAPIView):

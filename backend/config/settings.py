@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     'apps.tenancy',
     'apps.access_control',
     'apps.events',
+    'apps.finance_documents',
+    'apps.legal_compliance',
     'apps.workflows',
     'apps.projections',
     'apps.observability',

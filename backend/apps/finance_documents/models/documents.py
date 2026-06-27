@@ -21,10 +21,16 @@ class TrainerFinanceProfile(models.Model):
 
 class FinanceDocument(models.Model):
     DOC_INVOICE = "invoice"
+    DOC_RECEIPT = "receipt"
+    DOC_CREDIT_NOTE = "credit_note"
+    DOC_REFUND_DOCUMENT = "refund_document"
     DOC_PAYOUT_ACT = "payout_act"
     DOC_STATEMENT = "statement"
     DOC_CHOICES = [
         (DOC_INVOICE, "Invoice"),
+        (DOC_RECEIPT, "Receipt"),
+        (DOC_CREDIT_NOTE, "Credit Note"),
+        (DOC_REFUND_DOCUMENT, "Refund Document"),
         (DOC_PAYOUT_ACT, "Payout Act"),
         (DOC_STATEMENT, "Statement"),
     ]

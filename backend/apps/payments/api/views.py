@@ -2,14 +2,16 @@ import json
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from apps.access_control.permissions import IsAdminSupportFinanceReadonly, IsAdminOrSupport
 from apps.audit.services import AuditService
 from apps.payments.api.serializers import AdminPaymentSerializer, PaymentRefundSerializer, PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
 from apps.payments.models import Payment, PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payments.webhook_security import PaymentWebhookPayloadError, PaymentWebhookSecurity, PaymentWebhookSignatureError
+from apps.tenancy.scoping import scope_payment_webhooks_for_user, scope_payments_for_user
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -115,11 +117,11 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 
 class AdminPaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = AdminPaymentSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminSupportFinanceReadonly]
 
     def get_queryset(self):
         queryset = (
-            Payment.objects
+            scope_payments_for_user(Payment.objects.all(), self.request.user)
             .select_related('order', 'order__user')
             .prefetch_related('order__granted_entitlements')
             .order_by('-created_at')
@@ -162,10 +164,12 @@ class PaymentWebhookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
     def get_permissions(self):
         if self.action in {'receive'}:
             return [AllowAny()]
-        return [IsAdminUser()]
+        if self.action in {'reprocess'}:
+            return [IsAdminOrSupport()]
+        return [IsAdminSupportFinanceReadonly()]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = scope_payment_webhooks_for_user(super().get_queryset(), self.request.user)
         provider = self.request.query_params.get('provider')
         status_value = self.request.query_params.get('status')
         event_type = self.request.query_params.get('event_type')

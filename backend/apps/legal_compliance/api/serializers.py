@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.legal_compliance.models import (
+    ConsentLog,
     LegalAcceptanceSnapshot,
     LegalDocumentTemplate,
     PayoutEligibilitySnapshot,
@@ -27,6 +28,19 @@ class LegalAcceptanceSnapshotSerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalAcceptanceSnapshot
         fields = '__all__'
+
+
+class ConsentLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsentLog
+        fields = '__all__'
+
+
+class LegalComplianceStatusSerializer(serializers.Serializer):
+    actor_type = serializers.CharField()
+    is_compliant = serializers.BooleanField()
+    missing = serializers.ListField(child=serializers.CharField())
+    documents = serializers.DictField()
 
 
 class TrainerContractArtifactSerializer(serializers.ModelSerializer):

@@ -5,9 +5,10 @@ from django.db.models import Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.access_control.permissions import IsFinanceOps
 from apps.audit.services import AuditService
 from apps.events.services import DomainEventService
 from apps.payments.models import Payment
@@ -37,6 +38,7 @@ from apps.payouts.selectors import (
     list_payout_requests_for_trainer,
 )
 from apps.payouts.services import PayoutService
+from apps.tenancy.scoping import scope_balance_entries_for_user, scope_payments_for_user, scope_payouts_for_user
 
 
 class MyPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -82,11 +84,11 @@ class MyPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
 
 class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsFinanceOps]
     serializer_class = PayoutRequestDetailSerializer
 
     def get_queryset(self):
-        queryset = list_all_payout_requests()
+        queryset = scope_payouts_for_user(list_all_payout_requests(), self.request.user)
         status_filter = (self.request.query_params.get("status") or "").strip()
         trainer_filter = (self.request.query_params.get("trainer_id") or "").strip()
         if status_filter:
@@ -195,7 +197,7 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
         serializer = AdminPayoutBulkTransitionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         ids = [str(value) for value in serializer.validated_data["payout_ids"]]
-        payouts = {str(payout.id): payout for payout in PayoutRequest.objects.filter(id__in=ids)}
+        payouts = {str(payout.id): payout for payout in scope_payouts_for_user(PayoutRequest.objects.filter(id__in=ids), request.user)}
         results = []
         for payout_id in ids:
             payout = payouts.get(payout_id)
@@ -238,7 +240,8 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
     @action(methods=["get"], detail=False, url_path="risk-holds")
     def risk_holds(self, request):
         queryset = (
-            BalanceEntry.objects.select_related("wallet", "wallet__trainer", "wallet__trainer__user")
+            scope_balance_entries_for_user(BalanceEntry.objects.all(), request.user)
+            .select_related("wallet", "wallet__trainer", "wallet__trainer__user")
             .filter(entry_type=BalanceEntry.EntryType.RISK_HOLD, source_type="payment_dispute_hold")
             .order_by("-created_at")
         )
@@ -264,7 +267,7 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
     def release_risk_hold(self, request):
         serializer = ManualPaymentHoldReleaseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        payment = Payment.objects.get(id=serializer.validated_data["payment_id"])
+        payment = scope_payments_for_user(Payment.objects.all(), request.user).get(id=serializer.validated_data["payment_id"])
         reason = serializer.validated_data.get("reason") or "manual_ops_release"
         result = PayoutService.release_payment_hold(payment=payment, reason=reason)
         AuditService.log_admin_action(

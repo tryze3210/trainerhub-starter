@@ -1,1 +1,2 @@
 from .documents import FinanceDocument, TrainerFinanceProfile
+from apps.finance_documents.models_extension import FinanceDocumentDelivery

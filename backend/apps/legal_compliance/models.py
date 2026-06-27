@@ -34,11 +34,13 @@ class LegalDocumentTemplate(models.Model):
     DOC_OFFER = 'offer'
     DOC_PRIVACY = 'privacy_policy'
     DOC_TERMS = 'terms_of_service'
+    DOC_REFUND_POLICY = 'refund_policy'
     DOC_TRAINER_AGREEMENT = 'trainer_agreement'
     DOC_CHOICES = [
         (DOC_OFFER, 'Offer'),
         (DOC_PRIVACY, 'Privacy Policy'),
         (DOC_TERMS, 'Terms of Service'),
+        (DOC_REFUND_POLICY, 'Refund Policy'),
         (DOC_TRAINER_AGREEMENT, 'Trainer Agreement'),
     ]
 
@@ -71,6 +73,33 @@ class LegalAcceptanceSnapshot(models.Model):
     body_snapshot = models.TextField()
     title_snapshot = models.CharField(max_length=255)
     version_snapshot = models.CharField(max_length=32)
+
+
+class ConsentLog(models.Model):
+    CONSENT_TERMS = 'terms_acceptance'
+    CONSENT_PRIVACY = 'privacy_acceptance'
+    CONSENT_REFUND_POLICY = 'refund_policy_acceptance'
+    CONSENT_TRAINER_AGREEMENT = 'trainer_agreement_acceptance'
+    CONSENT_MARKETING = 'marketing'
+    CONSENT_CHOICES = [
+        (CONSENT_TERMS, 'Terms acceptance'),
+        (CONSENT_PRIVACY, 'Privacy acceptance'),
+        (CONSENT_REFUND_POLICY, 'Refund policy acceptance'),
+        (CONSENT_TRAINER_AGREEMENT, 'Trainer agreement acceptance'),
+        (CONSENT_MARKETING, 'Marketing consent'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='consent_logs')
+    consent_type = models.CharField(max_length=64, choices=CONSENT_CHOICES)
+    granted = models.BooleanField(default=True)
+    source = models.CharField(max_length=64, blank=True)
+    document = models.ForeignKey(LegalDocumentTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name='consent_logs')
+    acceptance = models.ForeignKey(LegalAcceptanceSnapshot, null=True, blank=True, on_delete=models.SET_NULL, related_name='consent_logs')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    recorded_at = models.DateTimeField(auto_now_add=True)
 
 
 class TrainerContractArtifact(models.Model):

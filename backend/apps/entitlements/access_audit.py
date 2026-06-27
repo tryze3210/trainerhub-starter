@@ -132,6 +132,17 @@ def _pass_rule(*, code: str, label: str, reason: str, severity: str = "success")
 def _validate_source(entitlement: Entitlement, *, now=None) -> tuple[bool, list[dict[str, Any]], str | None]:
     now = now or timezone.now()
     rules: list[dict[str, Any]] = []
+    metadata = entitlement.metadata or {}
+
+    if metadata.get("access_hold"):
+        rules.append(
+            _deny_rule(
+                code="entitlement_access_held",
+                label="Entitlement access is on hold",
+                reason=str(metadata.get("access_hold_reason") or "access_hold"),
+            )
+        )
+        return False, rules, "entitlement_access_held"
 
     if entitlement.source_type in {EntitlementSourceType.ORDER, "order"}:
         order = entitlement.source_order

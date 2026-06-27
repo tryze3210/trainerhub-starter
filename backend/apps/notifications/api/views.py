@@ -14,11 +14,7 @@ from apps.notifications.api.serializers import (
 from apps.notifications.models import AdminAnnouncement, Notification, NotificationDelivery, NotificationPreference, NotificationTemplate
 from apps.notifications.selectors import NotificationEngagementSelectors
 from apps.notifications.services import AdminAnnouncementService
-
-
-class IsAdminUser(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_staff)
+from apps.access_control.permissions import IsNotificationOperator
 
 
 class UserNotificationInboxView(APIView):
@@ -68,7 +64,7 @@ class UserNotificationPreferenceView(APIView):
 
 
 class AdminNotificationCenterView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
 
     def get(self, request):
         days = int(request.query_params.get('days') or 30)
@@ -76,7 +72,7 @@ class AdminNotificationCenterView(APIView):
 
 
 class AdminAnnouncementListCreateView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
 
     def get(self, request):
         qs = AdminAnnouncement.objects.select_related('created_by').annotate(notifications_count=Count('notifications')).order_by('-created_at')
@@ -97,7 +93,7 @@ class AdminAnnouncementListCreateView(APIView):
 
 
 class AdminAnnouncementDetailView(generics.RetrieveUpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
     serializer_class = AdminAnnouncementSerializer
     lookup_field = 'announcement_uuid'
     lookup_url_kwarg = 'announcement_id'
@@ -105,7 +101,7 @@ class AdminAnnouncementDetailView(generics.RetrieveUpdateAPIView):
 
 
 class AdminAnnouncementPublishView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
 
     def post(self, request, announcement_id: str):
         announcement = get_object_or_404(AdminAnnouncement, announcement_uuid=announcement_id)
@@ -120,19 +116,19 @@ class AdminAnnouncementPublishView(APIView):
 
 
 class AdminNotificationTemplateListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
     serializer_class = NotificationTemplateSerializer
     queryset = NotificationTemplate.objects.order_by('code')
 
 
 class AdminNotificationTemplateDetailView(generics.RetrieveUpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
     serializer_class = NotificationTemplateSerializer
     queryset = NotificationTemplate.objects.all()
 
 
 class AdminNotificationDeliveryListView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
     serializer_class = NotificationDeliverySerializer
 
     def get_queryset(self):
@@ -150,7 +146,7 @@ class AdminNotificationDeliveryListView(generics.ListAPIView):
 
 
 class AdminNotificationDeliveryOverviewView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
 
     def get(self, request):
         qs = NotificationDelivery.objects.all()
@@ -173,7 +169,7 @@ from apps.notifications.projections import notification_projection_service
 
 
 class AdminNotificationProjectionHealthView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
 
     def get(self, request):
         serializer = NotificationProjectionHealthSerializer(notification_projection_service.projection_health())
@@ -181,7 +177,7 @@ class AdminNotificationProjectionHealthView(APIView):
 
 
 class AdminNotificationProjectOutboxView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsNotificationOperator]
 
     def post(self, request):
         serializer = NotificationProjectionRunSerializer(data=request.data or {})

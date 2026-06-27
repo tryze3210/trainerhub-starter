@@ -1,0 +1,122 @@
+import pytest
+from django.contrib.auth import get_user_model
+from rest_framework.permissions import AllowAny
+from rest_framework.test import APIRequestFactory
+
+from apps.access_control.permissions import (
+    ROLE_ADMIN,
+    ROLE_FINANCE,
+    ROLE_READONLY_AUDITOR,
+    ROLE_STUDENT,
+    ROLE_SUPPORT,
+    IsAdminOrSupport,
+    IsAdminSupportFinanceReadonly,
+    IsAuditReader,
+    IsFinanceOps,
+    IsNotificationOperator,
+    user_role_set,
+)
+from apps.accounts.models import AccountRoleAssignment
+from apps.audit.api.views import AuditAdminViewSet
+from apps.messaging.api.views import CreateSystemMessageView
+from apps.notifications.api.views import AdminNotificationCenterView
+from apps.payments.api.views import AdminPaymentViewSet, PaymentWebhookViewSet
+from apps.payouts.api.views import AdminPayoutViewSet
+
+
+@pytest.fixture
+def factory():
+    return APIRequestFactory()
+
+
+def _request(factory, method, user):
+    request = getattr(factory, method.lower())('/api/v1/admin/test/')
+    request.user = user
+    return request
+
+
+def _user(email, role=None):
+    kwargs = {'email': email, 'password': 'pass12345'}
+    if role:
+        kwargs['role'] = role
+    return get_user_model().objects.create_user(**kwargs)
+
+
+def _assign(user, role):
+    return AccountRoleAssignment.objects.create(user=user, role=role, is_active=True)
+
+
+@pytest.mark.django_db
+def test_v107_role_set_collects_primary_and_active_assignments():
+    student = _user('v107-student@example.com')
+    support = _user('v107-support@example.com')
+    _assign(support, ROLE_SUPPORT)
+
+    assert ROLE_STUDENT in user_role_set(student)
+    assert ROLE_SUPPORT in user_role_set(support)
+
+
+@pytest.mark.django_db
+def test_v107_admin_support_finance_readonly_is_method_aware(factory):
+    support = _user('v107-support-read@example.com')
+    admin = _user('v107-admin-write@example.com')
+    _assign(support, ROLE_SUPPORT)
+    _assign(admin, ROLE_ADMIN)
+
+    permission = IsAdminSupportFinanceReadonly()
+
+    assert permission.has_permission(_request(factory, 'get', support), object()) is True
+    assert permission.has_permission(_request(factory, 'post', support), object()) is False
+    assert permission.has_permission(_request(factory, 'post', admin), object()) is True
+
+
+@pytest.mark.django_db
+def test_v107_finance_ops_allows_finance_writes_and_auditor_reads(factory):
+    finance = _user('v107-finance@example.com')
+    auditor = _user('v107-auditor@example.com')
+    _assign(finance, ROLE_FINANCE)
+    _assign(auditor, ROLE_READONLY_AUDITOR)
+
+    permission = IsFinanceOps()
+
+    assert permission.has_permission(_request(factory, 'post', finance), object()) is True
+    assert permission.has_permission(_request(factory, 'get', auditor), object()) is True
+    assert permission.has_permission(_request(factory, 'post', auditor), object()) is False
+
+
+@pytest.mark.django_db
+def test_v107_audit_and_notifications_keep_writes_admin_only(factory):
+    support = _user('v107-support-audit@example.com')
+    admin = _user('v107-admin-audit@example.com')
+    _assign(support, ROLE_SUPPORT)
+    _assign(admin, ROLE_ADMIN)
+
+    audit_permission = IsAuditReader()
+    notification_permission = IsNotificationOperator()
+
+    assert audit_permission.has_permission(_request(factory, 'get', support), object()) is True
+    assert audit_permission.has_permission(_request(factory, 'post', support), object()) is False
+    assert notification_permission.has_permission(_request(factory, 'get', support), object()) is True
+    assert notification_permission.has_permission(_request(factory, 'post', support), object()) is False
+    assert notification_permission.has_permission(_request(factory, 'post', admin), object()) is True
+
+
+def test_v107_admin_api_views_use_role_matrix_permissions():
+    assert AdminPaymentViewSet.permission_classes == [IsAdminSupportFinanceReadonly]
+    assert AdminPayoutViewSet.permission_classes == [IsFinanceOps]
+    assert AuditAdminViewSet.permission_classes == [IsAuditReader]
+    assert IsNotificationOperator in AdminNotificationCenterView.permission_classes
+    assert CreateSystemMessageView.permission_classes == [IsAdminOrSupport]
+
+
+def test_v107_payment_webhook_permissions_are_action_scoped():
+    view = PaymentWebhookViewSet()
+
+    view.action = 'receive'
+    assert isinstance(view.get_permissions()[0], AllowAny)
+
+    view.action = 'reprocess'
+    assert isinstance(view.get_permissions()[0], IsAdminOrSupport)
+
+    view.action = 'list'
+    assert isinstance(view.get_permissions()[0], IsAdminSupportFinanceReadonly)

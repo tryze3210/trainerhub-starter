@@ -1,8 +1,16 @@
 from rest_framework import generics, permissions, response, status, views
 
-from apps.disputes.api.serializers import CreateDisputeCaseSerializer, DisputeCaseSerializer, RefundReviewSerializer
-from apps.disputes.models import DisputeCase
-from apps.disputes.services.case_service import CreateDisputeCaseDTO, DisputeCaseService
+from apps.access_control.permissions import IsFinanceOps
+from apps.disputes.api.serializers import (
+    CreateDisputeCaseSerializer,
+    DisputeCaseSerializer,
+    OpenChargebackSerializer,
+    RefundReviewSerializer,
+    ResolveChargebackSerializer,
+    SubmitChargebackEvidenceSerializer,
+)
+from apps.disputes.models import ChargebackOperation, DisputeCase
+from apps.disputes.services.case_service import ChargebackDisputeService, CreateDisputeCaseDTO, DisputeCaseService
 from apps.disputes.services.refund_service import RefundReviewService
 from apps.disputes.services.selectors import DisputeSelectors
 
@@ -80,3 +88,49 @@ class AdminRefundReviewView(views.APIView):
             rationale=request.data.get("rationale", ""),
         )
         return response.Response(RefundReviewSerializer(refund_review).data)
+
+
+class AdminChargebackOpenView(views.APIView):
+    permission_classes = [IsFinanceOps]
+
+    def post(self, request):
+        serializer = OpenChargebackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = ChargebackDisputeService.open_chargeback(
+            operator=request.user,
+            request=request,
+            **serializer.validated_data,
+        )
+        return response.Response(payload, status=status.HTTP_201_CREATED)
+
+
+class AdminChargebackEvidenceView(views.APIView):
+    permission_classes = [IsFinanceOps]
+
+    def post(self, request, id):
+        serializer = SubmitChargebackEvidenceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        operation = ChargebackOperation.objects.get(id=id)
+        payload = ChargebackDisputeService.submit_evidence(
+            operator=request.user,
+            operation=operation,
+            request=request,
+            **serializer.validated_data,
+        )
+        return response.Response(payload)
+
+
+class AdminChargebackResolveView(views.APIView):
+    permission_classes = [IsFinanceOps]
+
+    def post(self, request, id):
+        serializer = ResolveChargebackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        operation = ChargebackOperation.objects.get(id=id)
+        payload = ChargebackDisputeService.resolve(
+            operator=request.user,
+            operation=operation,
+            request=request,
+            **serializer.validated_data,
+        )
+        return response.Response(payload)

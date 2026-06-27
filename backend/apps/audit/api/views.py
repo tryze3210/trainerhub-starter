@@ -10,10 +10,10 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import mixins, status, viewsets
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.access_control.permissions import IsAuditReader
 from apps.audit.api.serializers import AuditEventSerializer
 from apps.audit.models import AuditEvent
 
@@ -28,7 +28,7 @@ AUDIT_RETENTION_PREVIEW_MAX_BATCH_SIZE = 1000
 class AuditAdminViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Admin-only audit feed for operator actions and support investigations."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuditReader]
     serializer_class = AuditEventSerializer
 
     def get_queryset(self):
@@ -38,7 +38,7 @@ class AuditAdminViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 class AuditAdminCsvExportView(APIView):
     """Admin-only CSV export for the audit feed with the same filters as list view."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuditReader]
 
     def get(self, request):
         queryset = build_admin_audit_queryset(request.query_params, include_limit=False)
@@ -95,7 +95,7 @@ class AuditAdminCsvExportView(APIView):
 class AuditAdminRetentionSummaryView(APIView):
     """Read-only retention summary for planning audit log cleanup policies."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuditReader]
 
     def get(self, request):
         older_than_days = _parse_retention_days(request.query_params.get('older_than_days'))
@@ -140,7 +140,7 @@ class AuditAdminRetentionSummaryView(APIView):
 class AuditAdminRetentionPreviewView(APIView):
     """Read-only retention cleanup preview. It never deletes audit events."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuditReader]
 
     def get(self, request):
         older_than_days = _parse_retention_days(request.query_params.get('older_than_days'))
@@ -173,7 +173,7 @@ class AuditAdminRetentionPreviewView(APIView):
 class AuditAdminRetentionCleanupView(APIView):
     """Confirmed retention cleanup action for old audit events."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuditReader]
 
     def post(self, request):
         params = _retention_request_params(request)

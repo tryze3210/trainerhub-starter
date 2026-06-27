@@ -49,3 +49,20 @@ class CorrelationViewSerializer(serializers.Serializer):
     related_projection_keys = serializers.ListField(child=serializers.CharField())
     logs = LogRecordSerializer(many=True)
     traces = TraceSpanSerializer(many=True)
+
+
+class ObservabilityRuntimeQuerySerializer(serializers.Serializer):
+    window_hours = serializers.IntegerField(required=False, min_value=1, max_value=720, default=24)
+
+
+class ObservabilityRuntimeSnapshotSerializer(serializers.Serializer):
+    generated_at = serializers.CharField()
+    window_hours = serializers.IntegerField()
+    overall_status = serializers.CharField()
+    health_indicators = serializers.ListField(child=serializers.DictField())
+    webhooks = serializers.DictField()
+    payments = serializers.DictField()
+    payout_repairs = serializers.DictField()
+    background_jobs = serializers.DictField()
+    alerts = serializers.ListField(child=serializers.DictField())
+    admin_ops_alerts = serializers.DictField()

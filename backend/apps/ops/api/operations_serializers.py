@@ -64,6 +64,68 @@ class AdminOperationsHubSerializer(serializers.Serializer):
     navigation = serializers.ListField(child=serializers.DictField())
 
 
+class AdminGlobalSearchQuerySerializer(serializers.Serializer):
+    q = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")
+    categories = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=25, default=10)
+
+
+class AdminGlobalSearchSerializer(serializers.Serializer):
+    query = serializers.CharField(allow_blank=True)
+    categories = serializers.ListField(child=serializers.CharField())
+    limit = serializers.IntegerField()
+    generated_at = serializers.DateTimeField()
+    total_count = serializers.IntegerField()
+    results = serializers.ListField(child=serializers.DictField())
+    results_by_category = serializers.DictField()
+
+
+class SupportConsoleQuerySerializer(serializers.Serializer):
+    user_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=25)
+
+
+class SupportConsoleSnapshotSerializer(serializers.Serializer):
+    user = serializers.DictField()
+    orders = serializers.ListField(child=serializers.DictField())
+    payments = serializers.ListField(child=serializers.DictField())
+    entitlements = serializers.ListField(child=serializers.DictField())
+    webhook_errors = serializers.ListField(child=serializers.DictField())
+    notification_deliveries = serializers.ListField(child=serializers.DictField())
+    summary = serializers.DictField()
+    generated_at = serializers.DateTimeField()
+
+
+class SupportNotificationResendSerializer(serializers.Serializer):
+    delivery_id = serializers.UUIDField()
+    reason = serializers.CharField(required=False, allow_blank=True, max_length=500, default="support_console_resend")
+
+
+class SupportEntitlementFixSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=[("grant", "Grant"), ("revoke", "Revoke")])
+    reason = serializers.CharField(max_length=500)
+    user_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
+    entitlement_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
+    target_type = serializers.CharField(required=False, allow_blank=True, max_length=32, default="")
+    target_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
+
+    def validate(self, attrs):
+        action = attrs.get("action")
+        if action == "grant":
+            if not (attrs.get("user_id") or attrs.get("email")):
+                raise serializers.ValidationError({"user": "user_id or email is required for grants."})
+            if not attrs.get("target_type"):
+                raise serializers.ValidationError({"target_type": "target_type is required for grants."})
+        if action == "revoke" and not attrs.get("entitlement_id"):
+            if not (attrs.get("user_id") or attrs.get("email")):
+                raise serializers.ValidationError({"user": "user_id/email or entitlement_id is required for revoke."})
+            if not attrs.get("target_type"):
+                raise serializers.ValidationError({"target_type": "target_type is required when entitlement_id is omitted."})
+        return attrs
+
+
 class AdminOperationsReadinessQuerySerializer(serializers.Serializer):
     include_commands = serializers.BooleanField(required=False, default=True)
     include_recommendations = serializers.BooleanField(required=False, default=True)
@@ -122,6 +184,66 @@ class AdminProductionReadinessSerializer(serializers.Serializer):
     seed_data = serializers.ListField(child=serializers.DictField())
     role_matrix = serializers.ListField(child=serializers.DictField(), required=False)
     ci_gate = serializers.DictField(required=False)
+    launch_candidate = serializers.DictField(required=False)
+    production_launch_pack = serializers.DictField(required=False)
     smoke_commands = serializers.ListField(child=serializers.DictField(), required=False)
     management_commands = serializers.ListField(child=serializers.DictField(), required=False)
     recommendations = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class AdminLaunchCandidateQuerySerializer(serializers.Serializer):
+    include_artifacts = serializers.BooleanField(required=False, default=True)
+
+
+class AdminLaunchCandidateSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    version = serializers.CharField()
+    project_version = serializers.CharField()
+    generated_at = serializers.DateTimeField()
+    scope = serializers.CharField()
+    release_notes = serializers.ListField(child=serializers.DictField())
+    smoke_checklist = serializers.ListField(child=serializers.DictField())
+    production_env_checklist = serializers.ListField(child=serializers.DictField())
+    known_limitations = serializers.ListField(child=serializers.DictField())
+    required_artifacts = serializers.ListField(child=serializers.DictField(), required=False)
+    missing_artifacts = serializers.ListField(child=serializers.CharField())
+    release_decision = serializers.DictField()
+
+
+class AdminProductionLaunchPackQuerySerializer(serializers.Serializer):
+    include_content = serializers.BooleanField(required=False, default=False)
+
+
+class AdminProductionLaunchPackSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    version = serializers.CharField()
+    project_version = serializers.CharField(allow_blank=True)
+    generated_at = serializers.DateTimeField()
+    scope = serializers.CharField()
+    documents = serializers.ListField(child=serializers.DictField())
+    missing_documents = serializers.ListField(child=serializers.CharField())
+    final_gates = serializers.ListField(child=serializers.DictField())
+    handoffs = serializers.ListField(child=serializers.DictField())
+    release_state = serializers.DictField()
+
+
+class AdminOpsRunbookQuerySerializer(serializers.Serializer):
+    include_content = serializers.BooleanField(required=False, default=False)
+
+
+class AdminOpsRunbookIndexSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    total = serializers.IntegerField()
+    missing = serializers.ListField(child=serializers.CharField())
+    runbooks = serializers.ListField(child=serializers.DictField())
+
+
+class AdminOpsRunbookDetailSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    title = serializers.CharField()
+    incident_type = serializers.CharField()
+    severity = serializers.CharField()
+    path = serializers.CharField()
+    exists = serializers.BooleanField()
+    sections = serializers.ListField(child=serializers.CharField(), required=False)
+    content = serializers.CharField(required=False, allow_blank=True)

@@ -41,3 +41,25 @@ class ChargebackOperationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChargebackOperation
         fields = ["id", "provider_case_id", "network", "amount", "currency", "status", "evidence_due_at", "evidence_payload", "provider_payload"]
+
+
+class OpenChargebackSerializer(serializers.Serializer):
+    payment_id = serializers.UUIDField()
+    provider_case_id = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    network = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    amount = serializers.DecimalField(required=False, max_digits=12, decimal_places=2)
+    currency = serializers.CharField(required=False, allow_blank=True, max_length=8)
+    evidence_due_at = serializers.DateTimeField(required=False)
+    provider_payload = serializers.JSONField(required=False)
+    reason = serializers.CharField(required=False, allow_blank=True)
+
+
+class SubmitChargebackEvidenceSerializer(serializers.Serializer):
+    evidence_payload = serializers.JSONField()
+    note = serializers.CharField(required=False, allow_blank=True)
+
+
+class ResolveChargebackSerializer(serializers.Serializer):
+    outcome = serializers.ChoiceField(choices=[ChargebackOperation.STATUS_WON, ChargebackOperation.STATUS_LOST])
+    provider_payload = serializers.JSONField(required=False)
+    note = serializers.CharField(required=False, allow_blank=True)

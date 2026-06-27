@@ -1,6 +1,11 @@
-<h1>Invoice {{ document.document_number }}</h1>
-<p>Trainer: {{ document.trainer }}</p>
+<h1>{{ document.get_document_type_display }} {{ document.document_number }}</h1>
+<p>Owner: {{ document.trainer }}</p>
 <p>Period: {{ document.period_start }} — {{ document.period_end }}</p>
+<p>Status: {{ document.status }}</p>
 <p>Gross: {{ document.gross_amount }} {{ document.currency }}</p>
 <p>Commission: {{ document.commission_amount }} {{ document.currency }}</p>
 <p>Net: {{ document.net_amount }} {{ document.currency }}</p>
+{% if payload.order_id %}<p>Order: {{ payload.order_id }}</p>{% endif %}
+{% if payload.payment_id %}<p>Payment: {{ payload.payment_id }}</p>{% endif %}
+{% if payload.refund_id %}<p>Refund: {{ payload.refund_id }}</p>{% endif %}
+{% if payload.reason %}<p>Reason: {{ payload.reason }}</p>{% endif %}

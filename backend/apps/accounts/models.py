@@ -33,10 +33,16 @@ class AccountRoleAssignment(TimeStampedModel):
     ROLE_USER = 'user'
     ROLE_TRAINER = 'trainer'
     ROLE_ADMIN = 'admin'
+    ROLE_SUPPORT = 'support'
+    ROLE_FINANCE = 'finance'
+    ROLE_READONLY_AUDITOR = 'readonly_auditor'
     ROLE_CHOICES = (
         (ROLE_USER, 'User'),
         (ROLE_TRAINER, 'Trainer'),
         (ROLE_ADMIN, 'Admin'),
+        (ROLE_SUPPORT, 'Support'),
+        (ROLE_FINANCE, 'Finance'),
+        (ROLE_READONLY_AUDITOR, 'Readonly auditor'),
     )
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='role_assignments')

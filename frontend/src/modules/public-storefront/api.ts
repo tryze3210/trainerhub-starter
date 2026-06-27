@@ -34,6 +34,60 @@ export type StorefrontSeoPayload = {
   canonicalPath: string;
 };
 
+export type StorefrontCta = {
+  label: string;
+  href: string;
+  requires_auth?: boolean;
+};
+
+export type StorefrontPricing = {
+  amount: string;
+  currency: string;
+  label: string;
+  checkout_cta: StorefrontCta;
+};
+
+export type StorefrontReviewsSummary = {
+  average_rating: number;
+  reviews_count: number;
+  href: string;
+};
+
+export type PublicMarketplaceHome = {
+  seo: {
+    title: string;
+    description: string;
+    canonical_path: string;
+  };
+  hero: Record<string, unknown>;
+  catalog: {
+    count: number;
+    items: StorefrontItem[];
+    applied_filters: Record<string, string | null>;
+  };
+  featured: StorefrontItem[];
+  trust: Record<string, string>;
+};
+
+export type PublicContentLanding = {
+  seo: PublicMarketplaceHome['seo'];
+  item: StorefrontItem;
+  pricing: StorefrontPricing;
+  reviews: StorefrontReviewsSummary;
+  trainer: Record<string, string | null>;
+  access: Record<string, string>;
+};
+
+export type PublicTrainerLanding = {
+  seo: PublicMarketplaceHome['seo'];
+  profile: TrainerProfile;
+  featured: StorefrontItem[];
+  catalog: { count: number; items: StorefrontItem[] };
+  reviews: StorefrontReviewsSummary;
+  pricing: StorefrontPricing[];
+  checkout_ctas: StorefrontCta[];
+};
+
 function withEntityType<T extends PublicVideo | PublicProgram | PublicBundle>(
   item: T,
   entityType: StorefrontEntityType
@@ -82,6 +136,20 @@ export function buildContentCheckoutHref(item: StorefrontItem): string {
 }
 
 export const publicStorefrontApi = {
+  getMarketplaceHome(): Promise<PublicMarketplaceHome> {
+    return apiRequest<PublicMarketplaceHome>('/public-catalog/');
+  },
+
+  getContentLanding(entityType: StorefrontEntityType, slug: string): Promise<PublicContentLanding> {
+    return apiRequest<PublicContentLanding>(
+      `/public-catalog/landing/${encodeURIComponent(entityType)}/${encodeURIComponent(slug)}/`
+    );
+  },
+
+  getTrainerLanding(slug: string): Promise<PublicTrainerLanding> {
+    return apiRequest<PublicTrainerLanding>(`/public-catalog/trainers/${encodeURIComponent(slug)}/landing/`);
+  },
+
   async listVideos(): Promise<PublicVideo[]> {
     const payload = await apiRequest<PublicVideo[] | { results: PublicVideo[] }>('/content/videos/');
     return normalizeListResponse<PublicVideo>(payload);

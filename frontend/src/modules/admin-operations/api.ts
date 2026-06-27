@@ -244,6 +244,44 @@ export type CommerceReadinessPayload = {
   recommendations?: Array<JsonRecord>;
 };
 
+export type AdminGlobalSearchResult = {
+  category: string;
+  entity_type: string;
+  entity_id: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  href: string;
+  metadata?: JsonRecord;
+};
+
+export type AdminGlobalSearchPayload = {
+  query: string;
+  categories: string[];
+  limit: number;
+  generated_at: string;
+  total_count: number;
+  results: AdminGlobalSearchResult[];
+  results_by_category: Record<string, AdminGlobalSearchResult[]>;
+};
+
+export type SupportConsoleSnapshot = {
+  user: JsonRecord;
+  orders: JsonRecord[];
+  payments: JsonRecord[];
+  entitlements: JsonRecord[];
+  webhook_errors: JsonRecord[];
+  notification_deliveries: JsonRecord[];
+  summary: JsonRecord;
+  generated_at: string;
+};
+
+export type SupportConsoleActionResult = {
+  status: string;
+  audit_event_id?: string;
+  [key: string]: unknown;
+};
+
 export type OutboxActionResult = {
   id?: string;
   status?: string;
@@ -324,6 +362,51 @@ export const adminOperationsApi = {
       })}`,
       { auth: true }
     ),
+
+  globalSearch: (params: { q: string; categories?: string[]; limit?: number }) =>
+    apiRequest<AdminGlobalSearchPayload>(
+      `/ops/admin/global-search/${query({
+        q: params.q,
+        categories: params.categories?.join(',') ?? '',
+        limit: params.limit ?? 10,
+      })}`,
+      { auth: true }
+    ),
+
+  getSupportConsole: (params: { user_id?: string; email?: string; limit?: number }) =>
+    apiRequest<SupportConsoleSnapshot>(
+      `/ops/admin/support-console/${query({
+        user_id: params.user_id ?? '',
+        email: params.email ?? '',
+        limit: params.limit ?? 25,
+      })}`,
+      { auth: true }
+    ),
+
+  resendSupportNotification: (payload: { delivery_id: string; reason?: string }) =>
+    apiRequest<SupportConsoleActionResult>('/ops/admin/support-console/notifications/resend/', {
+      method: 'POST',
+      auth: true,
+      body: JSON.stringify({
+        delivery_id: payload.delivery_id,
+        reason: payload.reason ?? 'support_console_resend',
+      }),
+    }),
+
+  fixSupportEntitlement: (payload: {
+    action: 'grant' | 'revoke';
+    reason: string;
+    user_id?: string;
+    email?: string;
+    entitlement_id?: string;
+    target_type?: string;
+    target_id?: string;
+  }) =>
+    apiRequest<SupportConsoleActionResult>('/ops/admin/support-console/entitlements/fix/', {
+      method: 'POST',
+      auth: true,
+      body: JSON.stringify(payload),
+    }),
 
   dispatchOutbox: (batchSize = 100) =>
     apiRequest<DispatchOutboxResult>('/events/outbox/dispatch/', {

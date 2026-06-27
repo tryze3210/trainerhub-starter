@@ -6,9 +6,12 @@ from apps.tenancy import selectors as tenancy_selectors
 
 
 ROLE_CAPABILITIES = {
-    'user': ['cabinet.view_self', 'accounts.manage_self'],
-    'trainer': ['cabinet.view_self', 'accounts.manage_self', 'trainer_cms.manage', 'media_assets.upload'],
-    'admin': ['cabinet.view_self', 'accounts.manage_self', 'moderation.review', 'payments.manage', 'audit.view'],
+    'user': ['cabinet.view_self', 'accounts.manage_self', 'learning.view', 'assignments.submit', 'messaging.use'],
+    'trainer': ['cabinet.view_self', 'accounts.manage_self', 'trainer_cms.manage', 'media_assets.upload', 'assignments.review', 'messaging.use', 'reviews.reply'],
+    'admin': ['cabinet.view_self', 'accounts.manage_self', 'moderation.review', 'payments.manage', 'payouts.manage', 'audit.view', 'ops.manage', 'notifications.manage'],
+    'support': ['cabinet.view_self', 'accounts.manage_self', 'payments.view', 'orders.view', 'entitlements.view', 'audit.view', 'notifications.resend', 'messaging.support'],
+    'finance': ['cabinet.view_self', 'accounts.manage_self', 'payments.view', 'payouts.view', 'payouts.manage', 'finance.view', 'finance.export'],
+    'readonly_auditor': ['cabinet.view_self', 'accounts.manage_self', 'audit.view', 'ops.view', 'payments.view', 'payouts.view', 'readonly.audit'],
 }
 
 
@@ -48,6 +51,9 @@ def get_feature_matrix() -> dict:
         'trainer_cms': {'required_roles': ['trainer'], 'required_steps': ['trainer_profile']},
         'media_upload': {'required_roles': ['trainer'], 'required_steps': ['trainer_profile']},
         'admin_moderation': {'required_roles': ['admin'], 'required_steps': []},
+        'support_console': {'required_roles': ['admin', 'support'], 'required_steps': []},
+        'finance_ops': {'required_roles': ['admin', 'finance'], 'required_steps': []},
+        'readonly_audit': {'required_roles': ['admin', 'readonly_auditor'], 'required_steps': []},
         'tenant_settings': {'required_roles': ['trainer', 'admin'], 'required_steps': ['account_basics']},
     }
 

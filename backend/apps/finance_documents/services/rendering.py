@@ -20,6 +20,9 @@ class FinanceDocumentRenderer:
 
     template_map = {
         FinanceDocument.DOC_INVOICE: "finance_documents/invoice.html",
+        FinanceDocument.DOC_RECEIPT: "finance_documents/invoice.html",
+        FinanceDocument.DOC_CREDIT_NOTE: "finance_documents/invoice.html",
+        FinanceDocument.DOC_REFUND_DOCUMENT: "finance_documents/invoice.html",
         FinanceDocument.DOC_PAYOUT_ACT: "finance_documents/payout_act.html",
         FinanceDocument.DOC_STATEMENT: "finance_documents/statement.html",
     }

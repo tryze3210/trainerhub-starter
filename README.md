@@ -1,12 +1,46 @@
-# TrainerHub — current version v105
+# TrainerHub — current version v120
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v105 Launch Hardening. The v70-v95 platform-readiness block is closed; the v97-v105 content-learning launch block now tracks lesson completion, learning progress, homework, reviews, trainer-student messaging, role matrix checks, seed data, API contracts, smoke tests, and CI launch gates.
+This README describes the current roadmap state after v120 Production Launch Pack. The v70-v95 platform-readiness block, v97-v105 content-learning launch block and v106-v120 production-launch block are closed.
 
 ## Current Roadmap State
 
-Completed in the current line:
+Roadmap status table:
+
+| Version | Area | Status |
+| --- | --- | --- |
+| v70-v77 | Payout integrity, repair, exports, ops dashboard | Done |
+| v80-v85 | Payments, orders, entitlements, refunds, reconciliation | Done |
+| v86-v91 | Payment admin UI, customer billing, trainer sales, subscriptions, access guard, notifications | Done |
+| v92-v95 | CRM, booking, attendance, production readiness | Done |
+| v96 | Docs/version cleanup | Done |
+| v97 | Course / Program Builder | Done |
+| v98 | Content Access Runtime | Done |
+| v99 | Video Delivery Hardening | Done |
+| v100 | Student Learning Area | Done |
+| v101 | Progress Tracking | Done |
+| v102 | Assignments / Homework | Done |
+| v103 | Reviews / Feedback Loop | Done |
+| v104 | Messaging Core | Done |
+| v105 | Launch Hardening | Done |
+| v106 | Documentation Final Sync | Done |
+| v107 | Role Matrix / Permission Audit | Done |
+| v108 | Tenant Isolation Hardening | Done |
+| v109 | Admin Global Search | Done |
+| v110 | Support Console | Done |
+| v111 | Disputes / Chargebacks | Done |
+| v112 | Finance Documents | Done |
+| v113 | Tax / Legal Compliance | Done |
+| v114 | Observability Runtime | Done |
+| v115 | Ops Runbooks | Done |
+| v116 | CI/CD Production Gate | Done |
+| v117 | Demo Data / Seed Scenarios | Done |
+| v118 | Public Marketplace Hardening | Done |
+| v119 | Launch Candidate | Done |
+| v120 | Production Launch Pack | Current |
+
+Completed implementation line:
 
 - v70 — Integrity Snapshot
 - v72 — Repair Preview
@@ -41,9 +75,388 @@ Completed in the current line:
 - v103 — Reviews / Feedback Loop
 - v104 — Messaging Core
 - v105 — Launch Hardening
+- v106 — Documentation Final Sync
+- v107 — Role Matrix / Permission Audit
+- v108 — Tenant Isolation Hardening
+- v109 — Admin Global Search
+- v110 — Support Console
+- v111 — Disputes / Chargebacks
+- v112 — Finance Documents
+- v113 — Tax / Legal Compliance
+- v114 — Observability Runtime
+- v115 — Ops Runbooks
+- v116 — CI/CD Production Gate
+- v117 — Demo Data / Seed Scenarios
+- v118 — Public Marketplace Hardening
+- v119 — Launch Candidate
+- v120 — Production Launch Pack
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
+
+## Demo Data / Seed Scenarios
+
+v117 expands the demo seed layer for launch and smoke validation.
+
+Seed command:
+
+```bash
+python scripts/bootstrap/seed_demo.py
+```
+
+Seed users:
+
+- trainer: `trainer@example.com` / `trainer12345`
+- student: `student@example.com` / `student12345`
+
+Seed scenarios:
+
+- trainer with products: published program, paid video and bundle;
+- student with active course: paid order plus active entitlement;
+- failed payment: failed order/payment scenario;
+- refunded order: refunded bundle order/payment scenario;
+- payout ready: trainer wallet, ledger credit and approved payout request;
+- subscription expired: expired monthly subscription for the student.
+
+The declarative seed contract lives in `backend/scripts/bootstrap/seed_demo.py`; the executable idempotent database seed lives in `scripts/bootstrap/seed_demo.py`.
+
+## Public Marketplace Hardening
+
+v118 adds stable public marketplace landing contracts on top of the existing catalog.
+
+Public endpoints:
+
+```http
+GET /api/v1/public-catalog/
+GET /api/v1/public-catalog/landing/<entity-type>/<slug>/
+GET /api/v1/public-catalog/trainers/<trainer-slug>/landing/
+```
+
+The hardened marketplace payloads include:
+
+- SEO title, description and canonical path;
+- catalog, featured products and trainer attribution;
+- product pricing and checkout CTA;
+- review summary links;
+- access/refund messaging tied to entitlement runtime;
+- trainer profile, products, pricing and checkout CTA list.
+
+Frontend support:
+
+- `publicStorefrontApi.getMarketplaceHome()`;
+- `publicStorefrontApi.getContentLanding(entityType, slug)`;
+- `publicStorefrontApi.getTrainerLanding(slug)`.
+
+## Launch Candidate
+
+v119 adds the release candidate package.
+
+Project version:
+
+```text
+v120-production-launch-pack
+```
+
+Launch candidate API:
+
+```http
+GET /api/v1/ops/admin/launch-candidate/
+```
+
+Launch candidate artifacts:
+
+- `VERSION`
+- `docs/launch/launch_candidate_v119.md`
+- `scripts/ci/launch_gate.sh`
+- `scripts/ci/production_gate.sh`
+- `scripts/bootstrap/seed_demo.py`
+
+Launch candidate payload includes:
+
+- project version;
+- smoke checklist;
+- production environment checklist;
+- known limitations;
+- release notes;
+- ship condition and next step.
+
+## Production Launch Pack
+
+v120 adds the final production launch documentation and handoff pack.
+
+Production launch pack API:
+
+```http
+GET /api/v1/ops/admin/production-launch-pack/
+```
+
+Production docs:
+
+- `docs/launch/production/deploy.md`
+- `docs/launch/production/backup.md`
+- `docs/launch/production/monitoring.md`
+- `docs/launch/production/admin.md`
+- `docs/launch/production/trainer.md`
+- `docs/launch/production/student.md`
+- `docs/launch/production/README.md`
+
+Final gates:
+
+- `bash scripts/ci/production_gate.sh`
+- `bash scripts/ci/launch_gate.sh`
+- `cd backend && python manage.py check_production_readiness --json --fail-on-degraded`
+
+Release state:
+
+- previous stage: `v119-launch-candidate`
+- current stage: `v120-production-launch-pack`
+- next step: production deployment
+
+## Role Matrix / Permission Audit
+
+v107 adds backend-level role enforcement for operations APIs. Access is no longer treated as a UI-only concern.
+
+Roles:
+
+- `admin` — full operations access and write authority.
+- `trainer` — trainer dashboard/content/customer workflows.
+- `student` / `user` — learning, billing, assignments and messaging self-service.
+- `support` — read access to payment/audit/ops surfaces, notification resend/system-message support actions where allowed.
+- `finance` — payment read access and payout/finance operations.
+- `readonly_auditor` — read-only audit, payment, payout and ops visibility.
+
+API-level enforcement:
+
+- payments admin uses `IsAdminSupportFinanceReadonly`;
+- payout admin uses `IsFinanceOps`;
+- audit admin uses `IsAuditReader`;
+- ops admin/readiness views use method-aware admin/support/finance/readonly access;
+- notification admin uses `IsNotificationOperator`;
+- system messages are limited to admin/support via `IsAdminOrSupport`.
+
+## Tenant Isolation Hardening
+
+v108 adds runtime tenant scoping for commerce and operations data. Tenant membership is resolved through `TenantMembership.account_id`, mapped to active `Tenant.owner_account_id`, then applied to trainer-owned rows.
+
+Runtime scoping covers:
+
+- orders through order item/payment trainer metadata;
+- payments through order item/payment trainer metadata;
+- payment webhook events through linked payments;
+- entitlements through source order and entitlement metadata;
+- payout requests and payout balance entries through trainer wallet ownership.
+
+Self-service buyer endpoints still filter strictly by `request.user`. Global admins keep platform-wide visibility, while support/finance/readonly auditor roles require explicit tenant membership to see tenant rows.
+
+## Admin Global Search
+
+v109 adds a tenant-aware admin search endpoint:
+
+```http
+GET /api/v1/ops/admin/global-search/?q=<query>&categories=users,orders,payments&limit=10
+```
+
+Search categories:
+
+- `users`
+- `trainers`
+- `orders`
+- `payments`
+- `payouts`
+- `content`
+- `subscriptions`
+
+Each result includes `category`, `entity_type`, `entity_id`, `title`, `subtitle`, `status`, `href`, and metadata. Global admins can search platform-wide; support/finance/readonly operators only see tenant-scoped rows.
+
+## Support Console
+
+v110 adds support operations endpoints:
+
+```http
+GET /api/v1/ops/admin/support-console/?email=<user-email>
+POST /api/v1/ops/admin/support-console/notifications/resend/
+POST /api/v1/ops/admin/support-console/entitlements/fix/
+```
+
+The support console exposes a tenant-scoped user snapshot with:
+
+- user card;
+- orders;
+- payments;
+- entitlements;
+- failed/rejected/ignored webhook events;
+- notification deliveries.
+
+Support actions:
+
+- resend a notification delivery by resetting it to `pending`;
+- grant a manual entitlement with `source_type=admin_grant`;
+- revoke an entitlement;
+- record every action in audit with the support/admin operator as actor.
+
+## Disputes / Chargebacks
+
+v111 adds finance/admin chargeback operations:
+
+```http
+POST /api/v1/disputes/admin/chargebacks/open/
+POST /api/v1/disputes/admin/chargebacks/<operation-id>/evidence/
+POST /api/v1/disputes/admin/chargebacks/<operation-id>/resolve/
+```
+
+Chargeback lifecycle coverage:
+
+- dispute opened from a payment;
+- linked `DisputeCase` and `ChargebackOperation`;
+- payment/order risk state through the existing payment service;
+- automatic `access_hold` metadata on active order entitlements;
+- runtime access denial while the hold is active;
+- evidence submission with operator/timestamp metadata;
+- won outcome releases payout risk hold and entitlement access hold;
+- lost outcome marks payment/order as charged back and revokes entitlements;
+- admin audit trail for opened/evidence/won/lost actions.
+
+## Finance Documents
+
+v112 activates the finance documents module and adds admin finance document operations:
+
+```http
+GET /api/v1/finance-documents/admin/documents/
+POST /api/v1/finance-documents/admin/documents/build/
+GET /api/v1/finance-documents/admin/documents/accountant-export/
+POST /api/v1/finance-documents/admin/documents/<document-id>/finalize/
+```
+
+Supported document types:
+
+- `invoice`
+- `receipt`
+- `credit_note`
+- `refund_document`
+- `payout_act`
+- `statement`
+
+Finance document coverage:
+
+- invoice and receipt generation from order/payment;
+- credit note and refund document generation from payment/refund context;
+- immutable document numbers;
+- rendered HTML artifact body on generation;
+- admin/finance API permissions;
+- CSV export for accountant workflows;
+- audit trail for generated commercial documents.
+
+## Tax / Legal Compliance
+
+v113 activates the legal compliance module and adds runtime consent tracking:
+
+```http
+GET /api/v1/legal/me/documents/
+POST /api/v1/legal/me/documents/<document-id>/accept/
+GET /api/v1/legal/me/compliance-status/
+GET /api/v1/legal/me/consent-logs/
+```
+
+Legal compliance coverage:
+
+- active terms of service acceptance;
+- active privacy policy acceptance;
+- active refund policy acceptance;
+- trainer agreement acceptance for trainer actor checks;
+- consent logs with IP, user agent, document version and source;
+- compliance status showing missing required documents;
+- invoice legal payload fields from KYC/finance profile snapshots.
+
+## Observability Runtime
+
+v114 adds production runtime observability endpoints:
+
+```http
+GET /api/v1/observability/runtime/
+GET /api/v1/ops/admin/observability-runtime/
+```
+
+Runtime health coverage:
+
+- webhook failure rate;
+- payment error rate;
+- payout repair/manual review rate;
+- background job failures and outbox backlog;
+- health indicators for admin dashboards;
+- admin ops alerts with severity, code, detail and values.
+
+## Ops Runbooks
+
+v115 adds production incident runbooks and an admin runbook index:
+
+```http
+GET /api/v1/ops/admin/runbooks/
+GET /api/v1/ops/admin/runbooks/<runbook-key>/
+```
+
+Runbooks:
+
+- failed payment webhook;
+- wrong entitlement;
+- payout mismatch;
+- refund conflict;
+- database restore;
+- deployment rollback.
+
+Each runbook includes trigger, triage, repair/procedure, verification and escalation steps.
+
+## CI/CD Production Gate
+
+v116 adds a dedicated production gate script and CI job:
+
+```bash
+bash scripts/ci/production_gate.sh
+```
+
+The gate runs:
+
+- backend syntax compilation;
+- Django system check;
+- Django deploy/security check;
+- migration drift check;
+- full backend pytest;
+- backend contract tests;
+- production readiness command;
+- backend dependency integrity check;
+- frontend install, typecheck and build;
+- frontend contract tests;
+- frontend dependency audit at high severity or above.
+
+## Backend Modules
+
+Installed/runtime modules:
+
+- Commerce: `orders`, `payments`, `payouts`, `subscriptions`, `purchases`, `billing`, `entitlements`, `finance_documents`, `legal_compliance`.
+- Learning/content: `trainer_cms`, `content`, `videos`, `products`, `assignments`, `progress`, `reviews`, `messaging`.
+- Trainer/customer: `users`, `accounts`, `authn`, `customers`, `trainers`, `trainer_profiles`, `onboarding`, `favorites`, `public_catalog`, `categories`, `referrals`, `habits`.
+- Operations: `audit`, `ops`, `events`, `workflows`, `projections`, `observability`, `analytics`, `moderation`, `notifications`, `platform_settings`.
+
+Present but not fully wired in the active runtime settings yet:
+
+- `affiliates`, `cohorts`, `common`, `disputes`, `finance_reporting`, `gamification`, `live_sessions`, `promotions`.
+
+## Frontend Modules
+
+Admin modules:
+
+- `admin-payments`, `admin-payouts`, `admin-subscriptions`, `admin-audit`, `admin-operations`, `admin-reconciliation`, `admin-reconciliation-snapshots`, `admin-trainer-applications`, `admin-entity-details`, `admin-shell`.
+
+Customer/student modules:
+
+- `customer-billing`, `customer-hub`, `access-center`, `student-learning`, `content-runtime`, `assignments`, `messaging`, `notifications`, `payments`, `subscriptions`, `checkout`, `progress`.
+
+Trainer modules:
+
+- `trainer-dashboard`, `trainer-products`, `trainer-sales`, `trainer-crm`, `trainer-booking`, `trainer-revenue`, `trainer-payouts`, `trainer-analytics`, `trainer-onboarding`, `upload`, `trainers`.
+
+Public marketplace modules:
+
+- `public-storefront`, `reviews`, `referrals`, `auth`.
 
 ## Main User Surfaces
 
@@ -115,7 +528,7 @@ Targeted roadmap tests:
 
 ```bash
 cd backend
-pytest tests/test_notifications_v91_domain_triggers.py tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_production_readiness_v95.py tests/test_course_program_builder_v97.py tests/test_content_access_runtime_v98.py tests/test_video_delivery_hardening_v99.py tests/test_student_learning_area_v100.py tests/test_progress_tracking_v101.py tests/test_assignments_homework_v102.py tests/test_reviews_feedback_loop_v103.py tests/test_messaging_core_v104.py
+pytest tests/test_notifications_v91_domain_triggers.py tests/test_customer_crm_v92.py tests/test_booking_v93_schedule_waitlist.py tests/test_booking_v94_attendance_checkin.py tests/test_production_readiness_v95.py tests/test_course_program_builder_v97.py tests/test_content_access_runtime_v98.py tests/test_video_delivery_hardening_v99.py tests/test_student_learning_area_v100.py tests/test_progress_tracking_v101.py tests/test_assignments_homework_v102.py tests/test_reviews_feedback_loop_v103.py tests/test_messaging_core_v104.py tests/test_role_matrix_permissions_v107.py tests/test_tenant_isolation_v108.py tests/test_admin_global_search_v109.py tests/test_support_console_v110.py tests/test_disputes_chargebacks_v111.py tests/test_finance_documents_v112.py tests/test_legal_compliance_v113.py tests/test_observability_runtime_v114.py tests/test_ops_runbooks_v115.py tests/test_ci_cd_production_gate_v116.py tests/test_demo_seed_scenarios_v117.py tests/test_public_marketplace_hardening_v118.py tests/test_launch_candidate_v119.py tests/test_production_launch_pack_v120.py
 ```
 
 Frontend:
@@ -364,7 +777,7 @@ Implemented capabilities:
 - role matrix included in readiness output;
 - new API contracts for learning, progress, homework, reviews and messaging;
 - launch gate script for CI and local release checks;
-- CI `launch-hardening` job;
+- CI `launch-hardening` and `production-gate` jobs;
 - readiness seed data and smoke command registry updated.
 
 Important commands:

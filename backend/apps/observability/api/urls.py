@@ -5,6 +5,7 @@ from apps.observability.api.views import (
     LogRecordListView,
     MetricListView,
     ObservabilityOverviewView,
+    ObservabilityRuntimeView,
     TraceSpanListView,
 )
 
@@ -14,4 +15,5 @@ urlpatterns = [
     path('logs/', LogRecordListView.as_view(), name='observability-logs'),
     path('traces/', TraceSpanListView.as_view(), name='observability-traces'),
     path('correlations/<str:correlation_id>/', CorrelationDetailView.as_view(), name='observability-correlation-detail'),
+    path('runtime/', ObservabilityRuntimeView.as_view(), name='observability-runtime'),
 ]

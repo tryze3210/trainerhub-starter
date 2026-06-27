@@ -1,6 +1,7 @@
 from rest_framework import permissions, response, status, views
 from rest_framework.exceptions import NotFound
 
+from apps.access_control.permissions import IsAdminSupportFinanceReadonly
 from apps.reviews import selectors
 from apps.reviews.api.serializers import (
     ReviewCreateSerializer,
@@ -35,7 +36,7 @@ class TargetReviewsView(views.APIView):
 
 
 class AdminReviewTrustCenterView(views.APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminSupportFinanceReadonly]
 
     def get(self, request):
         days = int(request.query_params.get('days') or 30)
@@ -43,7 +44,7 @@ class AdminReviewTrustCenterView(views.APIView):
 
 
 class AdminPendingReviewListView(views.APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminSupportFinanceReadonly]
 
     def get(self, request):
         status_value = request.query_params.get('status') or Review.STATUS_PENDING
@@ -56,7 +57,7 @@ class AdminPendingReviewListView(views.APIView):
 
 
 class AdminReviewModerationView(views.APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminSupportFinanceReadonly]
 
     def post(self, request, review_id: str):
         serializer = ReviewModerationSerializer(data=request.data)
