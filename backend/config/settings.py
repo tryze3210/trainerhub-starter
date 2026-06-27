@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.progress',
     'apps.assignments',
     'apps.messaging',
+    "apps.disputes",
 ]
 
 MIDDLEWARE = [
