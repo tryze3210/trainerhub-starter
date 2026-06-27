@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v134
+# BUILD REPORT — TrainerHub v150
 
 ## Summary
 
-Current version: `v134`
+Current version: `v150`
 
 The repository has been updated through:
 
@@ -39,8 +39,24 @@ The repository has been updated through:
 - layout system: v132
 - component library: v133
 - theme engine: v134
+- motion / UI polish: v135
+- admin dashboard redesign: v136
+- trainer workspace redesign: v137
+- CRM redesign: v138
+- booking redesign: v139
+- payments redesign: v140
+- payouts redesign: v141
+- student portal redesign: v142
+- learning experience redesign: v143
+- public marketplace redesign: v144
+- mobile responsive pass: v145
+- premium charts: v146
+- drag and drop Kanban: v147
+- realtime notifications UI: v148
+- command palette / fast search: v149
+- premium UX completion: v150
 
-v134 adds light/dark, brand palette and white-label theme support for the redesign block.
+v150 closes the v146-v150 premium UX block with shared collaboration and activity primitives.
 
 ## Verification Performed In This Workspace
 
@@ -58,11 +74,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v134.
+- README current version and roadmap/status table updated to v150.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v134 theme-engine status.
+- BUILD_REPORT updated with v150 premium UX completion status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v134.
+- Frontend design-system contract extended for v131-v150.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -85,7 +101,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v134 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v150 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 
@@ -146,6 +162,29 @@ python manage.py check_production_readiness --json --fail-on-degraded
 
 Current completed roadmap block:
 
+- v131 — UI Design System
+- v132 — Layout System
+- v133 — Component Library
+- v134 — Theme Engine
+- v135 — Motion / UI Polish
+- v136 — Admin Dashboard
+- v137 — Trainer Workspace
+- v138 — CRM
+- v139 — Booking
+- v140 — Payments
+- v141 — Payouts
+- v142 — Student Portal
+- v143 — Learning Experience
+- v144 — Public Marketplace
+- v145 — Mobile Responsive Pass
+- v146 — Premium Charts
+- v147 — Drag And Drop Kanban
+- v148 — Realtime Notifications UI
+- v149 — Command Palette / Fast Search
+- v150 — Premium UX Completion
+
+Previously completed production-launch block:
+
 - v106 — Documentation Final Sync
 - v107 — Role Matrix / Permission Audit
 - v108 — Tenant Isolation Hardening
@@ -171,4 +210,4 @@ Recently closed launch block:
 
 Roadmap closure:
 
-Production launch pack is now the active closure artifact for this roadmap.
+The production launch pack remains the active backend release artifact; v150 closes the frontend premium UX block.

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
+import { DSCard, DSSection, DSSkeleton, DSStatCard, DSStatusDot } from '@/design-system';
 import {
   adminPayoutsApi,
   type AdminPayoutOverview,
@@ -119,37 +120,35 @@ function toneClass(status: string | undefined) {
   return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
+function toneFromStatus(status: string | undefined): 'neutral' | 'primary' | 'success' | 'warning' | 'danger' {
+  if (!status) return 'neutral';
+  if (['paid', 'healthy', 'ok'].includes(status)) return 'success';
+  if (['rejected', 'failed', 'critical'].includes(status)) return 'danger';
+  if (['processing', 'approved', 'attention_required', 'degraded'].includes(status)) return 'warning';
+  return 'neutral';
+}
+
 function MetricCard({ label, value, hint, status }: { label: string; value: string; hint?: string; status?: string }) {
-  return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${toneClass(status)}`}>
-      <div className="text-xs font-medium uppercase tracking-wide opacity-70">{label}</div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
-      {hint ? <div className="mt-1 text-xs opacity-75">{hint}</div> : null}
-    </div>
-  );
+  return <DSStatCard label={label} value={value} hint={hint} tone={toneFromStatus(status)} />;
 }
 
 function HealthIndicator({ label, status, detail }: { label: string; status: string; detail: string }) {
   return (
-    <div className={`rounded-2xl border p-4 ${toneClass(status)}`}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-medium">{label}</span>
-        <span className="rounded-full border border-current px-2 py-1 text-xs uppercase">{status}</span>
+    <DSCard compact tone={toneFromStatus(status)}>
+      <div className="row">
+        <strong>{label}</strong>
+        <DSStatusDot tone={toneFromStatus(status)} label={status} />
       </div>
-      <p className="mt-2 text-sm opacity-80">{detail}</p>
-    </div>
+      <p className="muted" style={{ marginTop: 8 }}>{detail}</p>
+    </DSCard>
   );
 }
 
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
-        {description ? <p className="text-sm text-slate-600">{description}</p> : null}
-      </div>
-      {children}
-    </section>
+    <DSSection title={title} description={description}>
+      <DSCard compact>{children}</DSCard>
+    </DSSection>
   );
 }
 
@@ -543,7 +542,7 @@ export function AdminPayoutOperationsDashboard() {
   };
 
   if (!isAdmin) {
-    return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">У текущей сессии нет admin-role.</div>;
+    return <DSCard tone="warning">У текущей сессии нет admin-role.</DSCard>;
   }
 
   return (
@@ -567,7 +566,7 @@ export function AdminPayoutOperationsDashboard() {
           </div>
         </div>
         {message ? <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">{message}</div> : null}
-        {loading && state.payouts.length === 0 ? <div className="mt-4 text-sm text-slate-500">Загружаем payout operations…</div> : null}
+        {loading && state.payouts.length === 0 ? <div className="mt-4"><DSSkeleton lines={4} /></div> : null}
       </div>
 
       <Section title="Фильтры и meta" description="Эти фильтры применяются к payout queue, ops summary, reconciliation snapshot и CSV exports.">

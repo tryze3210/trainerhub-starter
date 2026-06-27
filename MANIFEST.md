@@ -1,13 +1,13 @@
-# MANIFEST — TrainerHub v134
+# MANIFEST — TrainerHub v150
 
-This manifest describes the current repository state after v134 Theme Engine.
+This manifest describes the current repository state after v150 Premium UX Completion.
 
 ## Current Version
 
-- Current roadmap version: `v134`
+- Current roadmap version: `v150`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
-- Active planning block: `v131-v150` UX redesign and premium experience
+- Closed UX block: `v131-v150` UX redesign and premium experience
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -228,17 +228,101 @@ Production launch pack modules and contracts:
 UI design system modules and contracts:
 
 - `frontend/src/design-system/tokens.ts` — shared frontend design tokens.
-- `frontend/src/design-system/components.tsx` — shared UI primitives for buttons, cards, forms, tables, modal shell and statistics cards.
+- `frontend/src/design-system/components.tsx` — shared UI primitives for buttons, cards, forms, tables, modal shell, command palette and statistics cards.
+- `frontend/src/design-system/feedback.tsx` — shared skeleton, empty state, toast, live indicator, notification feed, presence stack, activity timeline, transition and status feedback primitives.
 - `frontend/src/design-system/layouts.tsx` — shared layout primitives for admin, trainer, student, public and mobile layouts.
-- `frontend/src/design-system/library.tsx` — shared DataTable, chart, calendar, Kanban, upload, rich text, video and statistics catalog.
+- `frontend/src/design-system/library.tsx` — shared DataTable, chart, premium chart, draggable Kanban, calendar, upload, rich text, video and statistics catalog.
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v134 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v150 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
 - `docs/design-system/v134_theme_engine.md` — v134 theme-engine notes.
+- `docs/design-system/v135_motion_ui_polish.md` — v135 motion/ui polish notes.
+- `docs/design-system/v146_premium_charts.md` — v146 premium chart notes.
+- `docs/design-system/v147_drag_drop_kanban.md` — v147 drag-and-drop Kanban notes.
+- `docs/design-system/v148_realtime_notifications_ui.md` — v148 realtime notifications UI notes.
+- `docs/design-system/v149_command_palette.md` — v149 command palette notes.
+- `docs/design-system/v150_premium_ux_completion.md` — v150 premium UX completion notes.
+
+Admin dashboard redesign modules:
+
+- `frontend/src/app/admin/page.tsx` — v136 admin cockpit using shared design-system primitives.
+
+Trainer workspace redesign modules:
+
+- `frontend/src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx` — v137 trainer layout and side navigation using shared primitives.
+- `frontend/src/app/trainer/dashboard/page.tsx` — v137 trainer dashboard using shared statistics, chart, section and feedback primitives.
+
+CRM redesign modules:
+
+- `frontend/src/modules/trainer-crm/components/trainer-crm-dashboard.tsx` — v138 trainer CRM dashboard using shared table, form, section and feedback primitives.
+
+Booking redesign modules:
+
+- `frontend/src/modules/trainer-booking/components/trainer-booking-dashboard.tsx` — v139 trainer booking dashboard using shared calendar, table, form, section and feedback primitives.
+
+Payments redesign modules:
+
+- `frontend/src/modules/admin-payments/components/admin-payment-operations-dashboard.tsx` — v140 admin payment operations dashboard using shared table, form, statistics, section and feedback primitives.
+
+Payouts redesign modules:
+
+- `frontend/src/modules/admin-payouts/components/admin-payout-operations-dashboard.tsx` — v141 admin payout operations dashboard shell using shared card, statistics, section, skeleton and status primitives.
+
+Student portal redesign modules:
+
+- `frontend/src/app/customer/hub/page.tsx` — v142 customer/student marketplace hub using shared header, statistics, section, skeleton and feedback primitives.
+
+Learning experience redesign modules:
+
+- `frontend/src/app/learning/page.tsx` — v143 student learning area using shared header, statistics, section, skeleton and feedback primitives.
+
+Public marketplace redesign modules:
+
+- `frontend/src/modules/public-storefront/components/marketplace-catalog-page.tsx` — v144 public catalog using shared header, form, badge, section, skeleton and feedback primitives.
+
+Mobile responsive pass modules:
+
+- `frontend/src/app/globals.css` — v145 mobile responsive hardening for shared layout, cards, tables, calendar, Kanban, modal, toast, upload and rich text primitives.
+- `frontend/tests/contracts/design-system-contract.test.js` — v145 mobile CSS contract checks.
+
+Premium charts modules:
+
+- `frontend/src/design-system/library.tsx` — v146 premium line chart, donut chart and insight chart card primitives.
+- `frontend/src/app/globals.css` — v146 premium chart, line chart, donut chart and mobile chart styling.
+- `frontend/tests/contracts/design-system-contract.test.js` — v146 premium chart contract checks.
+- `docs/design-system/v146_premium_charts.md` — v146 premium chart implementation notes.
+
+Drag-and-drop Kanban modules:
+
+- `frontend/src/design-system/library.tsx` — v147 Kanban move payload and native drag/drop event hooks.
+- `frontend/src/app/globals.css` — v147 Kanban draggable card and dropzone states.
+- `frontend/tests/contracts/design-system-contract.test.js` — v147 Kanban drag/drop contract checks.
+- `docs/design-system/v147_drag_drop_kanban.md` — v147 Kanban drag/drop implementation notes.
+
+Realtime notifications UI modules:
+
+- `frontend/src/design-system/feedback.tsx` — v148 live indicator and notification feed primitives.
+- `frontend/src/app/globals.css` — v148 realtime indicator, notification feed, unread and mobile feed states.
+- `frontend/tests/contracts/design-system-contract.test.js` — v148 realtime notification UI contract checks.
+- `docs/design-system/v148_realtime_notifications_ui.md` — v148 realtime notification UI implementation notes.
+
+Command palette modules:
+
+- `frontend/src/design-system/components.tsx` — v149 controlled command palette and command item types.
+- `frontend/src/app/globals.css` — v149 command palette overlay, grouped results, shortcut and mobile styles.
+- `frontend/tests/contracts/design-system-contract.test.js` — v149 command palette contract checks.
+- `docs/design-system/v149_command_palette.md` — v149 command palette implementation notes.
+
+Premium UX completion modules:
+
+- `frontend/src/design-system/feedback.tsx` — v150 collaborator presence stack and activity timeline primitives.
+- `frontend/src/app/globals.css` — v150 presence, collaborator status, activity timeline and mobile collaboration styles.
+- `frontend/tests/contracts/design-system-contract.test.js` — v150 premium UX completion contract checks.
+- `docs/design-system/v150_premium_ux_completion.md` — v150 premium UX completion notes.
 
 ## Roadmap Status
 
@@ -266,8 +350,23 @@ UI design system modules and contracts:
 | v131 | UI design system | Done |
 | v132 | Layout system | Done |
 | v133 | Component library | Done |
-| v134 | Theme engine | Current |
-| v135 | Motion / UI polish | Planned |
+| v134 | Theme engine | Done |
+| v135 | Motion / UI polish | Done |
+| v136 | Admin dashboard | Done |
+| v137 | Trainer workspace | Done |
+| v138 | CRM | Done |
+| v139 | Booking | Done |
+| v140 | Payments | Done |
+| v141 | Payouts | Done |
+| v142 | Student portal | Done |
+| v143 | Learning experience | Done |
+| v144 | Public marketplace | Done |
+| v145 | Mobile responsive pass | Done |
+| v146 | Premium charts | Done |
+| v147 | Drag and drop Kanban | Done |
+| v148 | Realtime notifications UI | Done |
+| v149 | Command palette / fast search | Done |
+| v150 | Premium UX completion | Current |
 
 ## Current Frontend Modules
 

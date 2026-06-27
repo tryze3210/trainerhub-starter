@@ -1,9 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
+import {
+  DSBadge,
+  DSDataTable,
+  DSEmptyState,
+  DSSection,
+  DSSelect,
+  DSSkeleton,
+  DSStatsGrid,
+  DSStatusDot,
+  DSTextField,
+  DSTransitionPanel,
+} from '@/design-system';
 import {
   adminPaymentsApi,
   type AdminPayment,
@@ -72,25 +83,9 @@ function flattenRefunds(payments: AdminPayment[]): RefundRow[] {
   );
 }
 
-function StatCard({ title, value, hint }: { title: string; value: string | number; hint?: string }) {
-  return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
-      </div>
-    </div>
-  );
-}
-
-function Badge({ children }: { children: ReactNode }) {
-  return <span className="badge secondary">{children}</span>;
-}
-
 function IssueList({ issues }: { issues: PaymentReconciliationIssue[] }) {
   if (!issues.length) {
-    return <p className="muted">Payment reconciliation issues не найдены.</p>;
+    return <DSEmptyState title="Reconciliation issues не найдены" description="Платежи, provider events и entitlements сейчас согласованы." />;
   }
 
   return (
@@ -100,9 +95,9 @@ function IssueList({ issues }: { issues: PaymentReconciliationIssue[] }) {
           <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
             <div className="stack" style={{ gap: 6 }}>
               <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
-                <Badge>{issue.severity}</Badge>
-                <Badge>{issue.code}</Badge>
-                <Badge>{issue.entity_type}</Badge>
+                <DSBadge tone={issue.severity === 'critical' ? 'danger' : 'secondary'}>{issue.severity}</DSBadge>
+                <DSBadge tone="secondary">{issue.code}</DSBadge>
+                <DSBadge tone="secondary">{issue.entity_type}</DSBadge>
               </div>
               <strong>{issue.message}</strong>
               <span className="muted">{issue.suggested_action}</span>
@@ -119,96 +114,82 @@ function IssueList({ issues }: { issues: PaymentReconciliationIssue[] }) {
 
 function RefundsTable({ refunds }: { refunds: RefundRow[] }) {
   if (!refunds.length) {
-    return <p className="muted">Refund operations пока нет.</p>;
+    return <DSEmptyState title="Refund operations пока нет" description="Возвраты появятся здесь после partial/full refund." />;
   }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Refund</th>
-            <th>Payment</th>
-            <th>Buyer</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Reason</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody>
-          {refunds.slice(0, 20).map((refund, index) => (
-            <tr key={`${refund.payment_id}:${refund.refund_id || index}`}>
-              <td>{shortId(refund.refund_id || String(index + 1))}</td>
-              <td>
-                <Link href={`/admin/entities/payment/${refund.payment_id}`}>{shortId(refund.payment_id)}</Link>
-              </td>
-              <td>{refund.buyer_email || '-'}</td>
-              <td>{money(refund.amount, refund.currency)}</td>
-              <td>{statusLabel(refund.status || refund.type)}</td>
-              <td>{String(refund.reason || '-')}</td>
-              <td>{formatDate(refund.completed_at || refund.requested_at || refund.created_at)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DSDataTable
+      columns={[
+        { key: 'refund', label: 'Refund' },
+        { key: 'payment', label: 'Payment' },
+        { key: 'buyer', label: 'Buyer' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'status', label: 'Status' },
+        { key: 'reason', label: 'Reason' },
+        { key: 'timestamp', label: 'Timestamp' },
+      ]}
+      rows={refunds.slice(0, 20).map((refund, index) => ({
+        refund: shortId(refund.refund_id || String(index + 1)),
+        payment: <Link href={`/admin/entities/payment/${refund.payment_id}`}>{shortId(refund.payment_id)}</Link>,
+        buyer: refund.buyer_email || '-',
+        amount: money(refund.amount, refund.currency),
+        status: statusLabel(refund.status || refund.type),
+        reason: String(refund.reason || '-'),
+        timestamp: formatDate(refund.completed_at || refund.requested_at || refund.created_at),
+      }))}
+      getRowKey={(_, index) => `${refunds[index]?.payment_id}:${refunds[index]?.refund_id || index}`}
+    />
   );
 }
 
 function PaymentsTable({ payments }: { payments: AdminPayment[] }) {
   if (!payments.length) {
-    return <p className="muted">Payments по текущему фильтру не найдены.</p>;
+    return <DSEmptyState title="Payments не найдены" description="Измени фильтры или обнови список." />;
   }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Payment</th>
-            <th>Buyer</th>
-            <th>Status</th>
-            <th>Amount</th>
-            <th>Order</th>
-            <th>Entitlement</th>
-            <th>Refunds</th>
-            <th>Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payments.map((payment) => (
-            <tr key={payment.id}>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <Link href={`/admin/entities/payment/${payment.id}`}>{shortId(payment.id)}</Link>
-                  <span className="muted">{payment.provider} · {shortId(payment.external_payment_id)}</span>
-                </div>
-              </td>
-              <td>{payment.buyer_email || '-'}</td>
-              <td><Badge>{payment.status}</Badge></td>
-              <td>{money(payment.amount, payment.currency)}</td>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <Link href={`/admin/entities/order/${payment.order_id}`}>{shortId(payment.order_id)}</Link>
-                  <span className="muted">{statusLabel(payment.order_status)} · {statusLabel(payment.order_type)}</span>
-                </div>
-              </td>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <Badge>{payment.entitlement_summary?.status || 'unknown'}</Badge>
-                  <span className="muted">
-                    {payment.entitlement_summary?.active || 0} active / {payment.entitlement_summary?.total || 0} total
-                  </span>
-                </div>
-              </td>
-              <td>{payment.refund_operations?.length || 0}</td>
-              <td>{formatDate(payment.updated_at || payment.created_at)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DSDataTable
+      columns={[
+        { key: 'payment', label: 'Payment' },
+        { key: 'buyer', label: 'Buyer' },
+        { key: 'status', label: 'Status' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'order', label: 'Order' },
+        { key: 'entitlement', label: 'Entitlement' },
+        { key: 'refunds', label: 'Refunds' },
+        { key: 'updated', label: 'Updated' },
+      ]}
+      rows={payments.map((payment) => ({
+        payment: (
+          <div className="stack" style={{ gap: 4 }}>
+            <Link href={`/admin/entities/payment/${payment.id}`}>{shortId(payment.id)}</Link>
+            <span className="muted">{payment.provider} · {shortId(payment.external_payment_id)}</span>
+          </div>
+        ),
+        buyer: payment.buyer_email || '-',
+        status: <DSBadge tone={payment.status === 'succeeded' ? 'success' : payment.status === 'failed' ? 'danger' : 'secondary'}>{payment.status}</DSBadge>,
+        amount: money(payment.amount, payment.currency),
+        order: (
+          <div className="stack" style={{ gap: 4 }}>
+            <Link href={`/admin/entities/order/${payment.order_id}`}>{shortId(payment.order_id)}</Link>
+            <span className="muted">{statusLabel(payment.order_status)} · {statusLabel(payment.order_type)}</span>
+          </div>
+        ),
+        entitlement: (
+          <div className="stack" style={{ gap: 4 }}>
+            <DSBadge tone={payment.entitlement_summary?.status === 'active' ? 'success' : 'secondary'}>
+              {payment.entitlement_summary?.status || 'unknown'}
+            </DSBadge>
+            <span className="muted">
+              {payment.entitlement_summary?.active || 0} active / {payment.entitlement_summary?.total || 0} total
+            </span>
+          </div>
+        ),
+        refunds: payment.refund_operations?.length || 0,
+        updated: formatDate(payment.updated_at || payment.created_at),
+      }))}
+      getRowKey={(_, index) => payments[index]?.id || String(index)}
+    />
   );
 }
 
@@ -222,54 +203,47 @@ function WebhooksTable({
   busyWebhookId: string;
 }) {
   if (!webhooks.length) {
-    return <p className="muted">Webhook events по текущему фильтру не найдены.</p>;
+    return <DSEmptyState title="Webhook events не найдены" description="Измени фильтры или обнови список." />;
   }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Webhook</th>
-            <th>Provider</th>
-            <th>Event</th>
-            <th>Status</th>
-            <th>Payment</th>
-            <th>Attempts</th>
-            <th>Received</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {webhooks.map((webhook) => (
-            <tr key={webhook.id}>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <Link href={`/admin/entities/payment_webhook/${webhook.id}`}>{shortId(webhook.id)}</Link>
-                  <span className="muted">{shortId(webhook.external_event_id)}</span>
-                </div>
-              </td>
-              <td>{webhook.provider}</td>
-              <td>{webhook.event_type}</td>
-              <td><Badge>{webhook.status}</Badge></td>
-              <td>{webhook.payment_id ? <Link href={`/admin/entities/payment/${webhook.payment_id}`}>{shortId(webhook.payment_id)}</Link> : '-'}</td>
-              <td>{webhook.attempts}</td>
-              <td>{formatDate(webhook.received_at || webhook.created_at)}</td>
-              <td>
-                <button
-                  type="button"
-                  className="button secondary sm"
-                  disabled={busyWebhookId === webhook.id}
-                  onClick={() => onReprocess(webhook)}
-                >
-                  {busyWebhookId === webhook.id ? '...' : 'Reprocess'}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DSDataTable
+      columns={[
+        { key: 'webhook', label: 'Webhook' },
+        { key: 'provider', label: 'Provider' },
+        { key: 'event', label: 'Event' },
+        { key: 'status', label: 'Status' },
+        { key: 'payment', label: 'Payment' },
+        { key: 'attempts', label: 'Attempts' },
+        { key: 'received', label: 'Received' },
+        { key: 'action', label: 'Action' },
+      ]}
+      rows={webhooks.map((webhook) => ({
+        webhook: (
+          <div className="stack" style={{ gap: 4 }}>
+            <Link href={`/admin/entities/payment_webhook/${webhook.id}`}>{shortId(webhook.id)}</Link>
+            <span className="muted">{shortId(webhook.external_event_id)}</span>
+          </div>
+        ),
+        provider: webhook.provider,
+        event: webhook.event_type,
+        status: <DSBadge tone={webhook.status === 'failed' || webhook.status === 'rejected' ? 'danger' : 'secondary'}>{webhook.status}</DSBadge>,
+        payment: webhook.payment_id ? <Link href={`/admin/entities/payment/${webhook.payment_id}`}>{shortId(webhook.payment_id)}</Link> : '-',
+        attempts: webhook.attempts,
+        received: formatDate(webhook.received_at || webhook.created_at),
+        action: (
+          <button
+            type="button"
+            className="button secondary sm"
+            disabled={busyWebhookId === webhook.id}
+            onClick={() => onReprocess(webhook)}
+          >
+            {busyWebhookId === webhook.id ? '...' : 'Reprocess'}
+          </button>
+        ),
+      }))}
+      getRowKey={(_, index) => webhooks[index]?.id || String(index)}
+    />
   );
 }
 
@@ -332,43 +306,50 @@ export function AdminPaymentOperationsDashboard() {
       {!isAdmin ? <div className="card error">У текущей сессии нет admin-role.</div> : null}
 
       {message ? <div className="card">{message}</div> : null}
+      {loading ? <div className="card"><DSSkeleton lines={4} /></div> : null}
 
-      <div className="grid-4">
-        <StatCard title="Payments" value={state.payments.length} hint={`${paymentBuckets.succeeded || 0} succeeded`} />
-        <StatCard title="Refund operations" value={refunds.length} hint={`${paymentBuckets.refunded || 0} refunded payments`} />
-        <StatCard title="Webhook issues" value={(webhookBuckets.failed || 0) + (webhookBuckets.rejected || 0)} hint={`${state.webhooks.length} loaded`} />
-        <StatCard
-          title="Reconciliation"
-          value={state.reconciliation?.status || '-'}
-          hint={`${state.reconciliation?.summary.total_issues || 0} issues`}
-        />
-      </div>
+      <DSStatsGrid
+        stats={[
+          { label: 'Payments', value: state.payments.length, hint: `${paymentBuckets.succeeded || 0} succeeded`, tone: 'primary' },
+          { label: 'Refund operations', value: refunds.length, hint: `${paymentBuckets.refunded || 0} refunded payments`, tone: refunds.length > 0 ? 'warning' : 'neutral' },
+          {
+            label: 'Webhook issues',
+            value: (webhookBuckets.failed || 0) + (webhookBuckets.rejected || 0),
+            hint: `${state.webhooks.length} loaded`,
+            tone: (webhookBuckets.failed || 0) + (webhookBuckets.rejected || 0) > 0 ? 'danger' : 'success',
+          },
+          {
+            label: 'Reconciliation',
+            value: state.reconciliation?.status || '-',
+            hint: `${state.reconciliation?.summary.total_issues || 0} issues`,
+            tone: state.reconciliation?.status === 'ok' ? 'success' : 'warning',
+          },
+        ]}
+      />
 
-      <div className="card">
-        <div className="row" style={{ gap: 16, alignItems: 'flex-end' }}>
-          <div className="stack" style={{ gap: 8 }}>
-            <span className="badge secondary">Payments</span>
-            <h2 className="title-md">Payment ledger</h2>
-          </div>
-          <div className="inline" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <select
-              className="input"
+      <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
+      <DSSection
+        title="Payment ledger"
+        description="Payments, buyer, order and entitlement status."
+        actions={
+          <>
+            <DSSelect
+              label="Payment status"
               value={paymentFilters.status || ''}
               onChange={(event) => setPaymentFilters((prev) => ({ ...prev, status: event.target.value }))}
-              aria-label="Payment status"
             >
               {PAYMENT_STATUSES.map((status) => (
                 <option key={status || 'all'} value={status}>{status || 'all statuses'}</option>
               ))}
-            </select>
-            <input
-              className="input"
+            </DSSelect>
+            <DSTextField
+              label="Provider"
               value={paymentFilters.provider || ''}
               onChange={(event) => setPaymentFilters((prev) => ({ ...prev, provider: event.target.value }))}
               placeholder="provider"
             />
-            <input
-              className="input"
+            <DSTextField
+              label="Buyer email"
               value={paymentFilters.buyer_email || ''}
               onChange={(event) => setPaymentFilters((prev) => ({ ...prev, buyer_email: event.target.value }))}
               placeholder="buyer email"
@@ -376,104 +357,98 @@ export function AdminPaymentOperationsDashboard() {
             <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
               {loading ? 'Loading...' : 'Refresh'}
             </button>
-          </div>
-        </div>
-        <div style={{ marginTop: 18 }}>
+          </>
+        }
+      >
+        <div className="card compact">
           <PaymentsTable payments={state.payments} />
         </div>
-      </div>
+      </DSSection>
 
       <div className="grid-3">
-        <div className="card">
-          <h2 className="title-md">Entitlement status</h2>
-          <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+        <DSSection title="Entitlement status" description="Payment-linked entitlement outcomes.">
+          <div className="card compact stack" style={{ gap: 10 }}>
             {Object.entries(entitlementBuckets).map(([status, count]) => (
               <div className="list-item" key={status}>
-                <span className="muted">{statusLabel(status)}</span>
+                <DSStatusDot tone={status === 'active' ? 'success' : 'warning'} label={statusLabel(status)} />
                 <strong>{count}</strong>
               </div>
             ))}
+            {!Object.keys(entitlementBuckets).length ? <DSEmptyState title="Нет entitlement статусов" description="Статусы появятся после загрузки payments." /> : null}
           </div>
-        </div>
-        <div className="card">
-          <h2 className="title-md">Payment statuses</h2>
-          <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+        </DSSection>
+        <DSSection title="Payment statuses" description="Loaded payment status buckets.">
+          <div className="card compact stack" style={{ gap: 10 }}>
             {Object.entries(paymentBuckets).map(([status, count]) => (
               <div className="list-item" key={status}>
-                <span className="muted">{statusLabel(status)}</span>
+                <DSStatusDot tone={status === 'succeeded' ? 'success' : status === 'failed' ? 'danger' : 'primary'} label={statusLabel(status)} />
                 <strong>{count}</strong>
               </div>
             ))}
           </div>
-        </div>
-        <div className="card">
-          <h2 className="title-md">Webhook statuses</h2>
-          <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+        </DSSection>
+        <DSSection title="Webhook statuses" description="Provider event intake buckets.">
+          <div className="card compact stack" style={{ gap: 10 }}>
             {Object.entries(webhookBuckets).map(([status, count]) => (
               <div className="list-item" key={status}>
-                <span className="muted">{statusLabel(status)}</span>
+                <DSStatusDot tone={status === 'failed' || status === 'rejected' ? 'danger' : 'primary'} label={statusLabel(status)} />
                 <strong>{count}</strong>
               </div>
             ))}
           </div>
-        </div>
+        </DSSection>
       </div>
 
-      <div className="card">
-        <div className="row" style={{ gap: 16, alignItems: 'flex-end' }}>
-          <div className="stack" style={{ gap: 8 }}>
-            <span className="badge secondary">Webhook events</span>
-            <h2 className="title-md">Provider event intake</h2>
-          </div>
-          <div className="inline" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <select
-              className="input"
+      <DSSection
+        title="Provider event intake"
+        description="Webhook events with reprocess action."
+        actions={
+          <>
+            <DSSelect
+              label="Webhook status"
               value={webhookFilters.status || ''}
               onChange={(event) => setWebhookFilters((prev) => ({ ...prev, status: event.target.value }))}
-              aria-label="Webhook status"
             >
               {WEBHOOK_STATUSES.map((status) => (
                 <option key={status || 'all'} value={status}>{status || 'all statuses'}</option>
               ))}
-            </select>
-            <input
-              className="input"
+            </DSSelect>
+            <DSTextField
+              label="Provider"
               value={webhookFilters.provider || ''}
               onChange={(event) => setWebhookFilters((prev) => ({ ...prev, provider: event.target.value }))}
               placeholder="provider"
             />
-            <input
-              className="input"
+            <DSTextField
+              label="Event type"
               value={webhookFilters.event_type || ''}
               onChange={(event) => setWebhookFilters((prev) => ({ ...prev, event_type: event.target.value }))}
               placeholder="event type"
             />
-          </div>
-        </div>
-        <div style={{ marginTop: 18 }}>
+          </>
+        }
+      >
+        <div className="card compact">
           <WebhooksTable webhooks={state.webhooks} onReprocess={reprocess} busyWebhookId={busyWebhookId} />
         </div>
-      </div>
+      </DSSection>
 
-      <div className="card">
-        <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-          <span className="badge secondary">Refunds</span>
-          <h2 className="title-md">Refund operations</h2>
-        </div>
+      <DSSection title="Refund operations" description="Partial/full refund audit rows.">
+        <div className="card compact">
         <RefundsTable refunds={refunds} />
-      </div>
-
-      <div className="card">
-        <div className="row" style={{ gap: 12, alignItems: 'flex-start', marginBottom: 18 }}>
-          <div className="stack" style={{ gap: 8 }}>
-            <span className="badge secondary">Reconciliation issues</span>
-            <h2 className="title-md">Provider payments, internal payments, entitlements</h2>
-            <p className="muted">Generated: {formatDate(state.reconciliation?.generated_at)}</p>
-          </div>
-          <Badge>{state.reconciliation?.summary.critical_count || 0} critical</Badge>
         </div>
-        <IssueList issues={state.reconciliation?.issues || []} />
-      </div>
+      </DSSection>
+
+      <DSSection
+        title="Provider payments, internal payments, entitlements"
+        description={`Generated: ${formatDate(state.reconciliation?.generated_at)}`}
+        actions={<DSBadge tone={(state.reconciliation?.summary.critical_count || 0) > 0 ? 'danger' : 'success'}>{state.reconciliation?.summary.critical_count || 0} critical</DSBadge>}
+      >
+        <div className="card compact">
+          <IssueList issues={state.reconciliation?.issues || []} />
+        </div>
+      </DSSection>
+      </DSTransitionPanel>
     </section>
   );
 }

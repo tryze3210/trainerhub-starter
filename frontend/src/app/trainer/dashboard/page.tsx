@@ -4,6 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
 import { checkoutApi, onboardingApi, paymentsApi, privateApi, trainersApi } from '@/lib/api';
+import {
+  DSBarChart,
+  DSEmptyState,
+  DSSection,
+  DSSkeleton,
+  DSStatsGrid,
+  DSStatusDot,
+  DSTransitionPanel,
+} from '@/design-system';
 import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
 import type { OnboardingStatus, Order, Payment, TrainerCmsDashboard, TrainerProfile, TrainerRevenueDashboard } from '@/types/api';
 
@@ -82,33 +91,79 @@ export default function TrainerDashboardPage() {
           <div className="card warning">Текущая сессия не является trainer-аккаунтом.</div>
         ) : null}
 
-        {loading ? <div className="card"><p className="muted">Загружаем dashboard…</p></div> : null}
+        {loading ? (
+          <div className="card">
+            <DSSkeleton lines={5} />
+          </div>
+        ) : null}
         {error ? <div className="card error">{error}</div> : null}
 
         {state ? (
-          <>
-            <div className="grid-4">
-              <div className="card"><div className="kpi"><span className="muted">Onboarding</span><strong>{state.onboarding?.summary.completion_percent || 0}%</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Заказы</span><strong>{state.orders.length}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Платежи</span><strong>{state.payments.length}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Оборот</span><strong>{grossRevenue.toFixed(2)} RUB</strong></div></div>
-            </div>
+          <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
+            <DSStatsGrid
+              stats={[
+                {
+                  label: 'Onboarding',
+                  value: `${state.onboarding?.summary.completion_percent || 0}%`,
+                  hint: 'Profile readiness',
+                  tone: (state.onboarding?.summary.completion_percent || 0) >= 100 ? 'success' : 'warning',
+                },
+                {
+                  label: 'Заказы',
+                  value: state.orders.length,
+                  hint: 'All visible orders',
+                  tone: 'primary',
+                },
+                {
+                  label: 'Платежи',
+                  value: state.payments.length,
+                  hint: 'Payment records',
+                  tone: 'primary',
+                },
+                {
+                  label: 'Оборот',
+                  value: `${grossRevenue.toFixed(2)} RUB`,
+                  hint: 'Gross payment volume',
+                  tone: 'success',
+                },
+              ]}
+            />
 
-            <div className="grid-4">
-              <div className="card"><div className="kpi"><span className="muted">Revenue 30d</span><strong>{formatMoney(state.revenue?.summary.revenue_last_30_days, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Available balance</span><strong>{formatMoney(state.revenue?.summary.available_amount, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Reserved</span><strong>{formatMoney(state.revenue?.summary.reserved_amount, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Avg order</span><strong>{formatMoney(state.revenue?.summary.avg_order_value, currency)}</strong></div></div>
-            </div>
+            <DSStatsGrid
+              stats={[
+                {
+                  label: 'Revenue 30d',
+                  value: formatMoney(state.revenue?.summary.revenue_last_30_days, currency),
+                  hint: 'Last 30 days',
+                  tone: 'success',
+                },
+                {
+                  label: 'Available balance',
+                  value: formatMoney(state.revenue?.summary.available_amount, currency),
+                  hint: 'Ready for payout',
+                  tone: 'success',
+                },
+                {
+                  label: 'Reserved',
+                  value: formatMoney(state.revenue?.summary.reserved_amount, currency),
+                  hint: 'Held by policy',
+                  tone: 'warning',
+                },
+                {
+                  label: 'Avg order',
+                  value: formatMoney(state.revenue?.summary.avg_order_value, currency),
+                  hint: 'Average paid order',
+                  tone: 'primary',
+                },
+              ]}
+            />
 
             <div className="grid-2">
-              <div className="card">
-                <div className="stack" style={{ gap: 12 }}>
+              <DSSection title="Профиль тренера" description="Публичная карточка и storefront readiness.">
+                <div className="card compact">
+                  <div className="stack" style={{ gap: 12 }}>
                   <div className="row">
-                    <h2 className="title-md" style={{ margin: 0 }}>Профиль тренера</h2>
-                    <span className={`badge ${state.profile ? 'success' : 'warning'}`}>
-                      {state.profile ? 'configured' : 'missing'}
-                    </span>
+                    <DSStatusDot tone={state.profile ? 'success' : 'warning'} label={state.profile ? 'Configured' : 'Missing'} />
                   </div>
                   {state.profile ? (
                     <>
@@ -118,15 +173,16 @@ export default function TrainerDashboardPage() {
                       <p>{state.profile.bio || 'Bio не заполнено.'}</p>
                     </>
                   ) : (
-                    <p className="muted">Профиль тренера ещё не создан. Заверши onboarding.</p>
+                    <DSEmptyState title="Профиль не создан" description="Заверши onboarding, чтобы открыть публичную карточку." />
                   )}
+                  </div>
                 </div>
-              </div>
+              </DSSection>
 
-              <div className="card">
-                <div className="stack" style={{ gap: 12 }}>
+              <DSSection title="CMS summary" description="Состояние content pipeline.">
+                <div className="card compact">
+                  <div className="stack" style={{ gap: 12 }}>
                   <div className="row">
-                    <h2 className="title-md" style={{ margin: 0 }}>CMS summary</h2>
                     <span className="badge secondary">trainer-cms</span>
                   </div>
                   <div className="grid-2">
@@ -135,14 +191,26 @@ export default function TrainerDashboardPage() {
                     <div className="card compact"><div className="kpi"><span className="muted">Pending review</span><strong>{state.cms?.pending_review_count || 0}</strong></div></div>
                     <div className="card compact"><div className="kpi"><span className="muted">Sales count</span><strong>{state.cms?.total_sales_count || 0}</strong></div></div>
                   </div>
+                  </div>
                 </div>
-              </div>
+              </DSSection>
             </div>
 
             <div className="grid-2">
-              <div className="card">
-                <h2 className="title-md">Revenue last 30 days</h2>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+              <DSSection title="Revenue last 30 days" description="Последние точки revenue series.">
+                <div className="card compact stack" style={{ gap: 16 }}>
+                  {(state.revenue?.revenue_series || []).length > 0 ? (
+                    <DSBarChart
+                      label="Trainer revenue chart"
+                      data={(state.revenue?.revenue_series || []).slice(-8).map((point) => ({
+                        label: point.date,
+                        value: Number(point.accrual_amount || 0),
+                        tone: 'success',
+                      }))}
+                    />
+                  ) : (
+                    <DSEmptyState title="Revenue пока нет" description="График появится после первых оплаченных заказов." />
+                  )}
                   {(state.revenue?.revenue_series || []).slice(-8).map((point) => (
                     <div className="list-item" key={point.date}>
                       <span className="muted">{point.date}</span>
@@ -151,12 +219,11 @@ export default function TrainerDashboardPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-              <div className="card">
-                <h2 className="title-md">Top products</h2>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
+              </DSSection>
+              <DSSection title="Top products" description="Товары с максимальной выручкой.">
+                <div className="card compact stack" style={{ gap: 10 }}>
                   {(state.revenue?.top_products || []).length === 0 ? (
-                    <p className="muted">Пока нет оплаченных товаров для построения рейтинга.</p>
+                    <DSEmptyState title="Рейтинга пока нет" description="Пока нет оплаченных товаров для построения рейтинга." />
                   ) : (
                     state.revenue?.top_products.map((item) => (
                       <div className="list-item" key={`${item.item_type}-${item.title}`}>
@@ -169,9 +236,9 @@ export default function TrainerDashboardPage() {
                     ))
                   )}
                 </div>
-              </div>
+              </DSSection>
             </div>
-          </>
+          </DSTransitionPanel>
         ) : null}
       </TrainerDashboardShell>
     </ProtectedPage>

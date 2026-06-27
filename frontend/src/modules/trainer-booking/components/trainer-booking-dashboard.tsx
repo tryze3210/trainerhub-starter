@@ -1,6 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import {
+  DSCalendar,
+  DSDataTable,
+  DSEmptyState,
+  DSSection,
+  DSSelect,
+  DSSkeleton,
+  DSStatsGrid,
+  DSStatusDot,
+  DSTextField,
+  DSTransitionPanel,
+} from '@/design-system';
 import { trainerBookingApi, type AvailabilityRule, type TrainerBookingSchedule } from '@/modules/trainer-booking/api';
 
 const DAY_OPTIONS = [14, 30, 60, 90];
@@ -28,28 +40,20 @@ function parseTime(value: string) {
   return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
 }
 
-function StatCard({ title, value, hint }: { title: string; value: string | number; hint?: string }) {
-  return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
-      </div>
-    </div>
-  );
-}
-
 function RuleList({ rules }: { rules: AvailabilityRule[] }) {
-  if (!rules.length) return <p className="muted">Правила доступности пока не настроены.</p>;
+  if (!rules.length) {
+    return <DSEmptyState title="Правила не настроены" description="Добавь правило доступности, чтобы генерировать слоты." />;
+  }
+
   return (
     <div className="stack" style={{ gap: 10 }}>
       {rules.map((rule) => (
         <div key={rule.id} className="list-item">
-          <strong>{WEEKDAYS[rule.weekday] || rule.weekday}</strong>
-          <span className="muted">
-            {minuteLabel(rule.start_minute)}-{minuteLabel(rule.end_minute)} · {rule.slot_size_minutes} min · {rule.is_active ? 'active' : 'paused'}
-          </span>
+          <div className="row">
+            <strong>{WEEKDAYS[rule.weekday] || rule.weekday}</strong>
+            <DSStatusDot tone={rule.is_active ? 'success' : 'warning'} label={rule.is_active ? 'active' : 'paused'} />
+          </div>
+          <span className="muted">{minuteLabel(rule.start_minute)}-{minuteLabel(rule.end_minute)} · {rule.slot_size_minutes} min</span>
         </div>
       ))}
     </div>
@@ -160,48 +164,71 @@ export function TrainerBookingDashboard() {
   }, [days]);
 
   const upcomingSlots = useMemo(() => state?.slots.slice(0, 80) || [], [state?.slots]);
+  const calendarEvents = useMemo(
+    () =>
+      upcomingSlots.slice(0, 24).map((slot) => ({
+        id: slot.id,
+        day: new Date(slot.starts_at).getDate(),
+        title: `${minuteLabel(new Date(slot.starts_at).getHours() * 60 + new Date(slot.starts_at).getMinutes())} ${slot.status}`,
+        tone: (slot.status === 'open' ? 'success' : slot.status === 'booked' ? 'warning' : 'neutral') as 'success' | 'warning' | 'neutral',
+      })),
+    [upcomingSlots],
+  );
 
   return (
     <section className="stack" style={{ gap: 24 }}>
-      <div className="card row" style={{ gap: 16, alignItems: 'flex-end' }}>
-        <div className="stack" style={{ gap: 8 }}>
-          <span className="badge secondary">Booking / Schedule</span>
-          <h2 className="title-md">Расписание тренера</h2>
-          <p className="muted">Доступность, генерация слотов, лимиты мест, отмены и waitlist.</p>
-        </div>
-        <div className="inline" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <select className="input" value={days} onChange={(event) => setDays(Number(event.target.value))}>
+      <DSSection
+        title="Расписание тренера"
+        description="Доступность, генерация слотов, лимиты мест, отмены и waitlist."
+        actions={
+          <>
+            <DSSelect label="Period" value={days} onChange={(event) => setDays(Number(event.target.value))}>
             {DAY_OPTIONS.map((option) => <option key={option} value={option}>{option} дней</option>)}
-          </select>
-          <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
-            Refresh
-          </button>
-        </div>
-      </div>
+            </DSSelect>
+            <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
+              Refresh
+            </button>
+          </>
+        }
+      >
+        <span className="badge secondary">Booking / Schedule</span>
+      </DSSection>
 
       {message ? <div className="card">{message}</div> : null}
-      {loading && !state ? <div className="card">Загрузка расписания...</div> : null}
+      {loading && !state ? <div className="card"><DSSkeleton lines={5} /></div> : null}
 
       {state ? (
-        <>
-          <div className="grid-4">
-            <StatCard title="Slots" value={state.summary.slots_total} />
-            <StatCard title="Open" value={state.summary.slots_open} />
-            <StatCard title="Reservations" value={state.summary.reservations_confirmed} />
-            <StatCard title="Checked in" value={state.summary.attendance_checked_in} />
-            <StatCard title="No-show" value={state.summary.attendance_no_show} />
-          </div>
+        <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
+          <DSStatsGrid
+            stats={[
+              { label: 'Slots', value: state.summary.slots_total, tone: 'primary' },
+              { label: 'Open', value: state.summary.slots_open, tone: 'success' },
+              { label: 'Reservations', value: state.summary.reservations_confirmed, tone: 'primary' },
+              { label: 'Checked in', value: state.summary.attendance_checked_in, tone: 'success' },
+            ]}
+          />
+          <DSStatsGrid
+            columns={2}
+            stats={[
+              { label: 'No-show', value: state.summary.attendance_no_show, tone: state.summary.attendance_no_show > 0 ? 'warning' : 'success' },
+              { label: 'Waitlist', value: state.summary.waitlist_waiting, tone: state.summary.waitlist_waiting > 0 ? 'warning' : 'neutral' },
+            ]}
+          />
+
+          <DSSection title="Schedule calendar" description="Ближайшие слоты из текущего окна.">
+            <DSCalendar monthLabel={`Next ${days} days`} days={31} events={calendarEvents} />
+          </DSSection>
 
           <div className="grid-2">
-            <div className="card">
-              <h3 className="title-md">Availability rules</h3>
+            <DSSection title="Availability rules" description="Шаблоны доступности для генерации слотов.">
+              <div className="card compact">
               <div className="grid-4" style={{ marginBottom: 16 }}>
-                <select className="input" value={weekday} onChange={(event) => setWeekday(Number(event.target.value))}>
+                <DSSelect label="Weekday" value={weekday} onChange={(event) => setWeekday(Number(event.target.value))}>
                   {WEEKDAYS.map((label, index) => <option key={label} value={index}>{label}</option>)}
-                </select>
-                <input className="input" type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
-                <input className="input" type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
-                <input className="input" type="number" min={15} max={240} step={15} value={slotSize} onChange={(event) => setSlotSize(Number(event.target.value))} />
+                </DSSelect>
+                <DSTextField label="Start" type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+                <DSTextField label="End" type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+                <DSTextField label="Slot size" type="number" min={15} max={240} step={15} value={slotSize} onChange={(event) => setSlotSize(Number(event.target.value))} />
               </div>
               <button type="button" className="button secondary" onClick={() => void createRule()} disabled={saving}>
                 Add rule
@@ -209,52 +236,52 @@ export function TrainerBookingDashboard() {
               <div style={{ marginTop: 18 }}>
                 <RuleList rules={rules} />
               </div>
-            </div>
+              </div>
+            </DSSection>
 
-            <div className="card">
-              <h3 className="title-md">Generate slots</h3>
+            <DSSection title="Generate slots" description="Создание слотов по правилам доступности.">
+              <div className="card compact">
               <div className="grid-2" style={{ marginBottom: 16 }}>
-                <input className="input" type="date" value={rangeStart} onChange={(event) => setRangeStart(event.target.value)} />
-                <input className="input" type="date" value={rangeEnd} onChange={(event) => setRangeEnd(event.target.value)} />
+                <DSTextField label="Start date" type="date" value={rangeStart} onChange={(event) => setRangeStart(event.target.value)} />
+                <DSTextField label="End date" type="date" value={rangeEnd} onChange={(event) => setRangeEnd(event.target.value)} />
               </div>
               <button type="button" className="button secondary" onClick={() => void generateSlots()} disabled={saving}>
                 Generate
               </button>
               <p className="muted" style={{ marginTop: 12 }}>Profile timezone: {state.profile.timezone}</p>
-            </div>
+              </div>
+            </DSSection>
           </div>
 
-          <div className="card">
-            <h3 className="title-md">Slots</h3>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Start</th>
-                    <th>Status</th>
-                    <th>Capacity</th>
-                    <th>Waitlist</th>
-                    <th>Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {upcomingSlots.map((slot) => (
-                    <tr key={slot.id}>
-                      <td>{dateTime(slot.starts_at)}</td>
-                      <td><span className="badge secondary">{slot.status}</span></td>
-                      <td>{slot.reservations_count}/{slot.capacity}</td>
-                      <td>{slot.waitlist_count}</td>
-                      <td>{slot.source}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <DSSection title="Slots" description="До 80 ближайших слотов в текущем окне.">
+            <div className="card compact">
+              {upcomingSlots.length ? (
+                <DSDataTable
+                  columns={[
+                    { key: 'start', label: 'Start' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'capacity', label: 'Capacity' },
+                    { key: 'waitlist', label: 'Waitlist' },
+                    { key: 'source', label: 'Source' },
+                  ]}
+                  rows={upcomingSlots.map((slot) => ({
+                    start: dateTime(slot.starts_at),
+                    status: <span className="badge secondary">{slot.status}</span>,
+                    capacity: `${slot.reservations_count}/${slot.capacity}`,
+                    waitlist: slot.waitlist_count,
+                    source: slot.source,
+                  }))}
+                  getRowKey={(_, index) => upcomingSlots[index]?.id || String(index)}
+                />
+              ) : (
+                <DSEmptyState title="Слотов пока нет" description="Сгенерируй слоты из правил доступности." />
+              )}
             </div>
-          </div>
+          </DSSection>
 
           <div className="grid-2">
-            <div className="card">
-              <h3 className="title-md">Reservations</h3>
+            <DSSection title="Reservations" description="Бронирования и attendance-действия.">
+              <div className="card compact">
               <div className="stack" style={{ gap: 10 }}>
                 {state.reservations.map((reservation) => (
                   <div key={reservation.id} className="list-item">
@@ -266,6 +293,7 @@ export function TrainerBookingDashboard() {
                     {reservation.attendance?.checkin_token ? (
                       <small className="muted">QR token: {reservation.attendance.checkin_token}</small>
                     ) : null}
+                    <div className="inline" style={{ flexWrap: 'wrap' }}>
                     {reservation.status !== 'cancelled' && reservation.attendance?.status !== 'checked_in' && reservation.attendance?.status !== 'attended' ? (
                       <button type="button" className="button secondary" onClick={() => void checkIn(reservation.id)} disabled={saving}>
                         Check-in
@@ -286,14 +314,16 @@ export function TrainerBookingDashboard() {
                         Cancel
                       </button>
                     ) : null}
+                    </div>
                   </div>
                 ))}
-                {!state.reservations.length ? <p className="muted">Резерваций пока нет.</p> : null}
+                {!state.reservations.length ? <DSEmptyState title="Резерваций пока нет" description="Записи появятся после бронирования слотов." /> : null}
               </div>
-            </div>
+              </div>
+            </DSSection>
 
-            <div className="card">
-              <h3 className="title-md">Waitlist</h3>
+            <DSSection title="Waitlist" description="Очередь ожидания на занятые слоты.">
+              <div className="card compact">
               <div className="stack" style={{ gap: 10 }}>
                 {state.waitlist.map((entry) => (
                   <div key={entry.id} className="list-item">
@@ -301,42 +331,40 @@ export function TrainerBookingDashboard() {
                     <span className="muted">{entry.customer_name || entry.customer_email} · {dateTime(entry.slot.starts_at)} · {entry.status}</span>
                   </div>
                 ))}
-                {!state.waitlist.length ? <p className="muted">Waitlist пуст.</p> : null}
+                {!state.waitlist.length ? <DSEmptyState title="Waitlist пуст" description="Очередь ожидания сейчас не требует действий." /> : null}
               </div>
-            </div>
+              </div>
+            </DSSection>
           </div>
 
-          <div className="card">
-            <h3 className="title-md">Attendance history</h3>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Customer</th>
-                    <th>Slot</th>
-                    <th>Status</th>
-                    <th>Method</th>
-                    <th>Checked in</th>
-                    <th>Duration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.attendance.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.customer_name || item.customer_email || '-'}</td>
-                      <td>{dateTime(item.slot_starts_at)}</td>
-                      <td><span className="badge secondary">{item.status}</span></td>
-                      <td>{item.checkin_method}</td>
-                      <td>{dateTime(item.checked_in_at)}</td>
-                      <td>{Math.round((item.duration_seconds || 0) / 60)} min</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <DSSection title="Attendance history" description="История check-in/check-out и длительность посещений.">
+            <div className="card compact">
+              {state.attendance.length ? (
+                <DSDataTable
+                  columns={[
+                    { key: 'customer', label: 'Customer' },
+                    { key: 'slot', label: 'Slot' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'method', label: 'Method' },
+                    { key: 'checkedIn', label: 'Checked in' },
+                    { key: 'duration', label: 'Duration' },
+                  ]}
+                  rows={state.attendance.map((item) => ({
+                    customer: item.customer_name || item.customer_email || '-',
+                    slot: dateTime(item.slot_starts_at),
+                    status: <span className="badge secondary">{item.status}</span>,
+                    method: item.checkin_method,
+                    checkedIn: dateTime(item.checked_in_at),
+                    duration: `${Math.round((item.duration_seconds || 0) / 60)} min`,
+                  }))}
+                  getRowKey={(_, index) => state.attendance[index]?.id || String(index)}
+                />
+              ) : (
+                <DSEmptyState title="Истории посещений пока нет" description="История появится после первого check-in." />
+              )}
             </div>
-            {!state.attendance.length ? <p className="muted">Истории посещений пока нет.</p> : null}
-          </div>
-        </>
+          </DSSection>
+        </DSTransitionPanel>
       ) : null}
     </section>
   );

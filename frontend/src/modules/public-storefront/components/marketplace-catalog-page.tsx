@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { DSBadge, DSEmptyState, DSPageHeader, DSSection, DSSelect, DSSkeleton, DSTextField, DSTransitionPanel } from '@/design-system';
 import {
   buildContentCheckoutHref,
   getStorefrontDescription,
@@ -75,64 +76,45 @@ export function MarketplaceCatalogPage() {
 
   return (
     <main className="stack page-shell">
-      <section className="hero card stack">
-        <span className="eyebrow">TrainerHub marketplace</span>
-        <h1>Каталог видео, программ и bundle-предложений</h1>
-        <p>
-          Публичная витрина теперь показывает коммерческие карточки: тип контента, цену, тренера,
-          уровень, duration и явный CTA на покупку или подписку.
-        </p>
-        <div className="actions">
-          <Link className="btn btn-primary" href="/trainers">
-            Смотреть тренеров
-          </Link>
-          <Link className="btn" href="/subscriptions">
-            Подписки
-          </Link>
-        </div>
-      </section>
+      <DSPageHeader
+        eyebrow="TrainerHub marketplace"
+        title="Каталог видео, программ и bundle-предложений"
+        description="Публичная витрина показывает коммерческие карточки: тип контента, цену, тренера, уровень, duration и явный CTA на покупку или подписку."
+        actions={
+          <>
+            <Link className="btn btn-primary" href="/trainers">Смотреть тренеров</Link>
+            <Link className="btn" href="/subscriptions">Подписки</Link>
+          </>
+        }
+      />
 
-      <section className="card stack">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Discovery</span>
-            <h2>Фильтры каталога</h2>
-          </div>
-          <span className="badge">{filtered.length} items</span>
-        </div>
+      <DSSection title="Фильтры каталога" description="Поиск по названию, тренеру, категории, уровню и типу контента." actions={<DSBadge>{filtered.length} items</DSBadge>}>
+        <div className="card compact stack">
+          <span className="badge secondary">Discovery</span>
         <div className="grid-2">
-          <label className="stack compact">
-            <span className="muted">Поиск</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Йога, силовая, марафон, имя тренера..."
-            />
-          </label>
-          <label className="stack compact">
-            <span className="muted">Тип контента</span>
-            <select value={type} onChange={(event) => setType(event.target.value as 'all' | StorefrontEntityType)}>
+          <DSTextField
+            label="Поиск"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Йога, силовая, марафон, имя тренера..."
+          />
+          <DSSelect label="Тип контента" value={type} onChange={(event) => setType(event.target.value as 'all' | StorefrontEntityType)}>
               <option value="all">Все</option>
               <option value="video">Видео</option>
               <option value="program">Программы</option>
               <option value="bundle">Bundles</option>
-            </select>
-          </label>
+          </DSSelect>
+          </div>
         </div>
-      </section>
+      </DSSection>
 
       {featured.length > 0 ? (
-        <section className="stack">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Featured</span>
-              <h2>Выделенные предложения</h2>
-            </div>
-          </div>
+        <DSSection title="Выделенные предложения" description="Featured marketplace items.">
+          <DSTransitionPanel active>
           <div className="grid-3">
             {featured.map((item) => (
               <article className="card stack" key={`${item.entity_type}:${item.id}:featured`}>
-                <span className="badge">{TYPE_LABELS[item.entity_type]}</span>
+                <DSBadge>{TYPE_LABELS[item.entity_type]}</DSBadge>
                 <h3>{item.title}</h3>
                 <p>{getStorefrontDescription(item)}</p>
                 <strong>{getStorefrontPrice(item)}</strong>
@@ -142,40 +124,31 @@ export function MarketplaceCatalogPage() {
               </article>
             ))}
           </div>
-        </section>
+          </DSTransitionPanel>
+        </DSSection>
       ) : null}
 
-      <section className="stack">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Catalog</span>
-            <h2>Все предложения</h2>
-          </div>
-        </div>
+      <DSSection title="Все предложения" description="Каталог видео, программ и bundles.">
+        <span className="badge secondary">Catalog</span>
 
         {error ? <div className="card danger">{error}</div> : null}
 
         {loading ? (
           <div className="grid-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <article className="card stack" key={index}>
-                <span className="badge">Загрузка</span>
-                <h3>Получаем контент...</h3>
-                <p>Собираем публичные видео, программы и bundles.</p>
+              <article className="card" key={index}>
+                <DSSkeleton lines={4} />
               </article>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="card stack">
-            <h3>Ничего не найдено</h3>
-            <p>Измени поиск или фильтр типа контента.</p>
-          </div>
+          <DSEmptyState title="Ничего не найдено" description="Измени поиск или фильтр типа контента." />
         ) : (
-          <div className="grid-3">
+          <DSTransitionPanel active className="grid-3">
             {filtered.map((item) => (
               <article className="card stack" key={`${item.entity_type}:${item.id}`}>
                 <div className="section-heading">
-                  <span className="badge">{TYPE_LABELS[item.entity_type]}</span>
+                  <DSBadge>{TYPE_LABELS[item.entity_type]}</DSBadge>
                   <strong>{getStorefrontPrice(item)}</strong>
                 </div>
                 <h3>{item.title}</h3>
@@ -196,9 +169,9 @@ export function MarketplaceCatalogPage() {
                 </div>
               </article>
             ))}
-          </div>
+          </DSTransitionPanel>
         )}
-      </section>
+      </DSSection>
     </main>
   );
 }

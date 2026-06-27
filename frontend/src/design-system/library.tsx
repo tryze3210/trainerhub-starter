@@ -1,5 +1,6 @@
 import type {
   ChangeEventHandler,
+  DragEvent,
   HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
@@ -20,6 +21,46 @@ export type DSChartDatum = {
   value: number;
   tone?: Tone;
 };
+
+export type DSPremiumChartPoint = {
+  label: string;
+  value: number;
+  tone?: Tone;
+};
+
+export type DSDonutChartSegment = {
+  label: string;
+  value: number;
+  tone?: Tone;
+};
+
+const toneColorVar: Record<Tone, string> = {
+  primary: 'var(--color-primary)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
+  neutral: 'var(--color-border-strong)',
+};
+
+function formatChartValue(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+}
+
+function buildDonutGradient(segments: DSDonutChartSegment[]): string {
+  const total = Math.max(
+    segments.reduce((sum, segment) => sum + Math.max(segment.value, 0), 0),
+    1,
+  );
+  let cursor = 0;
+  const slices = segments.map((segment) => {
+    const start = cursor;
+    const end = cursor + (Math.max(segment.value, 0) / total) * 100;
+    cursor = end;
+    return `${toneColorVar[segment.tone ?? 'primary']} ${start}% ${end}%`;
+  });
+
+  return `conic-gradient(${slices.join(', ')})`;
+}
 
 export function DSBarChart({
   data,
@@ -50,6 +91,123 @@ export function DSBarChart({
         );
       })}
     </div>
+  );
+}
+
+export function DSPremiumLineChart({
+  data,
+  label,
+  valueLabel,
+}: {
+  data: DSPremiumChartPoint[];
+  label?: string;
+  valueLabel?: string;
+}) {
+  const width = 320;
+  const height = 160;
+  const padding = 18;
+  const values = data.map((item) => item.value);
+  const min = Math.min(...values, 0);
+  const max = Math.max(...values, 1);
+  const span = Math.max(max - min, 1);
+  const innerWidth = width - padding * 2;
+  const innerHeight = height - padding * 2;
+  const points = data.map((item, index) => {
+    const x = padding + (data.length === 1 ? innerWidth / 2 : (index / (data.length - 1)) * innerWidth);
+    const y = padding + innerHeight - ((item.value - min) / span) * innerHeight;
+    return { ...item, x, y };
+  });
+  const polyline = points.map((point) => `${point.x},${point.y}`).join(' ');
+  const area = `${padding},${height - padding} ${polyline} ${width - padding},${height - padding}`;
+
+  return (
+    <figure className="ds-premium-chart ds-line-chart" role="img" aria-label={label ?? 'Line chart'}>
+      <div className="ds-premium-chart__header">
+        <strong>{label ?? 'Trend'}</strong>
+        {valueLabel ? <span>{valueLabel}</span> : null}
+      </div>
+      <svg className="ds-line-chart__svg" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+        <line className="ds-line-chart__grid" x1={padding} x2={width - padding} y1={padding} y2={padding} />
+        <line className="ds-line-chart__grid" x1={padding} x2={width - padding} y1={height / 2} y2={height / 2} />
+        <line className="ds-line-chart__grid" x1={padding} x2={width - padding} y1={height - padding} y2={height - padding} />
+        <polygon className="ds-line-chart__area" points={area} />
+        <polyline className="ds-line-chart__line" points={polyline} />
+        {points.map((point) => (
+          <circle className="ds-line-chart__point" cx={point.x} cy={point.y} key={point.label} r="4" />
+        ))}
+      </svg>
+      <div className="ds-line-chart__axis">
+        {points.map((point) => (
+          <span key={point.label}>
+            <small>{point.label}</small>
+            <strong>{formatChartValue(point.value)}</strong>
+          </span>
+        ))}
+      </div>
+    </figure>
+  );
+}
+
+export function DSDonutChart({
+  segments,
+  label,
+  centerLabel,
+}: {
+  segments: DSDonutChartSegment[];
+  label?: string;
+  centerLabel?: string;
+}) {
+  const total = segments.reduce((sum, segment) => sum + Math.max(segment.value, 0), 0);
+
+  return (
+    <figure className="ds-premium-chart ds-donut-chart" role="img" aria-label={label ?? 'Donut chart'}>
+      <div className="ds-premium-chart__header">
+        <strong>{label ?? 'Breakdown'}</strong>
+        <span>{formatChartValue(total)} total</span>
+      </div>
+      <div className="ds-donut-chart__body">
+        <div className="ds-donut-chart__visual" style={{ background: buildDonutGradient(segments) }}>
+          <div className="ds-donut-chart__hole">
+            <strong>{centerLabel ?? formatChartValue(total)}</strong>
+            <small>Total</small>
+          </div>
+        </div>
+        <div className="ds-donut-chart__legend">
+          {segments.map((segment) => (
+            <span key={segment.label}>
+              <i className={cx('ds-donut-chart__swatch', `ds-donut-chart__swatch--${segment.tone ?? 'primary'}`)} />
+              <small>{segment.label}</small>
+              <strong>{formatChartValue(segment.value)}</strong>
+            </span>
+          ))}
+        </div>
+      </div>
+    </figure>
+  );
+}
+
+export function DSInsightChartCard({
+  title,
+  metric,
+  description,
+  children,
+}: {
+  title: string;
+  metric: ReactNode;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <DSCard className="ds-insight-chart-card">
+      <div className="ds-insight-chart-card__header">
+        <span>
+          <strong>{title}</strong>
+          {description ? <small>{description}</small> : null}
+        </span>
+        <strong>{metric}</strong>
+      </div>
+      {children}
+    </DSCard>
   );
 }
 
@@ -107,18 +265,91 @@ export type DSKanbanColumn = {
   }>;
 };
 
-export function DSKanbanBoard({ columns }: { columns: DSKanbanColumn[] }) {
+export type DSKanbanMoveEvent = {
+  cardId: string;
+  fromColumnId: string;
+  toColumnId: string;
+};
+
+const KANBAN_DRAG_TYPE = 'application/x-trainerhub-kanban-card';
+
+function readKanbanDragPayload(event: DragEvent<HTMLElement>): DSKanbanMoveEvent | null {
+  const raw = event.dataTransfer.getData(KANBAN_DRAG_TYPE) || event.dataTransfer.getData('text/plain');
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<DSKanbanMoveEvent>;
+    if (!parsed.cardId || !parsed.fromColumnId) {
+      return null;
+    }
+    return {
+      cardId: parsed.cardId,
+      fromColumnId: parsed.fromColumnId,
+      toColumnId: parsed.toColumnId ?? '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function DSKanbanBoard({
+  columns,
+  onCardMove,
+}: {
+  columns: DSKanbanColumn[];
+  onCardMove?: (event: DSKanbanMoveEvent) => void;
+}) {
+  const isInteractive = Boolean(onCardMove);
+
+  function handleDragStart(event: DragEvent<HTMLElement>, cardId: string, fromColumnId: string) {
+    const payload: DSKanbanMoveEvent = { cardId, fromColumnId, toColumnId: fromColumnId };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData(KANBAN_DRAG_TYPE, JSON.stringify(payload));
+    event.dataTransfer.setData('text/plain', JSON.stringify(payload));
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>, toColumnId: string) {
+    if (!onCardMove) {
+      return;
+    }
+
+    event.preventDefault();
+    const payload = readKanbanDragPayload(event);
+    if (!payload) {
+      return;
+    }
+
+    onCardMove({ ...payload, toColumnId });
+  }
+
   return (
-    <div className="ds-kanban" role="list">
+    <div className={cx('ds-kanban', isInteractive && 'ds-kanban--draggable')} role="list">
       {columns.map((column) => (
-        <section className="ds-kanban__column" key={column.id} role="listitem">
+        <section
+          className={cx('ds-kanban__column', isInteractive && 'ds-kanban__column--dropzone')}
+          key={column.id}
+          onDragOver={isInteractive ? (event) => event.preventDefault() : undefined}
+          onDrop={isInteractive ? (event) => handleDrop(event, column.id) : undefined}
+          role="listitem"
+        >
           <div className="ds-kanban__header">
             <strong>{column.title}</strong>
             <span>{column.items.length}</span>
           </div>
           <div className="ds-kanban__items">
             {column.items.map((item) => (
-              <article className={cx('ds-kanban__card', item.tone && `ds-kanban__card--${item.tone}`)} key={item.id}>
+              <article
+                className={cx(
+                  'ds-kanban__card',
+                  isInteractive && 'ds-kanban__card--draggable',
+                  item.tone && `ds-kanban__card--${item.tone}`,
+                )}
+                draggable={isInteractive}
+                key={item.id}
+                onDragStart={isInteractive ? (event) => handleDragStart(event, item.id, column.id) : undefined}
+              >
                 <strong>{item.title}</strong>
                 {item.meta ? <small>{item.meta}</small> : null}
               </article>

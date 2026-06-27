@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ProtectedPage } from '@/components/protected-page';
+import { DSEmptyState, DSPageHeader, DSSection, DSSkeleton, DSStatsGrid, DSStatusDot, DSTransitionPanel } from '@/design-system';
 import { apiRequest } from '@/lib/api-client';
 import { progressApi } from '@/modules/progress/api';
 import { studentLearningApi } from '@/modules/student-learning/api';
@@ -48,7 +49,7 @@ function LessonList({
   onOpen: (lesson: StudentLearningLesson) => void;
 }) {
   if (!lessons.length) {
-    return <p className="muted">Уроки появятся после публикации программы или курса.</p>;
+    return <DSEmptyState title="Уроки пока не опубликованы" description="Уроки появятся после публикации программы или курса." />;
   }
   return (
     <div className="stack" style={{ gap: 8 }}>
@@ -60,7 +61,7 @@ function LessonList({
               {lesson.materials_count || 0} материалов · {lesson.is_completed ? 'completed' : lesson.is_preview ? 'preview' : 'protected'}
             </span>
           </div>
-          {lesson.is_completed ? <span className="badge success">Готово</span> : null}
+          {lesson.is_completed ? <DSStatusDot tone="success" label="Готово" /> : null}
           <button className="button secondary" onClick={() => onOpen(lesson)} type="button">
             Открыть
           </button>
@@ -133,35 +134,38 @@ export default function StudentLearningPage() {
   return (
     <ProtectedPage title="Learning area" description="Кабинет обучения доступен после входа.">
       <section className="stack" style={{ gap: 24 }}>
-        <div className="row" style={{ alignItems: 'flex-start' }}>
-          <div className="stack" style={{ gap: 8 }}>
-            <span className="badge secondary">Student Learning</span>
-            <h1>Моё обучение</h1>
-            <p className="lead">Курсы, программы, уроки, материалы и активные доступы в одном рабочем экране.</p>
-          </div>
-          <div className="inline">
+        <DSPageHeader
+          eyebrow="Student Learning"
+          title="Моё обучение"
+          description="Курсы, программы, уроки, материалы и активные доступы в одном рабочем экране."
+          actions={
+            <>
             <button className="button secondary" onClick={() => void load()} disabled={loading}>Обновить</button>
             <Link className="button ghost" href="/customer/access">Access center</Link>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {message ? <div className="card error">{message}</div> : null}
-        {loading ? <div className="card"><p className="muted">Загружаем обучение...</p></div> : null}
+        {loading ? <div className="card"><DSSkeleton lines={5} /></div> : null}
 
         {payload ? (
-          <>
-            <div className="grid-4">
-              <div className="card"><div className="kpi"><span className="muted">Продукты</span><strong>{payload.summary.items_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Уроки</span><strong>{payload.summary.lessons_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Материалы</span><strong>{payload.summary.materials_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Library</span><strong>{payload.summary.library_access ? 'ON' : 'OFF'}</strong></div></div>
-            </div>
+          <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
+            <DSStatsGrid
+              stats={[
+                { label: 'Продукты', value: payload.summary.items_count, tone: 'primary' },
+                { label: 'Уроки', value: payload.summary.lessons_count, tone: 'success' },
+                { label: 'Материалы', value: payload.summary.materials_count, tone: 'primary' },
+                { label: 'Library', value: payload.summary.library_access ? 'ON' : 'OFF', tone: payload.summary.library_access ? 'success' : 'warning' },
+              ]}
+            />
 
             {payload.next_lesson ? (
-              <div className="card">
+              <DSSection title="Next lesson" description="Рекомендуемый следующий шаг в обучении.">
+                <div className="card compact">
                 <div className="row" style={{ alignItems: 'center' }}>
                   <div className="stack" style={{ gap: 5 }}>
-                    <span className="badge success">Next lesson</span>
+                    <DSStatusDot tone="success" label="Next lesson" />
                     <h2 className="title-md">{payload.next_lesson.title}</h2>
                     <p className="muted">{payload.next_lesson.materials_count || 0} материалов готовы к уроку</p>
                   </div>
@@ -169,17 +173,17 @@ export default function StudentLearningPage() {
                     Продолжить
                   </button>
                 </div>
-              </div>
+                </div>
+              </DSSection>
             ) : null}
 
             {lessonMessage ? <div className="card error">{lessonMessage}</div> : null}
             {openedLesson ? (
-              <div className="card">
+              <DSSection title="Открытый урок" description="Runtime access payload для выбранного урока.">
+                <div className="card compact">
                 <div className="row" style={{ alignItems: 'flex-start' }}>
                   <div className="stack" style={{ gap: 6 }}>
-                    <span className={openedLesson.allowed ? 'badge success' : 'badge danger'}>
-                      {openedLesson.allowed ? 'Доступ открыт' : 'Доступ закрыт'}
-                    </span>
+                    <DSStatusDot tone={openedLesson.allowed ? 'success' : 'danger'} label={openedLesson.allowed ? 'Доступ открыт' : 'Доступ закрыт'} />
                     <h2 className="title-md">{openedLesson.lesson.title}</h2>
                     <p className="muted">
                       {openedLesson.access.code} · video asset: {openedLesson.lesson.video_asset_id || 'hidden'}
@@ -198,12 +202,13 @@ export default function StudentLearningPage() {
                     ))}
                   </div>
                 ) : null}
-              </div>
+                </div>
+              </DSSection>
             ) : null}
 
             <div className="grid-2">
-              <div className="card">
-                <h2 className="title-md">Мои курсы и программы</h2>
+              <DSSection title="Мои курсы и программы" description="Активные learning products и текущий прогресс.">
+                <div className="card compact">
                 <div className="stack" style={{ gap: 12, marginTop: 14 }}>
                   {payload.items.map((item) => (
                     <button
@@ -227,17 +232,18 @@ export default function StudentLearningPage() {
                     </button>
                   ))}
                   {!payload.items.length ? (
-                    <div className="empty-state">
-                      <h3>Обучение пока пустое</h3>
-                      <p>После оплаты курс или программа появятся здесь автоматически.</p>
-                      <Link className="button secondary" href="/catalog">В каталог</Link>
-                    </div>
+                    <DSEmptyState
+                      title="Обучение пока пустое"
+                      description="После оплаты курс или программа появятся здесь автоматически."
+                      action={<Link className="button secondary" href="/catalog">В каталог</Link>}
+                    />
                   ) : null}
                 </div>
-              </div>
+                </div>
+              </DSSection>
 
-              <div className="card">
-                <h2 className="title-md">{selected ? selected.title : 'Уроки'}</h2>
+              <DSSection title={selected ? selected.title : 'Уроки'} description="Lesson runtime, progress and materials.">
+                <div className="card compact">
                 {selected ? (
                   <div className="stack" style={{ gap: 16, marginTop: 14 }}>
                     <p className="muted">{selected.description || 'Описание появится после публикации.'}</p>
@@ -250,13 +256,14 @@ export default function StudentLearningPage() {
                     />
                   </div>
                 ) : (
-                  <p className="muted">Выбери курс или программу слева.</p>
+                  <DSEmptyState title="Курс не выбран" description="Выбери курс или программу слева." />
                 )}
-              </div>
+                </div>
+              </DSSection>
             </div>
 
-            <div className="card">
-              <h2 className="title-md">Материалы</h2>
+            <DSSection title="Материалы" description="Файлы и ссылки из доступных уроков.">
+              <div className="card compact">
               <div className="grid-2" style={{ marginTop: 14 }}>
                 {payload.materials.slice(0, 12).map((material, index) => (
                   <div className="card compact" key={`${material.lesson_id || 'material'}-${index}`}>
@@ -269,10 +276,11 @@ export default function StudentLearningPage() {
                     </div>
                   </div>
                 ))}
-                {!payload.materials.length ? <p className="muted">Материалы появятся вместе с уроками.</p> : null}
+                {!payload.materials.length ? <DSEmptyState title="Материалов пока нет" description="Материалы появятся вместе с уроками." /> : null}
               </div>
-            </div>
-          </>
+              </div>
+            </DSSection>
+          </DSTransitionPanel>
         ) : null}
       </section>
     </ProtectedPage>

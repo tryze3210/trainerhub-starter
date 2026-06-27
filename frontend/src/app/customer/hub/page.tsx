@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
+import { DSEmptyState, DSPageHeader, DSSection, DSSkeleton, DSStatsGrid, DSStatusDot, DSTransitionPanel } from '@/design-system';
 import { customerHubApi } from '@/lib/api';
 import type { CustomerMarketplaceHub } from '@/types/api';
 
@@ -17,6 +18,14 @@ function statusBadge(status?: string) {
   if (['failed', 'cancelled', 'revoked', 'expired', 'attention'].includes(status)) return 'badge error';
   if (['pending', 'created', 'todo'].includes(status)) return 'badge warning';
   return 'badge secondary';
+}
+
+function statusTone(status?: string): 'neutral' | 'primary' | 'success' | 'warning' | 'danger' {
+  if (!status) return 'neutral';
+  if (['active', 'available', 'paid', 'completed', 'ready', 'done'].includes(status)) return 'success';
+  if (['failed', 'cancelled', 'revoked', 'expired', 'attention'].includes(status)) return 'danger';
+  if (['pending', 'created', 'todo'].includes(status)) return 'warning';
+  return 'neutral';
 }
 
 function contentHref(type?: string, slug?: string) {
@@ -59,37 +68,39 @@ export default function CustomerHubPage() {
   return (
     <ProtectedPage title="Customer hub" description="Покупательский marketplace-кабинет доступен только авторизованным пользователям.">
       <section className="stack" style={{ gap: 24 }}>
-        <div className="row" style={{ justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-          <div className="stack" style={{ gap: 10 }}>
-            <span className="badge">Customer marketplace</span>
-            <h1>Customer hub</h1>
-            <p className="lead">Библиотека доступов, заказы, подписки, избранное, отзывы и рекомендации в одном customer-facing cockpit.</p>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            {[7, 30, 90].map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={`button ${days === value ? 'primary' : 'secondary'}`}
-                onClick={() => setDays(value)}
-              >
-                {value}d
-              </button>
-            ))}
-          </div>
-        </div>
+        <DSPageHeader
+          eyebrow="Customer marketplace"
+          title="Customer hub"
+          description="Библиотека доступов, заказы, подписки, избранное, отзывы и рекомендации в одном customer-facing cockpit."
+          actions={
+            <>
+              {[7, 30, 90].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`button ${days === value ? 'primary' : 'secondary'}`}
+                  onClick={() => setDays(value)}
+                >
+                  {value}d
+                </button>
+              ))}
+            </>
+          }
+        />
 
-        {loading ? <div className="card"><p className="muted">Загружаем customer hub…</p></div> : null}
+        {loading ? <div className="card"><DSSkeleton lines={5} /></div> : null}
         {error ? <div className="card error">{error}</div> : null}
 
         {hub ? (
-          <>
-            <div className="grid-4">
-              <div className="card"><div className="kpi"><span className="muted">Активные доступы</span><strong>{hub.summary.active_entitlements_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Потрачено за период</span><strong>{formatMoney(hub.summary.period_spent, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Оплаченные заказы</span><strong>{hub.summary.paid_orders_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Избранное</span><strong>{hub.summary.favorites_count}</strong></div></div>
-            </div>
+          <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
+            <DSStatsGrid
+              stats={[
+                { label: 'Активные доступы', value: hub.summary.active_entitlements_count, tone: 'success' },
+                { label: 'Потрачено за период', value: formatMoney(hub.summary.period_spent, currency), tone: 'primary' },
+                { label: 'Оплаченные заказы', value: hub.summary.paid_orders_count, tone: 'success' },
+                { label: 'Избранное', value: hub.summary.favorites_count, tone: 'warning' },
+              ]}
+            />
 
             <div className="grid-2">
               <div className="card dark hero">
@@ -104,31 +115,35 @@ export default function CustomerHubPage() {
                 </div>
               </div>
 
-              <div className="card">
-                <h2 className="title-md">Customer readiness</h2>
+              <DSSection title="Customer readiness" description="Готовность customer кабинета и access runtime.">
+                <div className="card compact">
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.readiness.checks.map((check) => (
                     <div className="list-item" key={check.code}>
                       <span>{check.title}</span>
-                      <span className={statusBadge(check.status)}>{check.status}</span>
+                      <DSStatusDot tone={statusTone(check.status)} label={check.status} />
                     </div>
                   ))}
                 </div>
-              </div>
+                </div>
+              </DSSection>
             </div>
 
             <div className="grid-2">
-              <div className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <h2 className="title-md" style={{ margin: 0 }}>Моя библиотека</h2>
-                  <div className="inline">
+              <DSSection
+                title="Моя библиотека"
+                description="Активные доступы к видео, программам и bundles."
+                actions={
+                  <>
                     <Link className="button secondary" href="/learning">Обучение</Link>
                     <Link className="button secondary" href="/entitlements">Все доступы</Link>
-                  </div>
-                </div>
+                  </>
+                }
+              >
+                <div className="card compact">
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.library.items.length === 0 ? (
-                    <p className="muted">Пока нет купленного контента. Открой каталог и оформи первый доступ.</p>
+                    <DSEmptyState title="Нет купленного контента" description="Открой каталог и оформи первый доступ." />
                   ) : (
                     hub.library.items.slice(0, 8).map((item) => (
                       <Link className="list-item" href={contentHref(item.target_type, item.slug)} key={item.id}>
@@ -141,16 +156,14 @@ export default function CustomerHubPage() {
                     ))
                   )}
                 </div>
-              </div>
-
-              <div className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <h2 className="title-md" style={{ margin: 0 }}>Последние заказы</h2>
-                  <Link className="button secondary" href="/orders">Все заказы</Link>
                 </div>
+              </DSSection>
+
+              <DSSection title="Последние заказы" description="Недавние checkout/order операции." actions={<Link className="button secondary" href="/orders">Все заказы</Link>}>
+                <div className="card compact">
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.orders.recent.length === 0 ? (
-                    <p className="muted">Заказов пока нет.</p>
+                    <DSEmptyState title="Заказов пока нет" description="После checkout заказы появятся здесь." />
                   ) : (
                     hub.orders.recent.slice(0, 8).map((order) => (
                       <Link className="list-item" href={`/orders/${order.id}`} key={order.id}>
@@ -163,15 +176,13 @@ export default function CustomerHubPage() {
                     ))
                   )}
                 </div>
-              </div>
+                </div>
+              </DSSection>
             </div>
 
             <div className="grid-2">
-              <div className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <h2 className="title-md" style={{ margin: 0 }}>Подписки и платежи</h2>
-                  <Link className="button secondary" href="/subscriptions">Подписки</Link>
-                </div>
+              <DSSection title="Подписки и платежи" description="Активные подписки и платежные проблемы." actions={<Link className="button secondary" href="/subscriptions">Подписки</Link>}>
+                <div className="card compact">
                 <div className="grid-2" style={{ marginTop: 16 }}>
                   <div className="card compact"><div className="kpi"><span className="muted">Активные подписки</span><strong>{hub.subscriptions.summary.active_count}</strong></div></div>
                   <div className="card compact"><div className="kpi"><span className="muted">Проблемные платежи</span><strong>{hub.payments.summary.failed_count}</strong></div></div>
@@ -186,15 +197,16 @@ export default function CustomerHubPage() {
                       <span className={statusBadge(subscription.status)}>{subscription.status}</span>
                     </div>
                   ))}
-                  {hub.subscriptions.items.length === 0 ? <p className="muted">Активных подписок пока нет.</p> : null}
+                  {hub.subscriptions.items.length === 0 ? <DSEmptyState title="Активных подписок пока нет" description="Подписки появятся после покупки subscription продукта." /> : null}
                 </div>
-              </div>
+                </div>
+              </DSSection>
 
-              <div className="card">
-                <h2 className="title-md">Отзывы к написанию</h2>
+              <DSSection title="Отзывы к написанию" description="Контент, по которому можно оставить feedback.">
+                <div className="card compact">
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.reviews.opportunities.length === 0 ? (
-                    <p className="muted">Нет новых позиций для отзыва.</p>
+                    <DSEmptyState title="Нет новых позиций для отзыва" description="Новые review opportunities появятся после завершенного доступа." />
                   ) : (
                     hub.reviews.opportunities.slice(0, 6).map((item) => (
                       <Link className="list-item" href={contentHref(item.target_type, item.slug)} key={`${item.target_type}-${item.target_id}`}>
@@ -207,15 +219,16 @@ export default function CustomerHubPage() {
                     ))
                   )}
                 </div>
-              </div>
+                </div>
+              </DSSection>
             </div>
 
             <div className="grid-2">
-              <div className="card">
-                <h2 className="title-md">Избранное</h2>
+              <DSSection title="Избранное" description="Сохраненные тренеры, курсы и программы.">
+                <div className="card compact">
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.favorites.items.length === 0 ? (
-                    <p className="muted">Пока нет избранных тренеров или программ.</p>
+                    <DSEmptyState title="Избранного пока нет" description="Сохраняй тренеров и программы из каталога." />
                   ) : (
                     hub.favorites.items.slice(0, 8).map((item) => (
                       <Link className="list-item" href={item.target_type === 'trainer' ? `/trainers/${item.slug}` : contentHref(item.target_type, item.slug)} key={item.id}>
@@ -225,13 +238,14 @@ export default function CustomerHubPage() {
                     ))
                   )}
                 </div>
-              </div>
+                </div>
+              </DSSection>
 
-              <div className="card">
-                <h2 className="title-md">Рекомендации</h2>
+              <DSSection title="Рекомендации" description="Новые материалы из marketplace.">
+                <div className="card compact">
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {hub.recommendations.items.length === 0 ? (
-                    <p className="muted">Рекомендации появятся после публикации контента тренерами.</p>
+                    <DSEmptyState title="Рекомендаций пока нет" description="Рекомендации появятся после публикации контента тренерами." />
                   ) : (
                     hub.recommendations.items.slice(0, 8).map((item) => (
                       <Link className="list-item" href={contentHref(item.target_type, item.slug)} key={`${item.target_type}-${item.target_id}`}>
@@ -244,9 +258,10 @@ export default function CustomerHubPage() {
                     ))
                   )}
                 </div>
-              </div>
+                </div>
+              </DSSection>
             </div>
-          </>
+          </DSTransitionPanel>
         ) : null}
       </section>
     </ProtectedPage>

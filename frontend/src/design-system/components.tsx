@@ -14,6 +14,16 @@ function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
 }
 
+export type DSCommandPaletteItem = {
+  id: string;
+  title: string;
+  description?: string;
+  group?: string;
+  shortcut?: string;
+  tone?: Tone;
+  disabled?: boolean;
+};
+
 export function DSButton({
   variant = 'primary',
   size = 'md',
@@ -125,6 +135,88 @@ export function DSModalShell({
         </div>
         <div>{children}</div>
         {footer ? <div className="ds-modal__footer">{footer}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+export function DSCommandPalette({
+  title = 'Command palette',
+  placeholder = 'Search actions, records, pages',
+  query,
+  items,
+  emptyLabel = 'No results',
+  onQueryChange,
+  onSelect,
+  onClose,
+}: {
+  title?: string;
+  placeholder?: string;
+  query: string;
+  items: DSCommandPaletteItem[];
+  emptyLabel?: string;
+  onQueryChange: (value: string) => void;
+  onSelect: (item: DSCommandPaletteItem) => void;
+  onClose?: () => void;
+}) {
+  const groupedItems = items.reduce<Record<string, DSCommandPaletteItem[]>>((groups, item) => {
+    const group = item.group ?? 'Actions';
+    groups[group] = [...(groups[group] ?? []), item];
+    return groups;
+  }, {});
+
+  return (
+    <div className="ds-command-palette" role="dialog" aria-modal="true" aria-labelledby="ds-command-palette-title">
+      <div className="ds-command-palette__panel">
+        <div className="ds-command-palette__header">
+          <div>
+            <h2 id="ds-command-palette-title">{title}</h2>
+            <small>Ctrl+K</small>
+          </div>
+          {onClose ? (
+            <DSButton size="sm" variant="ghost" type="button" onClick={onClose} aria-label="Close command palette">
+              Esc
+            </DSButton>
+          ) : null}
+        </div>
+        <input
+          autoFocus
+          className="ds-command-palette__search"
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder={placeholder}
+          type="search"
+          value={query}
+        />
+        <div className="ds-command-palette__results" role="listbox">
+          {items.length === 0 ? (
+            <div className="ds-command-palette__empty">{emptyLabel}</div>
+          ) : (
+            Object.entries(groupedItems).map(([group, groupItems]) => (
+              <section className="ds-command-palette__group" key={group}>
+                <strong>{group}</strong>
+                {groupItems.map((item) => (
+                  <button
+                    className={cx(
+                      'ds-command-palette__item',
+                      item.tone && item.tone !== 'neutral' && `ds-command-palette__item--${item.tone}`,
+                    )}
+                    disabled={item.disabled}
+                    key={item.id}
+                    onClick={() => onSelect(item)}
+                    role="option"
+                    type="button"
+                  >
+                    <span>
+                      <strong>{item.title}</strong>
+                      {item.description ? <small>{item.description}</small> : null}
+                    </span>
+                    {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
+                  </button>
+                ))}
+              </section>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

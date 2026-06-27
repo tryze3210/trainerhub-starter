@@ -1,8 +1,8 @@
-# TrainerHub — current version v134
+# TrainerHub — current version v150
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v134 Theme Engine. The v70-v95 platform-readiness block, v97-v105 content-learning launch block and v106-v120 production-launch block are closed; the v131-v150 UX redesign block is now active.
+This README describes the current roadmap state after v150 Premium UX Completion. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed.
 
 ## Current Roadmap State
 
@@ -42,8 +42,23 @@ Roadmap status table:
 | v131 | UI Design System | Done |
 | v132 | Layout System | Done |
 | v133 | Component Library | Done |
-| v134 | Theme Engine | Current |
-| v135 | Motion / UI Polish | Planned |
+| v134 | Theme Engine | Done |
+| v135 | Motion / UI Polish | Done |
+| v136 | Admin Dashboard | Done |
+| v137 | Trainer Workspace | Done |
+| v138 | CRM | Done |
+| v139 | Booking | Done |
+| v140 | Payments | Done |
+| v141 | Payouts | Done |
+| v142 | Student Portal | Done |
+| v143 | Learning Experience | Done |
+| v144 | Public Marketplace | Done |
+| v145 | Mobile Responsive Pass | Done |
+| v146 | Premium Charts | Done |
+| v147 | Drag And Drop Kanban | Done |
+| v148 | Realtime Notifications UI | Done |
+| v149 | Command Palette / Fast Search | Done |
+| v150 | Premium UX Completion | Current |
 
 Completed implementation line:
 
@@ -99,6 +114,22 @@ Completed implementation line:
 - v132 — Layout System
 - v133 — Component Library
 - v134 — Theme Engine
+- v135 — Motion / UI Polish
+- v136 — Admin Dashboard
+- v137 — Trainer Workspace
+- v138 — CRM
+- v139 — Booking
+- v140 — Payments
+- v141 — Payouts
+- v142 — Student Portal
+- v143 — Learning Experience
+- v144 — Public Marketplace
+- v145 — Mobile Responsive Pass
+- v146 — Premium Charts
+- v147 — Drag And Drop Kanban
+- v148 — Realtime Notifications UI
+- v149 — Command Palette / Fast Search
+- v150 — Premium UX Completion
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -174,6 +205,289 @@ Covered theme features:
 - brand palettes for `trainerhub`, `studio`, `academy` and `wellness`;
 - white-label CSS variable overrides;
 - `DSThemeProvider`, `useDSTheme` and `getWhiteLabelThemeStyle`.
+
+## Motion / UI Polish
+
+v135 closes the first UX foundation block with shared feedback states and reduced-motion support.
+
+Motion and feedback files:
+
+- `frontend/src/design-system/feedback.tsx`
+- `docs/design-system/v135_motion_ui_polish.md`
+
+Covered feedback primitives:
+
+- skeleton stacks;
+- empty states;
+- toast and toast stack;
+- transition panel;
+- status dot;
+- reduced-motion CSS guard.
+
+## Admin Dashboard
+
+v136 starts the screen redesign pass by moving `/admin` onto shared design-system primitives.
+
+Updated admin screen:
+
+- `frontend/src/app/admin/page.tsx`
+
+Covered UI changes:
+
+- design-system page header;
+- shared statistics grid;
+- moderation, payout and review sections;
+- payout status chart;
+- skeleton loading state;
+- empty states and status dots.
+
+## Trainer Workspace
+
+v137 moves the trainer workspace shell and main dashboard onto shared design-system primitives.
+
+Updated trainer files:
+
+- `frontend/src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx`
+- `frontend/src/app/trainer/dashboard/page.tsx`
+
+Covered UI changes:
+
+- trainer layout and side navigation primitives;
+- design-system page header;
+- KPI statistics grids;
+- trainer profile and CMS sections;
+- revenue chart;
+- skeleton loading state;
+- empty states and status dots.
+
+## CRM Redesign
+
+v138 moves the trainer CRM dashboard onto shared design-system primitives.
+
+Updated CRM file:
+
+- `frontend/src/modules/trainer-crm/components/trainer-crm-dashboard.tsx`
+
+Covered UI changes:
+
+- CRM controls through shared form primitives;
+- customer list through shared DataTable;
+- summary statistics grid;
+- customer detail sections;
+- rich text editor shell for trainer notes;
+- empty states, skeleton loading and status dots.
+
+## Booking Redesign
+
+v139 moves the trainer booking/schedule dashboard onto shared design-system primitives.
+
+Updated booking file:
+
+- `frontend/src/modules/trainer-booking/components/trainer-booking-dashboard.tsx`
+
+Covered UI changes:
+
+- schedule controls through shared form primitives;
+- booking KPIs through shared statistics grids;
+- schedule calendar preview;
+- availability, generation, reservations and waitlist sections;
+- slots and attendance through shared DataTable;
+- empty states and skeleton loading.
+
+## Payments Redesign
+
+v140 moves the admin payment operations dashboard onto shared design-system primitives.
+
+Updated payments file:
+
+- `frontend/src/modules/admin-payments/components/admin-payment-operations-dashboard.tsx`
+
+Covered UI changes:
+
+- payment, webhook and refund tables through shared DataTable;
+- payment operations KPIs through shared statistics grid;
+- payment/webhook filters through shared form primitives;
+- reconciliation, status buckets, refunds and webhook sections;
+- empty states, skeleton loading and status dots.
+
+## Payouts Redesign
+
+v141 moves the admin payout operations dashboard shell onto shared design-system primitives while preserving payout state-machine actions.
+
+Updated payouts file:
+
+- `frontend/src/modules/admin-payouts/components/admin-payout-operations-dashboard.tsx`
+
+Covered UI changes:
+
+- payout operation sections through shared section/card primitives;
+- payout KPI cards through shared statistics cards;
+- health indicators through shared status dots;
+- loading state through shared skeleton;
+- admin-role warning through shared card primitive.
+
+## Student Portal Redesign
+
+v142 moves the customer/student marketplace hub onto shared design-system primitives.
+
+Updated student portal file:
+
+- `frontend/src/app/customer/hub/page.tsx`
+
+Covered UI changes:
+
+- page header through shared header primitive;
+- student/customer KPIs through shared statistics grid;
+- library, orders, subscriptions, reviews, favorites and recommendations through shared sections;
+- loading through shared skeleton;
+- empty states and readiness status dots.
+
+## Learning Experience Redesign
+
+v143 moves the student learning area onto shared design-system primitives.
+
+Updated learning file:
+
+- `frontend/src/app/learning/page.tsx`
+
+Covered UI changes:
+
+- learning page header through shared header primitive;
+- learning summary through shared statistics grid;
+- next lesson, runtime lesson, course/program, lesson and materials areas through shared sections;
+- loading through shared skeleton;
+- empty states and lesson access status dots.
+
+## Public Marketplace Redesign
+
+v144 moves the public marketplace catalog onto shared design-system primitives.
+
+Updated marketplace file:
+
+- `frontend/src/modules/public-storefront/components/marketplace-catalog-page.tsx`
+
+Covered UI changes:
+
+- catalog page header through shared header primitive;
+- catalog filters through shared form primitives;
+- featured/catalog areas through shared sections;
+- loading through shared skeleton;
+- empty state for no-results;
+- catalog item badges through shared badge primitive.
+
+## Mobile Responsive Pass
+
+v145 closes the screen redesign block by hardening mobile behavior across shared UI primitives.
+
+Updated mobile layer:
+
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
+
+Covered responsive behavior:
+
+- horizontal overflow guard;
+- mobile page headers and action wrapping;
+- responsive layout navigation;
+- compact mobile cards and buttons;
+- calendar and Kanban mobile scrolling;
+- modal, toast, upload and rich-text mobile handling;
+- contract checks for mobile CSS rules.
+
+## Premium Charts
+
+v146 starts the premium UX block by adding richer shared chart primitives without introducing a new chart dependency.
+
+Updated chart layer:
+
+- `frontend/src/design-system/library.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
+- `docs/design-system/v146_premium_charts.md`
+
+Covered components:
+
+- `DSPremiumLineChart` for trend views;
+- `DSDonutChart` for distribution views;
+- `DSInsightChartCard` for metric/chart compositions;
+- responsive chart CSS for mobile dashboards;
+- contract checks for premium chart exports and CSS classes.
+
+## Drag And Drop Kanban
+
+v147 adds native drag-and-drop behavior to the shared Kanban primitive while keeping persistence and ordering decisions in feature modules.
+
+Updated Kanban layer:
+
+- `frontend/src/design-system/library.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
+- `docs/design-system/v147_drag_drop_kanban.md`
+
+Covered behavior:
+
+- `DSKanbanBoard` accepts `onCardMove`;
+- move payload includes `cardId`, `fromColumnId` and `toColumnId`;
+- cards become draggable only when a move handler exists;
+- columns become drop targets only for interactive boards;
+- contract checks for drag/drop API and visual states.
+
+## Realtime Notifications UI
+
+v148 adds shared UI primitives for realtime connection status and notification streams.
+
+Updated feedback layer:
+
+- `frontend/src/design-system/feedback.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
+- `docs/design-system/v148_realtime_notifications_ui.md`
+
+Covered behavior:
+
+- `DSLiveIndicator` displays connected, connecting, offline and error states;
+- `DSNotificationFeed` renders normalized notification stream items;
+- unread and tone-aware feed states are styled through shared CSS;
+- the UI layer stays transport-agnostic for WebSocket, SSE or polling adapters;
+- contract checks cover realtime notification exports and CSS classes.
+
+## Command Palette / Fast Search
+
+v149 adds a shared command palette primitive for Ctrl+K style search and quick actions.
+
+Updated component layer:
+
+- `frontend/src/design-system/components.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
+- `docs/design-system/v149_command_palette.md`
+
+Covered behavior:
+
+- `DSCommandPalette` renders grouped commands and search results;
+- the caller controls query state and selected actions;
+- command items support descriptions, shortcuts, disabled states and tones;
+- the UI layer does not own search sources, routing or permissions;
+- contract checks cover command palette exports and CSS classes.
+
+## Premium UX Completion
+
+v150 closes the premium UX block with shared collaboration and activity primitives.
+
+Updated collaboration layer:
+
+- `frontend/src/design-system/feedback.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
+- `docs/design-system/v150_premium_ux_completion.md`
+
+Covered behavior:
+
+- `DSPresenceStack` renders active collaborators with online, away and offline states;
+- `DSActivityTimeline` renders recent team or record-level activity;
+- activity items support tone-aware status indicators;
+- mobile layouts keep collaboration widgets readable;
+- contract checks cover v150 collaboration exports and CSS classes.
 
 ## Demo Data / Seed Scenarios
 
