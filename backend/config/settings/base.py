@@ -65,6 +65,22 @@ INSTALLED_APPS = [
     "apps.onboarding",
     "apps.habits",
     "apps.referrals",
+    "apps.disputes",
+    "apps.finance_documents",
+    "apps.legal_compliance",
+    "apps.live_sessions",
+    "apps.cohorts",
+    "apps.gamification",
+    "apps.runtime",
+    "apps.invoicing",
+    "apps.finance_reporting",
+    "apps.booking",
+    "apps.affiliates",
+    "apps.admin_panel",
+    "apps.admin_marketplace",
+    "apps.commerce",
+    "apps.promotions",
+    "apps.store",
 ]
 
 MIDDLEWARE = [

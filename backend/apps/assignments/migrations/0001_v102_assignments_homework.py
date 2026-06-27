@@ -69,14 +69,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="assignmentsubmission",
-            index=models.Index(fields=["student", "status"], name="assignment_sub_student_status_idx"),
+            index=models.Index(fields=["student", "status"], name="asg_sub_stu_stat_idx"),
         ),
         migrations.AddIndex(
             model_name="assignmentsubmission",
-            index=models.Index(fields=["assignment", "status"], name="assignment_sub_assignment_status_idx"),
+            index=models.Index(fields=["assignment", "status"], name="asg_sub_asg_stat_idx"),
         ),
         migrations.AddConstraint(
             model_name="assignmentsubmission",
-            constraint=models.UniqueConstraint(fields=("assignment", "student"), name="uq_assignment_submission_student"),
+            constraint=models.UniqueConstraint(fields=("assignment", "student"), name="uq_asg_sub_student"),
         ),
     ]

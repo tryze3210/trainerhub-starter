@@ -26,7 +26,11 @@ class SubmissionStatus(models.TextChoices):
 
 class Assignment(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="trainer_assignments")
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="trainer_assignments",
+    )
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     content_type = models.CharField(max_length=32, choices=AssignmentContentType.choices)
@@ -40,8 +44,8 @@ class Assignment(TimeStampedModel):
         db_table = "assignments_assignment"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["content_type", "content_id", "status"], name="assignments_target_status_idx"),
-            models.Index(fields=["trainer", "status"], name="assignments_trainer_status_idx"),
+            models.Index(fields=["content_type", "content_id", "status"], name="asg_target_stat_idx"),
+            models.Index(fields=["trainer", "status"], name="asg_trainer_stat_idx"),
         ]
 
     def __str__(self) -> str:
@@ -50,8 +54,16 @@ class Assignment(TimeStampedModel):
 
 class AssignmentSubmission(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="submissions")
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assignment_submissions")
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name="submissions",
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="assignment_submissions",
+    )
     answer_text = models.TextField(blank=True)
     attachments = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=32, choices=SubmissionStatus.choices, default=SubmissionStatus.SUBMITTED)
@@ -71,11 +83,11 @@ class AssignmentSubmission(TimeStampedModel):
         db_table = "assignments_submission"
         ordering = ["-submitted_at", "-created_at"]
         constraints = [
-            models.UniqueConstraint(fields=["assignment", "student"], name="uq_assignment_submission_student"),
+            models.UniqueConstraint(fields=["assignment", "student"], name="uq_asg_sub_student"),
         ]
         indexes = [
-            models.Index(fields=["student", "status"], name="assignment_sub_student_status_idx"),
-            models.Index(fields=["assignment", "status"], name="assignment_sub_assignment_status_idx"),
+            models.Index(fields=["student", "status"], name="asg_sub_stu_stat_idx"),
+            models.Index(fields=["assignment", "status"], name="asg_sub_asg_stat_idx"),
         ]
 
     def __str__(self) -> str:

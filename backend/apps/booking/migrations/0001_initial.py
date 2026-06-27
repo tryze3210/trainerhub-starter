@@ -1,2 +1,9 @@
-# Scaffold placeholder. Generate a real migration in project context:
-# python manage.py makemigrations booking
+from django.db import migrations
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = []
+
+    operations = []
