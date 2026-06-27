@@ -1,8 +1,8 @@
-# TrainerHub — current version v154
+# TrainerHub — current version v155
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v154 Premium Product Detail Landing Pages. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v154 premium storefront block is now implemented.
+This README describes the current roadmap state after v155 Premium App Shell, Footer Cleanup and Checkout Page. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v155 premium storefront block is now implemented.
 
 ## Current Roadmap State
 
@@ -63,7 +63,8 @@ Roadmap status table:
 | v152 | Premium Marketing Home Page | Done |
 | v153 | Premium Storefront Stabilization | Done |
 | v154-prep | Marketplace Catalog Premium Foundation | Done |
-| v154 | Premium Product Detail Landing Pages | Current |
+| v154 | Premium Product Detail Landing Pages | Done |
+| v155 | Premium App Shell, Footer Cleanup and Checkout Page | Current |
 
 Completed implementation line:
 
@@ -140,6 +141,7 @@ Completed implementation line:
 - v153 — Premium Storefront Stabilization
 - v154-prep — Marketplace Catalog Premium Foundation
 - v154 — Premium Product Detail Landing Pages
+- v155 — Premium App Shell, Footer Cleanup and Checkout Page
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -586,6 +588,32 @@ Covered behavior:
 - “Что входит в доступ” and “Что происходит после оплаты” sections;
 - trainer/author card and outcome cards;
 - premium loading/error states and Russian SEO metadata.
+
+## Premium App Shell and Checkout Page
+
+v155 aligns the global public shell with the premium storefront and closes the primary purchase route.
+
+Updated shell and checkout layer:
+
+- `frontend/src/app/layout.tsx`
+- `frontend/src/components/session-nav.tsx`
+- `frontend/src/app/checkout/page.tsx`
+- `frontend/src/app/checkout/success/page.tsx`
+- `frontend/src/app/checkout/cancel/page.tsx`
+- `frontend/src/modules/checkout/components/checkout-page.tsx`
+- `frontend/src/modules/checkout/components/checkout-order-summary.tsx`
+- `frontend/src/modules/checkout/components/checkout-payment-method.tsx`
+- `frontend/src/modules/checkout/components/checkout-trust-panel.tsx`
+- `frontend/src/modules/checkout/components/checkout-state-card.tsx`
+- `docs/design-system/v155_premium_app_shell_checkout.md`
+
+Covered behavior:
+
+- global app shell without forced page container;
+- compact role-aware header navigation;
+- premium footer focused on public product and user entry points;
+- checkout page with stable idempotency key, provider selection and order summary;
+- Russian premium success and cancel states.
 
 ## Demo Data / Seed Scenarios
 

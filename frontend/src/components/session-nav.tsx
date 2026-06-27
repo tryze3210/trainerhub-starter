@@ -5,20 +5,27 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthSession } from '@/components/auth-provider';
 
 const publicLinks = [
-  { href: '/', label: 'Главная' },
   { href: '/catalog', label: 'Каталог' },
   { href: '/trainers', label: 'Тренеры' },
 ];
 
-const privateLinks = [
-  { href: '/learning', label: 'Обучение' },
-  { href: '/assignments', label: 'Задания' },
+const studentLinks = [
+  { href: '/catalog', label: 'Каталог' },
+  { href: '/learning', label: 'Моё обучение' },
   { href: '/messages', label: 'Сообщения' },
-  { href: '/billing', label: 'Billing' },
-  { href: '/subscriptions', label: 'Подписки' },
-  { href: '/orders', label: 'Заказы' },
-  { href: '/payments', label: 'Платежи' },
-  { href: '/entitlements', label: 'Доступы' },
+];
+
+const trainerLinks = [
+  { href: '/catalog', label: 'Каталог' },
+  { href: '/trainer/dashboard', label: 'Кабинет тренера' },
+  { href: '/trainer/dashboard', label: 'Ученики' },
+  { href: '/trainer/business', label: 'Продажи' },
+];
+
+const adminLinks = [
+  { href: '/admin', label: 'Admin' },
+  { href: '/admin/operations', label: 'Операции' },
+  { href: '/admin/payments', label: 'Финансы' },
 ];
 
 export function SessionNav() {
@@ -34,73 +41,48 @@ export function SessionNav() {
     router.refresh();
   }
 
+  const links = !isAuthenticated ? publicLinks : isAdmin ? adminLinks : isTrainer ? trainerLinks : studentLinks;
+  const profileHref = isAdmin ? '/admin' : isTrainer ? '/trainer/dashboard' : '/cabinet';
+  const profileLabel = isAdmin || isTrainer ? 'Профиль' : 'Кабинет';
+
+  function isActive(href: string) {
+    if (href === '/') return pathname === '/';
+    return pathname === href || Boolean(pathname?.startsWith(`${href}/`));
+  }
+
   return (
     <>
-      <nav className="nav" aria-label="Main navigation">
-        {publicLinks.map((link) => (
-          <Link key={link.href} href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>
+      <nav className="premium-nav" aria-label="Основная навигация">
+        {links.map((link) => (
+          <Link
+            key={`${link.href}-${link.label}`}
+            href={link.href}
+            className={isActive(link.href) ? 'premium-nav__link premium-nav__link-active' : 'premium-nav__link'}
+            aria-current={isActive(link.href) ? 'page' : undefined}
+          >
             {link.label}
           </Link>
         ))}
-        {isAuthenticated
-          ? privateLinks.map((link) => (
-              <Link key={link.href} href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>
-                {link.label}
-              </Link>
-            ))
-          : null}
-        {isAuthenticated && isTrainer ? (
-          <>
-            <Link href="/trainer/dashboard" aria-current={pathname?.startsWith('/trainer') ? 'page' : undefined}>
-              Trainer dashboard
-            </Link>
-            <Link href="/payouts" aria-current={pathname?.startsWith('/payouts') ? 'page' : undefined}>
-              Payouts
-            </Link>
-          </>
-        ) : null}
-        {isAuthenticated && isAdmin ? (
-          <>
-            <Link href="/admin" aria-current={pathname === '/admin' ? 'page' : undefined}>
-              Admin cockpit
-            </Link>
-            <Link href="/admin/moderation" aria-current={pathname?.startsWith('/admin/moderation') ? 'page' : undefined}>
-              Moderation
-            </Link>
-            <Link href="/admin/payouts" aria-current={pathname?.startsWith('/admin/payouts') ? 'page' : undefined}>
-              Payout ops
-            </Link>
-            <Link href="/admin/payments" aria-current={pathname?.startsWith('/admin/payments') ? 'page' : undefined}>
-              Payment ops
-            </Link>
-            <Link href="/admin/analytics" aria-current={pathname?.startsWith('/admin/analytics') ? 'page' : undefined}>
-              Analytics
-            </Link>
-            <Link href="/admin/settings/payments" aria-current={pathname?.startsWith('/admin/settings/payments') ? 'page' : undefined}>
-              Payment settings
-            </Link>
-          </>
-        ) : null}
       </nav>
 
-      <div className="inline">
+      <div className="premium-header-actions">
         {isLoading ? (
-          <span className="badge secondary">Сессия...</span>
+          <span className="premium-header-user">Проверяем сессию</span>
         ) : isAuthenticated ? (
           <>
-            <div className="stack" style={{ gap: 2, alignItems: 'flex-end' }}>
-              <strong style={{ fontSize: 14 }}>{user?.full_name || user?.email}</strong>
-              <span className="muted" style={{ fontSize: 12 }}>{user?.active_role || 'user'}</span>
+            <div className="premium-header-user">
+              <strong>{user?.full_name || user?.email}</strong>
+              <span>{user?.active_role || 'user'}</span>
             </div>
-            <Link href={isTrainer ? '/trainer/dashboard' : '/cabinet'} className="button ghost sm">
-              {isTrainer ? 'Dashboard' : 'Кабинет'}
+            <Link href={profileHref} className="premium-header-ghost">
+              {profileLabel}
             </Link>
-            <button className="button secondary sm" type="button" onClick={onSignOut}>Выйти</button>
+            <button className="premium-header-cta" type="button" onClick={onSignOut}>Выйти</button>
           </>
         ) : (
           <>
-            <Link href="/login" className="button secondary sm">Войти</Link>
-            <Link href="/register" className="button sm">Регистрация</Link>
+            <Link href="/login" className="premium-header-ghost">Войти</Link>
+            <Link href="/register" className="premium-header-cta">Стать тренером</Link>
           </>
         )}
       </div>

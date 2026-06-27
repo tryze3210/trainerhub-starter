@@ -25,17 +25,22 @@ function CheckoutSuccessPageContent() {
   }, [isMock, paymentId]);
 
   return (
-    <section className="stack" style={{ gap: 24 }}>
-      <div className="card dark">
-        <span className="badge success">Checkout success</span>
-        <h1 className="title-lg">Оплата завершена</h1>
-        <p className="lead">Заказ и платёж уже можно открыть в личном кабинете.</p>
+    <section className="premium-checkout-page">
+      <div className="premium-checkout-state premium-checkout-success">
+        <span className="premium-eyebrow">Покупка оформлена</span>
+        <h1>Доступ оформлен</h1>
+        <p>Оплата завершена. Материалы появятся в личном кабинете после подтверждения платежа.</p>
       </div>
-      {msg ? <div className="card error">{msg}</div> : null}
-      <div className="inline">
-        {orderId ? <Link href={`/orders/${orderId}`} className="button">Открыть заказ</Link> : null}
-        {paymentId ? <Link href={`/payments/${paymentId}`} className="button secondary">Открыть платёж</Link> : null}
-        <Link href="/entitlements" className="button ghost">Мои доступы</Link>
+      {msg ? (
+        <div className="premium-checkout-error">
+          Платёж создан, но автоматическое подтверждение не завершилось. Откройте платёж или обновите статус в кабинете.
+        </div>
+      ) : null}
+      <div className="premium-checkout-actions">
+        <Link href="/entitlements" className="premium-primary-button">Перейти к моим доступам</Link>
+        {orderId ? <Link href={`/orders/${orderId}`} className="premium-secondary-button">Открыть заказ</Link> : null}
+        {paymentId ? <Link href={`/payments/${paymentId}`} className="premium-secondary-button">Открыть платёж</Link> : null}
+        <Link href="/catalog" className="premium-secondary-button">Вернуться в каталог</Link>
       </div>
     </section>
   );
@@ -48,4 +53,3 @@ export default function CheckoutSuccessPage() {
     </Suspense>
   );
 }
-

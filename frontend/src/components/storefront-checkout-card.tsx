@@ -7,9 +7,9 @@ import { useAuthSession } from '@/components/auth-provider';
 import { privateApi } from '@/lib/api';
 
 const providerOptions = [
-  { value: 'mock', label: 'Mock checkout' },
-  { value: 'cloudpayments', label: 'CloudPayments contract' },
-  { value: 'yookassa', label: 'YooKassa contract' },
+  { value: 'mock', label: 'Тестовая оплата' },
+  { value: 'cloudpayments', label: 'CloudPayments' },
+  { value: 'yookassa', label: 'ЮKassa' },
 ];
 
 export function StorefrontCheckoutCard({
@@ -51,7 +51,7 @@ export function StorefrontCheckoutCard({
       }
       router.push(`/payments/${paymentId}?provider_redirect=1`);
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : 'Не удалось создать checkout');
+      setMsg(err instanceof Error ? err.message : 'Не удалось создать заказ');
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export function StorefrontCheckoutCard({
   return (
     <aside className="card sticky-card">
       <div className="stack" style={{ gap: 14 }}>
-        <span className="badge">Checkout</span>
+        <span className="badge">Покупка</span>
         <h3 className="title-md">Купить доступ</h3>
         <p className="muted">{amount || '—'} {currency || 'RUB'}</p>
 
@@ -81,7 +81,7 @@ export function StorefrontCheckoutCard({
         {msg ? <div className="card error compact">{msg}</div> : null}
         {isAuthenticated ? (
           <button className="button lg w-full" disabled={loading} onClick={() => void handleCheckout()}>
-            {loading ? 'Создаём checkout...' : provider === 'mock' ? 'Купить' : 'Создать checkout contract'}
+            {loading ? 'Создаём заказ...' : 'Купить доступ'}
           </button>
         ) : (
           <Link className="button lg w-full" href={`/login?next=${encodeURIComponent(pathname || '/')}`}>
@@ -89,7 +89,7 @@ export function StorefrontCheckoutCard({
           </Link>
         )}
         <p className="muted">
-          Для mock checkout оплата сразу уходит в success flow. Для CloudPayments и YooKassa откроется detail-страница платежа с return/webhook contract.
+          После подтверждения оплаты доступ появится в личном кабинете. Для внешних провайдеров будет создана платёжная сессия.
         </p>
       </div>
     </aside>

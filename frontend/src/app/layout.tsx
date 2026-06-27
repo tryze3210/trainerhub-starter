@@ -18,39 +18,54 @@ export default function RootLayout({
     <html lang="ru">
       <body>
         <AuthProvider>
-          <header className="site-header">
-            <div className="container">
-              <div className="site-header__inner">
-                <Link href="/" className="brand" aria-label="TrainerHub home">
-                  <span className="brand__mark">T</span>
-                  <span>TrainerHub</span>
+          <div className="app-shell">
+            <header className="premium-site-header">
+              <div className="premium-site-header__inner">
+                <Link href="/" className="premium-brand" aria-label="TrainerHub">
+                  <span className="premium-brand__mark">T</span>
+                  <span className="premium-brand__text">TrainerHub</span>
                 </Link>
                 <SessionNav />
               </div>
-            </div>
-          </header>
+            </header>
 
-          <main className="page">
-            <div className="container">{children}</div>
-          </main>
+            <main className="premium-main">{children}</main>
 
-          <footer className="site-footer">
-            <div className="container">
-              <div className="site-footer__inner">
-                <div className="stack" style={{ gap: 6 }}>
-                  <strong>TrainerHub</strong>
-                  <span>Платформа для тренеров, онлайн-тренировок, программ и подписок.</span>
+            <footer className="premium-site-footer">
+              <div className="premium-site-footer__inner">
+                <div className="premium-site-footer__brand">
+                  <Link href="/" className="premium-brand" aria-label="TrainerHub">
+                    <span className="premium-brand__mark">T</span>
+                    <span className="premium-brand__text">TrainerHub</span>
+                  </Link>
+                  <p>Платформа для тренеров, программ, видеоуроков, подписок и клиентского сопровождения.</p>
                 </div>
 
-                <div className="inline">
-                  <Link href="/catalog">Каталог</Link>
-                  <Link href="/learning">Обучение</Link>
-                  <Link href="/trainers">Тренеры</Link>
-                  <Link href="/subscriptions">Подписки</Link>
+                <div className="premium-site-footer__grid">
+                  <div className="premium-site-footer__column">
+                    <span className="premium-site-footer__title">Продукт</span>
+                    <div className="premium-site-footer__links">
+                      <Link href="/catalog" className="premium-footer-link">Каталог</Link>
+                      <Link href="/trainers" className="premium-footer-link">Тренеры</Link>
+                      <Link href="/register" className="premium-footer-link">Стать тренером</Link>
+                    </div>
+                  </div>
+                  <div className="premium-site-footer__column">
+                    <span className="premium-site-footer__title">Для пользователей</span>
+                    <div className="premium-site-footer__links">
+                      <Link href="/login" className="premium-footer-link">Войти</Link>
+                      <Link href="/register" className="premium-footer-link">Регистрация</Link>
+                      <Link href="/learning" className="premium-footer-link">Моё обучение</Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="premium-site-footer__bottom">
+                  © 2026 TrainerHub. Платформа для цифровых фитнес-продуктов.
                 </div>
               </div>
-            </div>
-          </footer>
+            </footer>
+          </div>
         </AuthProvider>
       </body>
     </html>

@@ -10,16 +10,16 @@ function CheckoutCancelPageContent() {
   const orderId = searchParams.get('order_id') || '';
 
   return (
-    <section className="stack" style={{ gap: 24 }}>
-      <div className="card dark">
-        <span className="badge warning">Checkout cancelled</span>
-        <h1 className="title-lg">Оплата не завершена</h1>
-        <p className="lead">Платёж был отменён или завершился ошибкой. Можно вернуться к заказу и попробовать снова.</p>
+    <section className="premium-checkout-page">
+      <div className="premium-checkout-state">
+        <span className="premium-eyebrow">Оплата не подтверждена</span>
+        <h1>Покупка не завершена</h1>
+        <p>Платёж был отменён или не прошёл. Вы можете вернуться к заказу, попробовать снова или выбрать другой продукт в каталоге.</p>
       </div>
-      <div className="inline">
-        {orderId ? <Link href={`/orders/${orderId}`} className="button">Открыть заказ</Link> : null}
-        {paymentId ? <Link href={`/payments/${paymentId}`} className="button secondary">Открыть платёж</Link> : null}
-        <Link href="/catalog" className="button ghost">Вернуться в каталог</Link>
+      <div className="premium-checkout-actions">
+        <Link href="/catalog" className="premium-primary-button">Вернуться в каталог</Link>
+        {orderId ? <Link href={`/orders/${orderId}`} className="premium-secondary-button">Открыть заказ</Link> : null}
+        {paymentId ? <Link href={`/payments/${paymentId}`} className="premium-secondary-button">Открыть платёж</Link> : null}
       </div>
     </section>
   );
@@ -32,4 +32,3 @@ export default function CheckoutCancelPage() {
     </Suspense>
   );
 }
-

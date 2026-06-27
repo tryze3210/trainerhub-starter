@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v154
+# MANIFEST — TrainerHub v155
 
-This manifest describes the current repository state after v154 Premium Product Detail Landing Pages.
+This manifest describes the current repository state after v155 Premium App Shell, Footer Cleanup and Checkout Page.
 
 ## Current Version
 
-- Current roadmap version: `v154`
+- Current roadmap version: `v155`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v154` premium brand foundation, marketing homepage, marketplace catalog and product detail landing pages
+- Current storefront block: `v151-v155` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages and checkout shell
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v154 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v155 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -252,6 +252,7 @@ UI design system modules and contracts:
 - `docs/design-system/v153_premium_storefront_stabilization.md` — v153 premium storefront stabilization notes.
 - `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md` — v154-prep marketplace catalog foundation notes.
 - `docs/design-system/v154_premium_product_detail_landing_pages.md` — v154 premium product detail landing notes.
+- `docs/design-system/v155_premium_app_shell_checkout.md` — v155 premium shell and checkout notes.
 
 Admin dashboard redesign modules:
 
@@ -376,6 +377,20 @@ Premium product detail landing modules:
 - `frontend/src/app/catalog/videos/[slug]/page.tsx` — v154 Russian video metadata.
 - `frontend/src/app/catalog/bundles/[slug]/page.tsx` — v154 Russian bundle metadata.
 
+Premium app shell and checkout modules:
+
+- `frontend/src/app/layout.tsx` — v155 app shell, premium header, premium main and premium footer.
+- `frontend/src/components/session-nav.tsx` — v155 compact role-aware header navigation.
+- `frontend/src/app/checkout/page.tsx` — v155 checkout route.
+- `frontend/src/app/checkout/success/page.tsx` — v155 Russian premium success state.
+- `frontend/src/app/checkout/cancel/page.tsx` — v155 Russian premium cancel state.
+- `frontend/src/modules/checkout/components/checkout-page.tsx` — v155 checkout composition and API flow.
+- `frontend/src/modules/checkout/components/checkout-order-summary.tsx` — v155 order summary and price formatting.
+- `frontend/src/modules/checkout/components/checkout-payment-method.tsx` — v155 provider selector.
+- `frontend/src/modules/checkout/components/checkout-trust-panel.tsx` — v155 purchase trust panel.
+- `frontend/src/modules/checkout/components/checkout-state-card.tsx` — v155 checkout auth/loading state card.
+- `docs/design-system/v155_premium_app_shell_checkout.md` — v155 implementation notes.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -423,7 +438,8 @@ Premium product detail landing modules:
 | v152 | Premium marketing homepage | Done |
 | v153 | Premium storefront stabilization | Done |
 | v154-prep | Marketplace catalog premium foundation | Done |
-| v154 | Premium product detail landing pages | Current |
+| v154 | Premium product detail landing pages | Done |
+| v155 | Premium app shell, footer cleanup and checkout page | Current |
 
 ## Current Frontend Modules
 

@@ -29,6 +29,16 @@ const requiredFiles = [
   '../docs/design-system/v153_premium_storefront_stabilization.md',
   '../docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md',
   '../docs/design-system/v154_premium_product_detail_landing_pages.md',
+  '../docs/design-system/v155_premium_app_shell_checkout.md',
+  'src/components/session-nav.tsx',
+  'src/app/checkout/page.tsx',
+  'src/app/checkout/success/page.tsx',
+  'src/app/checkout/cancel/page.tsx',
+  'src/modules/checkout/components/checkout-page.tsx',
+  'src/modules/checkout/components/checkout-order-summary.tsx',
+  'src/modules/checkout/components/checkout-payment-method.tsx',
+  'src/modules/checkout/components/checkout-trust-panel.tsx',
+  'src/modules/checkout/components/checkout-state-card.tsx',
   'src/modules/public-storefront/components/marketing-home-page.tsx',
   'src/modules/public-storefront/components/hero-business-console.tsx',
   'src/modules/public-storefront/components/platform-map-section.tsx',
@@ -199,6 +209,43 @@ for (const fragment of [
   '.premium-mobile-purchase-bar',
   '.premium-product-state',
   '.premium-product-skeleton',
+  '.app-shell',
+  '.premium-main',
+  '.premium-site-header',
+  '.premium-site-header__inner',
+  '.premium-brand',
+  '.premium-brand__mark',
+  '.premium-brand__text',
+  '.premium-nav',
+  '.premium-nav__link',
+  '.premium-nav__link-active',
+  '.premium-header-actions',
+  '.premium-header-user',
+  '.premium-header-cta',
+  '.premium-header-ghost',
+  '.premium-site-footer',
+  '.premium-site-footer__inner',
+  '.premium-site-footer__brand',
+  '.premium-site-footer__grid',
+  '.premium-site-footer__column',
+  '.premium-site-footer__title',
+  '.premium-site-footer__links',
+  '.premium-site-footer__bottom',
+  '.premium-footer-link',
+  '.premium-checkout-page',
+  '.premium-checkout-layout',
+  '.premium-checkout-hero',
+  '.premium-checkout-summary',
+  '.premium-checkout-panel',
+  '.premium-checkout-panel-sticky',
+  '.premium-checkout-row',
+  '.premium-checkout-total',
+  '.premium-checkout-trust',
+  '.premium-checkout-provider',
+  '.premium-checkout-state',
+  '.premium-checkout-error',
+  '.premium-checkout-success',
+  '.premium-checkout-actions',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -333,6 +380,10 @@ for (const fragment of ['useCountUp', 'requestAnimationFrame', 'durationMs', 'fo
 
 const marketingHome = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/marketing-home-page.tsx'), 'utf8');
 const contentDetail = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/content-detail-page.tsx'), 'utf8');
+const sessionNav = fs.readFileSync(path.join(root, 'src/components/session-nav.tsx'), 'utf8');
+const checkoutPage = fs.readFileSync(path.join(root, 'src/modules/checkout/components/checkout-page.tsx'), 'utf8');
+const checkoutSuccess = fs.readFileSync(path.join(root, 'src/app/checkout/success/page.tsx'), 'utf8');
+const checkoutCancel = fs.readFileSync(path.join(root, 'src/app/checkout/cancel/page.tsx'), 'utf8');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -371,4 +422,59 @@ for (const fragment of [
   }
 }
 
-console.log('v131-v154 design system contract ok');
+for (const fragment of [
+  'premium-nav',
+  'Каталог',
+  'Тренеры',
+  'Моё обучение',
+  'Кабинет тренера',
+  'Операции',
+  'Финансы',
+  'Стать тренером',
+]) {
+  if (!sessionNav.includes(fragment)) {
+    throw new Error(`session-nav.tsx missing premium header fragment: ${fragment}`);
+  }
+}
+
+for (const forbidden of ['Billing', 'Payouts', 'Admin cockpit', 'Payment ops', 'Trainer dashboard']) {
+  if (sessionNav.includes(forbidden)) {
+    throw new Error(`session-nav.tsx still contains crowded header label: ${forbidden}`);
+  }
+}
+
+for (const fragment of [
+  'CheckoutOrderSummary',
+  'CheckoutPaymentMethod',
+  'CheckoutTrustPanel',
+  'checkoutApi.checkoutOneTime',
+  'idempotency_key',
+  'Оформление доступа',
+  'Подтвердить покупку',
+  'Создаём заказ...',
+  'Чтобы оформить доступ, войдите в аккаунт',
+]) {
+  if (!checkoutPage.includes(fragment)) {
+    throw new Error(`checkout page missing v155 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Доступ оформлен', 'Перейти к моим доступам', 'Вернуться в каталог']) {
+  if (!checkoutSuccess.includes(fragment)) {
+    throw new Error(`checkout success missing v155 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Покупка не завершена', 'Вернуться в каталог', 'Открыть заказ']) {
+  if (!checkoutCancel.includes(fragment)) {
+    throw new Error(`checkout cancel missing v155 fragment: ${fragment}`);
+  }
+}
+
+for (const forbidden of ['Checkout success', 'Checkout cancelled', 'Commercial metadata']) {
+  if ([checkoutSuccess, checkoutCancel, contentDetail].some((source) => source.includes(forbidden))) {
+    throw new Error(`premium storefront still contains technical copy: ${forbidden}`);
+  }
+}
+
+console.log('v131-v155 design system contract ok');
