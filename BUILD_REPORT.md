@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v120
+# BUILD REPORT — TrainerHub v134
 
 ## Summary
 
-Current version: `v120`
+Current version: `v134`
 
 The repository has been updated through:
 
@@ -35,8 +35,12 @@ The repository has been updated through:
 - public marketplace hardening: v118
 - launch candidate: v119
 - production launch pack: v120
+- UI design system: v131
+- layout system: v132
+- component library: v133
+- theme engine: v134
 
-v120 adds the final production launch pack with deploy, backup, monitoring, admin, trainer and student documentation plus a structured admin API surface.
+v134 adds light/dark, brand palette and white-label theme support for the redesign block.
 
 ## Verification Performed In This Workspace
 
@@ -54,10 +58,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v120.
+- README current version and roadmap/status table updated to v134.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v120 status and launch-pack closure.
+- BUILD_REPORT updated with v134 theme-engine status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
+- Frontend design-system contract extended for v131-v134.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -80,7 +85,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v120 pass, the local workspace verified syntax, production launch pack contract tests and patch hygiene. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v134 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 

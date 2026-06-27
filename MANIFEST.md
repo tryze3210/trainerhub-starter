@@ -1,13 +1,13 @@
-# MANIFEST — TrainerHub v120
+# MANIFEST — TrainerHub v134
 
-This manifest describes the current repository state after v120 Production Launch Pack.
+This manifest describes the current repository state after v134 Theme Engine.
 
 ## Current Version
 
-- Current roadmap version: `v120`
+- Current roadmap version: `v134`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
-- Active planning block: production launch pack complete
+- Active planning block: `v131-v150` UX redesign and premium experience
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -225,6 +225,21 @@ Production launch pack modules and contracts:
 - `backend/apps/ops/api/urls.py` — `ops-admin-production-launch-pack` URL contract.
 - `backend/tests/test_production_launch_pack_v120.py` — production launch pack regression tests.
 
+UI design system modules and contracts:
+
+- `frontend/src/design-system/tokens.ts` — shared frontend design tokens.
+- `frontend/src/design-system/components.tsx` — shared UI primitives for buttons, cards, forms, tables, modal shell and statistics cards.
+- `frontend/src/design-system/layouts.tsx` — shared layout primitives for admin, trainer, student, public and mobile layouts.
+- `frontend/src/design-system/library.tsx` — shared DataTable, chart, calendar, Kanban, upload, rich text, video and statistics catalog.
+- `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
+- `frontend/src/design-system/index.ts` — design-system public exports.
+- `frontend/src/app/globals.css` — semantic CSS variables, aliases and shared interaction states.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v134 design-system contract test.
+- `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
+- `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
+- `docs/design-system/v133_component_library.md` — v133 component-library notes.
+- `docs/design-system/v134_theme_engine.md` — v134 theme-engine notes.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -247,7 +262,12 @@ Production launch pack modules and contracts:
 | v117 | Demo data / seed scenarios | Done |
 | v118 | Public marketplace hardening | Done |
 | v119 | Launch candidate | Done |
-| v120 | Production launch pack | Current |
+| v120 | Production launch pack | Done |
+| v131 | UI design system | Done |
+| v132 | Layout system | Done |
+| v133 | Component library | Done |
+| v134 | Theme engine | Current |
+| v135 | Motion / UI polish | Planned |
 
 ## Current Frontend Modules
 

@@ -1,8 +1,8 @@
-# TrainerHub — current version v120
+# TrainerHub — current version v134
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v120 Production Launch Pack. The v70-v95 platform-readiness block, v97-v105 content-learning launch block and v106-v120 production-launch block are closed.
+This README describes the current roadmap state after v134 Theme Engine. The v70-v95 platform-readiness block, v97-v105 content-learning launch block and v106-v120 production-launch block are closed; the v131-v150 UX redesign block is now active.
 
 ## Current Roadmap State
 
@@ -38,7 +38,12 @@ Roadmap status table:
 | v117 | Demo Data / Seed Scenarios | Done |
 | v118 | Public Marketplace Hardening | Done |
 | v119 | Launch Candidate | Done |
-| v120 | Production Launch Pack | Current |
+| v120 | Production Launch Pack | Done |
+| v131 | UI Design System | Done |
+| v132 | Layout System | Done |
+| v133 | Component Library | Done |
+| v134 | Theme Engine | Current |
+| v135 | Motion / UI Polish | Planned |
 
 Completed implementation line:
 
@@ -90,9 +95,85 @@ Completed implementation line:
 - v118 — Public Marketplace Hardening
 - v119 — Launch Candidate
 - v120 — Production Launch Pack
+- v131 — UI Design System
+- v132 — Layout System
+- v133 — Component Library
+- v134 — Theme Engine
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
+
+## UI Design System
+
+v131 starts the UX redesign block with a shared frontend foundation.
+
+Design-system files:
+
+- `frontend/src/design-system/tokens.ts`
+- `frontend/src/design-system/components.tsx`
+- `frontend/src/design-system/index.ts`
+- `docs/design-system/v131_ui_design_system.md`
+- `frontend/tests/contracts/design-system-contract.test.js`
+
+Covered primitives:
+
+- colors, typography, spacing and radius tokens;
+- buttons, forms, tables, cards and badges;
+- modal shell;
+- skeleton loader and focus ring;
+- statistics card primitive.
+
+## Layout System
+
+v132 adds shared page layout primitives for the redesign block.
+
+Layout files:
+
+- `frontend/src/design-system/layouts.tsx`
+- `docs/design-system/v132_layout_system.md`
+
+Covered layouts:
+
+- Admin Layout;
+- Trainer Layout;
+- Student Layout;
+- Public Layout;
+- Mobile Layout through responsive sidebar behavior and sticky mobile action bar.
+
+## Component Library
+
+v133 adds shared presentational components for the upcoming screen redesign pass.
+
+Component library files:
+
+- `frontend/src/design-system/library.tsx`
+- `docs/design-system/v133_component_library.md`
+
+Covered components:
+
+- DataTable and statistics cards;
+- compact bar charts;
+- booking/schedule calendar;
+- CRM/support Kanban board;
+- file upload shell;
+- rich text editor shell;
+- protected-content video player shell.
+
+## Theme Engine
+
+v134 adds runtime theme support for the redesign block.
+
+Theme files:
+
+- `frontend/src/design-system/theme.tsx`
+- `docs/design-system/v134_theme_engine.md`
+
+Covered theme features:
+
+- light and dark modes;
+- brand palettes for `trainerhub`, `studio`, `academy` and `wellness`;
+- white-label CSS variable overrides;
+- `DSThemeProvider`, `useDSTheme` and `getWhiteLabelThemeStyle`.
 
 ## Demo Data / Seed Scenarios
 
