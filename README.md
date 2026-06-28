@@ -1,8 +1,8 @@
-# TrainerHub — current version v159
+# TrainerHub — current version v159.1
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v159 Premium Profile Workbench System. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v159 premium storefront, customer workspace and trainer workspace block is now implemented.
+This README describes the current roadmap state after v159.1 Premium Profile Background and Surface Repair. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v159.1 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 ## Current Roadmap State
 
@@ -72,7 +72,8 @@ Roadmap status table:
 | v158.1 | Final Product Builder and Video Studio Repair | Done |
 | v158.2 | Product/Video Studio Usability Repair | Done |
 | v158.3 | Horizontal Workbench Rescue | Done |
-| v159 | Premium Profile Workbench System | Current |
+| v159 | Premium Profile Workbench System | Done |
+| v159.1 | Premium Profile Background and Surface Repair | Current |
 
 Completed implementation line:
 
@@ -671,7 +672,7 @@ Updated trainer layer:
 
 ## Premium Trainer Product Builder
 
-v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow. v158.3 replaces narrow column layouts with horizontal product and video workbenches. v159 adds the shared premium profile workbench system and replaces customer/trainer sidebar shells with horizontal navigation.
+v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow. v158.3 replaces narrow column layouts with horizontal product and video workbenches. v159 adds the shared premium profile workbench system and replaces customer/trainer sidebar shells with horizontal navigation. v159.1 repairs the dark profile scene, panel surfaces, horizontal nav surface, rails and dark form controls.
 
 Updated product layer:
 
@@ -689,6 +690,7 @@ Updated product layer:
 - `docs/design-system/v158_2_product_video_usability_repair.md`
 - `docs/design-system/v158_3_horizontal_workbench_rescue.md`
 - `docs/design-system/v159_premium_profile_workbench.md`
+- `docs/design-system/v159_1_profile_surface_repair.md`
 
 ## Demo Data / Seed Scenarios
 

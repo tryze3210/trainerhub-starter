@@ -38,6 +38,7 @@ const requiredFiles = [
   '../docs/design-system/v158_2_product_video_usability_repair.md',
   '../docs/design-system/v158_3_horizontal_workbench_rescue.md',
   '../docs/design-system/v159_premium_profile_workbench.md',
+  '../docs/design-system/v159_1_profile_surface_repair.md',
   'src/modules/upload/components/trainer-content-studio.tsx',
   'src/modules/upload/components/trainer-video-upload-card.tsx',
   'src/modules/upload/components/trainer-content-card.tsx',
@@ -434,12 +435,31 @@ for (const fragment of [
   '.skeleton',
   '.focus-ring',
   '.profile-workbench',
+  '.premium-main:has(.profile-workbench)',
+  '.profile-workbench-customer',
+  '.profile-workbench-trainer',
+  '.profile-workbench::before',
+  '.profile-workbench-hero',
+  '.profile-workbench-hero-copy',
+  '.profile-workbench-hero-actions',
   '.profile-workbench-nav',
+  '.profile-workbench-nav-link',
+  '.profile-workbench-nav-link-active',
+  '.profile-workbench-metrics',
+  '.profile-workbench-metric',
   '.profile-workbench-rail',
+  '.profile-workbench-rail-card',
+  '.profile-workbench-rail-card-active',
   '.profile-workbench-editor-panel',
   '.profile-workbench-support-panels',
   '.profile-workbench-panel',
+  '.profile-workbench-section-header',
+  '.profile-workbench-actions',
+  '.profile-workbench-content',
   '.profile-editor-field-grid',
+  'rgba(7,10,15',
+  'backdrop-filter: blur(18px)',
+  '.trainer-content-input',
   '.customer-workbench',
   '.customer-workbench-hero',
   '.customer-workbench-nav',
@@ -825,9 +845,15 @@ for (const fragment of ['ProfileWorkbench', 'ProfileWorkbenchHero', 'ProfileWork
   }
 }
 
+for (const fragment of ['profile-workbench profile-workbench-${tone}', 'showDescriptions = false']) {
+  if (!profileWorkbench.includes(fragment)) {
+    throw new Error(`profile-workbench.tsx missing v159.1 surface fragment: ${fragment}`);
+  }
+}
+
 for (const [fileName, source, requiredFragments] of [
-  ['customer-cabinet-shell.tsx', customerCabinetShell, ['profile-workbench', 'ProfileWorkbenchHero', 'CustomerCabinetNav variant="horizontal"']],
-  ['trainer-cabinet-shell.tsx', trainerCabinetShell, ['profile-workbench', 'ProfileWorkbenchHero', 'TrainerCabinetNav variant="horizontal"']],
+  ['customer-cabinet-shell.tsx', customerCabinetShell, ['profile-workbench', 'ProfileWorkbenchHero', 'CustomerCabinetNav variant="horizontal"', 'profile-workbench-content']],
+  ['trainer-cabinet-shell.tsx', trainerCabinetShell, ['profile-workbench', 'ProfileWorkbenchHero', 'TrainerCabinetNav variant="horizontal"', 'profile-workbench-content']],
   ['customer-cabinet-nav.tsx', customerCabinetNav, ['profile-workbench-nav', 'profile-workbench-nav-link']],
   ['trainer-cabinet-nav.tsx', trainerCabinetNav, ['profile-workbench-nav', 'profile-workbench-nav-link']],
   ['trainer-content-studio.tsx', trainerContentStudio, ['profile-workbench', 'profile-workbench-rail', 'profile-workbench-editor-panel']],
@@ -856,4 +882,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v159 design system contract ok');
+console.log('v131-v159.1 design system contract ok');

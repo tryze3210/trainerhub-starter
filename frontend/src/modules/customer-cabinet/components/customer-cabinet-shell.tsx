@@ -10,18 +10,18 @@ type CustomerCabinetShellProps = {
 };
 
 export function CustomerCabinetShell({ title, description, children, actions }: CustomerCabinetShellProps) {
+  const heroActions = [
+    actions,
+    <Link href="/catalog" className="premium-secondary-button" key="catalog">Каталог</Link>,
+  ].filter(Boolean);
+
   return (
     <ProfileWorkbench tone="customer">
       <ProfileWorkbenchHero
         eyebrow="Личный кабинет"
         title={title}
         description={description}
-        actions={
-          <>
-          {actions}
-          <Link href="/catalog" className="premium-secondary-button">Каталог</Link>
-          </>
-        }
+        actions={heroActions}
       />
       <CustomerCabinetNav variant="horizontal" />
       <div className="profile-workbench-content customer-cabinet-content">{children}</div>

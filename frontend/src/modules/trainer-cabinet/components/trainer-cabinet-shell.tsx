@@ -13,18 +13,18 @@ export function TrainerCabinetShell({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  const heroActions = [
+    actions,
+    <Link href="/catalog" className="premium-secondary-button" key="catalog">Открыть каталог</Link>,
+  ].filter(Boolean);
+
   return (
     <ProfileWorkbench tone="trainer">
       <ProfileWorkbenchHero
         eyebrow="Кабинет тренера"
         title={title}
         description={description}
-        actions={
-          <>
-            {actions}
-            <Link href="/catalog" className="premium-secondary-button">Открыть каталог</Link>
-          </>
-        }
+        actions={heroActions}
       />
       <TrainerCabinetNav variant="horizontal" />
       <div className="profile-workbench-content trainer-cabinet-content">{children}</div>

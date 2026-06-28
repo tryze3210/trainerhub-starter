@@ -43,7 +43,15 @@ export function ProfileWorkbenchHero({
   );
 }
 
-export function ProfileWorkbenchNav({ items, activeHref }: { items: ProfileWorkbenchNavItem[]; activeHref?: string }) {
+export function ProfileWorkbenchNav({
+  items,
+  activeHref,
+  showDescriptions = false,
+}: {
+  items: ProfileWorkbenchNavItem[];
+  activeHref?: string;
+  showDescriptions?: boolean;
+}) {
   return (
     <nav className="profile-workbench-nav" aria-label="Разделы профиля">
       {items.map((item) => {
@@ -51,7 +59,7 @@ export function ProfileWorkbenchNav({ items, activeHref }: { items: ProfileWorkb
         return (
           <Link key={`${item.href}-${item.label}`} href={item.href} className={active ? 'profile-workbench-nav-link profile-workbench-nav-link-active' : 'profile-workbench-nav-link'} aria-current={active ? 'page' : undefined}>
             <strong>{item.label}</strong>
-            {item.description ? <span>{item.description}</span> : null}
+            {showDescriptions && item.description ? <span>{item.description}</span> : null}
           </Link>
         );
       })}
