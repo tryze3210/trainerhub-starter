@@ -13,6 +13,7 @@ type TrainerSelectedMediaListProps = {
 
 export function TrainerSelectedMediaList({ selectedVideoIds, onRemove }: TrainerSelectedMediaListProps) {
   const [videos, setVideos] = useState<VideoDraft[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -22,6 +23,9 @@ export function TrainerSelectedMediaList({ selectedVideoIds, onRemove }: Trainer
       })
       .catch(() => {
         if (mounted) setVideos([]);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
       });
     return () => {
       mounted = false;
@@ -49,13 +53,22 @@ export function TrainerSelectedMediaList({ selectedVideoIds, onRemove }: Trainer
         </div>
       ) : null}
 
-      {selectedVideoIds.map((videoId, index) => {
+      {selectedVideoIds.length > 0 && isLoading ? (
+        <div className="trainer-selected-media-row">
+          <div>
+            <strong>Загружаем выбранные видео</strong>
+            <span>Материалы уже добавлены в продукт.</span>
+          </div>
+        </div>
+      ) : null}
+
+      {!isLoading && selectedVideoIds.map((videoId) => {
         const video = selectedVideos.find((item) => item.id === videoId);
         return (
           <div className="trainer-selected-media-row" key={videoId}>
             <div>
-              <strong>{video?.title || `Видео из библиотеки ${index + 1}`}</strong>
-              <span>{video ? trainerContentStatusLabel(video.status) : 'Видео выбрано'}</span>
+              <strong>{video?.title || 'Выбранное видео'}</strong>
+              <span>{video ? trainerContentStatusLabel(video.status) : 'Видео уже добавлено в продукт'}</span>
             </div>
             <button className="premium-secondary-button" type="button" onClick={() => onRemove(videoId)}>Убрать</button>
           </div>

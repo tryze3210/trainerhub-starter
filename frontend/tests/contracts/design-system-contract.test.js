@@ -41,6 +41,7 @@ const requiredFiles = [
   '../docs/design-system/v159_1_profile_surface_repair.md',
   '../docs/design-system/v159_2_nested_scrollbar_repair.md',
   '../docs/design-system/v160_media_library_picker.md',
+  '../docs/design-system/v160_1_media_picker_integration.md',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
   'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx',
@@ -420,6 +421,10 @@ for (const fragment of [
   '.trainer-selected-media-row',
   '.trainer-product-advanced-field',
   '.trainer-product-materials-panel',
+  'v160.1 — Product media picker integration',
+  '.trainer-product-materials-panel-highlighted',
+  '.trainer-editor-section-header',
+  '.trainer-product-materials-hint',
   '.trainer-content-textarea',
   '.trainer-content-select',
   '.trainer-content-button',
@@ -840,13 +845,13 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео', 'Библиотека видео']) {
+for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'Выберите загруженное видео', 'intent']) {
+for (const fragment of ['TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing v160 media picker fragment: ${fragment}`);
   }
@@ -856,13 +861,13 @@ if (trainerProductBuilder.includes('<span>ID видео из библиотек�
   throw new Error('trainer product builder still shows raw video ids as the main materials label');
 }
 
-for (const fragment of ['uploadApi.listMyVideos', 'Библиотека видео', 'Загрузить видео', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
+for (const fragment of ['uploadApi.listMyVideos', 'Библиотека видео', 'Загрузить видео', 'trainer-media-picker-card', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
   if (!trainerProductMediaPicker.includes(fragment)) {
     throw new Error(`trainer product media picker missing fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['Выбранные материалы', 'Материалы ещё не выбраны', 'Убрать']) {
+for (const fragment of ['Выбранные материалы', 'Материалы ещё не выбраны', 'Выбранное видео', 'Видео уже добавлено в продукт', 'Убрать']) {
   if (!trainerSelectedMediaList.includes(fragment)) {
     throw new Error(`trainer selected media list missing fragment: ${fragment}`);
   }
@@ -971,4 +976,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v160 design system contract ok');
+console.log('v131-v160.1 design system contract ok');

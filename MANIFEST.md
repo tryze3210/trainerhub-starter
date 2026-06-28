@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v160
+# MANIFEST — TrainerHub v160.1
 
-This manifest describes the current repository state after v160 Premium Media Library Picker and Product Publishing Flow.
+This manifest describes the current repository state after v160.1 Integrate Media Picker Into Product Builder.
 
 ## Current Version
 
-- Current roadmap version: `v160`
+- Current roadmap version: `v160.1`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v160` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish and media picker flow
+- Current storefront block: `v151-v160.1` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish and media picker integration
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v160 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v160.1 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -456,6 +456,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v159_1_profile_surface_repair.md` — v159.1 profile surface repair notes.
 - `docs/design-system/v159_2_nested_scrollbar_repair.md` — v159.2 nested scrollbar repair notes.
 - `docs/design-system/v160_media_library_picker.md` — v160 media library picker notes.
+- `docs/design-system/v160_1_media_picker_integration.md` — v160.1 media picker integration notes.
 
 ## Roadmap Status
 
@@ -516,7 +517,8 @@ Premium trainer product builder modules:
 | v159 | Premium profile workbench system | Done |
 | v159.1 | Premium profile background and surface repair | Done |
 | v159.2 | Remove nested scrollbars and polish profile workbench | Done |
-| v160 | Premium media library picker and product publishing flow | Current |
+| v160 | Premium media library picker and product publishing flow | Done |
+| v160.1 | Integrate media picker into product builder | Current |
 
 ## Current Frontend Modules
 

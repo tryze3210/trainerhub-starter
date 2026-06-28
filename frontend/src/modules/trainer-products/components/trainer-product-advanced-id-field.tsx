@@ -17,7 +17,7 @@ export function TrainerProductAdvancedIdField({ value, onChange }: TrainerProduc
           <h3>Расширенная настройка</h3>
           <p>Используйте это поле, только если нужно вручную связать уже загруженные видео по ID.</p>
         </div>
-        <button className="trainer-product-advanced-field-toggle premium-secondary-button" type="button" onClick={() => setIsOpen((current) => !current)}>
+        <button className="trainer-product-advanced-field-toggle" type="button" onClick={() => setIsOpen((current) => !current)}>
           {isOpen ? 'Скрыть поле ID' : 'Показать поле ID'}
         </button>
       </header>

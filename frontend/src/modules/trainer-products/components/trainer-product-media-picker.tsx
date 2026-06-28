@@ -51,7 +51,7 @@ export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highligh
   }
 
   return (
-    <section className={highlighted ? 'trainer-product-media-picker trainer-product-media-picker-highlighted' : 'trainer-product-media-picker'}>
+    <section className={['trainer-product-media-picker', highlighted ? 'trainer-product-media-picker-highlighted' : ''].filter(Boolean).join(' ')}>
       <header className="profile-workbench-section-header">
         <div>
           <h3>Библиотека видео</h3>
@@ -78,12 +78,12 @@ export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highligh
       ) : null}
 
       {!isLoading && !error && videos.length > 0 ? (
-        <div className="profile-workbench-rail trainer-media-picker-rail" aria-label="Библиотека видео для продукта">
+        <div className="trainer-media-picker-rail" aria-label="Библиотека видео для продукта">
           {videos.map((video) => {
             const active = selectedVideoIds.includes(video.id);
             return (
               <button
-                className={active ? 'profile-workbench-rail-card trainer-media-picker-card trainer-media-picker-card-active profile-workbench-rail-card-active' : 'profile-workbench-rail-card trainer-media-picker-card'}
+                className={['trainer-media-picker-card', active ? 'trainer-media-picker-card-active' : ''].filter(Boolean).join(' ')}
                 key={video.id}
                 type="button"
                 onClick={() => toggleVideo(video.id)}

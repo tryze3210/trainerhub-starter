@@ -251,8 +251,8 @@ export function TrainerProductBuilderDashboard() {
   ];
   const preview = buildPreview(form, selectedProduct);
   const readiness = selectedProduct?.readiness || null;
-  const selectedVideoIds = parseVideoIds(videoIdsText);
-  const attachVideoIntent = searchParams.get('intent') === 'attach-video';
+  const selectedVideoIds = useMemo(() => parseVideoIds(videoIdsText), [videoIdsText]);
+  const isAttachVideoIntent = searchParams.get('intent') === 'attach-video';
 
   function updateSelectedVideoIds(videoIds: string[]) {
     setVideoIdsText(Array.from(new Set(videoIds)).join('\n'));
@@ -370,15 +370,18 @@ export function TrainerProductBuilderDashboard() {
           </div>
         </section>
 
-        <section className={attachVideoIntent ? 'trainer-editor-section trainer-product-materials-panel trainer-product-media-picker-highlighted' : 'trainer-editor-section trainer-product-materials-panel'}>
-          <h3>Материалы продукта</h3>
-          {attachVideoIntent ? <p>Выберите загруженное видео и добавьте его в продукт.</p> : null}
-          <div className="trainer-product-upload-bridge">
-            <strong>Библиотека видео</strong>
-            <p>Основной сценарий — загрузить видео в библиотеку, затем выбрать его карточкой в продукте.</p>
+        <section className={['trainer-editor-section', 'trainer-product-materials-panel', isAttachVideoIntent ? 'trainer-product-materials-panel-highlighted' : ''].filter(Boolean).join(' ')}>
+          <div className="trainer-editor-section-header">
+            <div>
+              <h3>Материалы продукта</h3>
+              <p>Выберите видео из библиотеки тренера. Если нужного видео ещё нет, загрузите его в разделе “Видео и материалы”.</p>
+            </div>
             <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
           </div>
-          <TrainerProductMediaPicker selectedVideoIds={selectedVideoIds} onChange={updateSelectedVideoIds} highlighted={attachVideoIntent} />
+
+          {isAttachVideoIntent ? <div className="trainer-product-materials-hint">Выберите загруженное видео и добавьте его в продукт.</div> : null}
+
+          <TrainerProductMediaPicker selectedVideoIds={selectedVideoIds} onChange={updateSelectedVideoIds} highlighted={isAttachVideoIntent} />
           <TrainerSelectedMediaList selectedVideoIds={selectedVideoIds} onRemove={(videoId) => updateSelectedVideoIds(selectedVideoIds.filter((id) => id !== videoId))} />
           <TrainerProductAdvancedIdField value={videoIdsText} onChange={setVideoIdsText} />
         </section>
