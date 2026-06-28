@@ -259,6 +259,7 @@ export function TrainerProductBuilderDashboard() {
           </div>
           <div className="trainer-product-actions">
             <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
+            <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
             <Link className="premium-secondary-button" href="/catalog">Открыть каталог</Link>
           </div>
         </div>
@@ -351,10 +352,29 @@ export function TrainerProductBuilderDashboard() {
                 </label>
               </div>
 
+              <div className="trainer-product-upload-bridge">
+                <strong>Библиотека видео</strong>
+                <p>Перед публикацией продукта добавьте материалы. Видео можно загрузить в разделе “Видео и материалы”.</p>
+                <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
+              </div>
+
+              {!videoIdsText.trim() ? (
+                <div className="trainer-product-material-empty">
+                  <strong>Материалы ещё не добавлены</strong>
+                  <p>Сначала загрузите видео в библиотеку или вставьте ID уже загруженного видео.</p>
+                  <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
+                </div>
+              ) : null}
+
               <label className="trainer-product-field">
-                <span>Видео и материалы</span>
-                <textarea className="textarea" value={videoIdsText} onChange={(event) => setVideoIdsText(event.target.value)} placeholder="Добавьте ID видео из вашей библиотеки, по одному на строку." rows={5} />
-                <small>Добавьте ID видео из вашей библиотеки, по одному на строку.</small>
+                <span>Материалы продукта</span>
+                <small>Выберите видео из библиотеки или вставьте ID видео, если оно уже загружено.</small>
+                <div className="trainer-product-advanced-note">
+                  Основной сценарий — загрузить видео в библиотеку, затем добавить его в продукт. Поле ID нужно для быстрого связывания уже загруженных материалов.
+                </div>
+                <span>ID видео из библиотеки</span>
+                <textarea className="textarea" value={videoIdsText} onChange={(event) => setVideoIdsText(event.target.value)} placeholder="ID видео из библиотеки" rows={5} />
+                <small>Используйте это поле, если видео уже загружено и вы знаете его ID.</small>
               </label>
 
               <div className="trainer-product-actions">

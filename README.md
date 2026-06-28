@@ -1,8 +1,8 @@
-# TrainerHub — current version v158.1
+# TrainerHub — current version v158.2
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v158.1 Final Product Builder and Video Studio Repair. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v158.1 premium storefront, customer workspace and trainer workspace block is now implemented.
+This README describes the current roadmap state after v158.2 Product/Video Studio Usability Repair. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v158.2 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 ## Current Roadmap State
 
@@ -69,7 +69,8 @@ Roadmap status table:
 | v157 | Premium Trainer Cabinet Shell and Core Trainer Sections | Done |
 | v157.1 | Trainer Cabinet Integration Repair | Done |
 | v158 | Premium Trainer Product Builder | Done |
-| v158.1 | Final Product Builder and Video Studio Repair | Current |
+| v158.1 | Final Product Builder and Video Studio Repair | Done |
+| v158.2 | Product/Video Studio Usability Repair | Current |
 
 Completed implementation line:
 
@@ -668,17 +669,21 @@ Updated trainer layer:
 
 ## Premium Trainer Product Builder
 
-v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows.
+v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow.
 
 Updated product layer:
 
 - `frontend/src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx`
 - `frontend/src/modules/upload/components/trainer-upload-panel.tsx`
+- `frontend/src/modules/upload/components/trainer-content-studio.tsx`
+- `frontend/src/modules/upload/components/trainer-video-upload-card.tsx`
+- `frontend/src/modules/upload/components/trainer-content-card.tsx`
 - `frontend/src/app/trainer/dashboard/assignments/page.tsx`
 - `frontend/src/modules/trainer-sales/components/trainer-sales-dashboard.tsx`
 - `frontend/src/modules/trainer-crm/components/trainer-crm-dashboard.tsx`
 - `docs/design-system/v158_premium_trainer_product_builder.md`
 - `docs/design-system/v158_1_product_builder_video_studio_repair.md`
+- `docs/design-system/v158_2_product_video_usability_repair.md`
 
 ## Demo Data / Seed Scenarios
 

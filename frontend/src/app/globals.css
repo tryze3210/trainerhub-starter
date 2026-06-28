@@ -3825,7 +3825,7 @@ small {
 
 .trainer-product-builder-grid {
   display: grid;
-  grid-template-columns: minmax(240px, 0.42fr) minmax(0, 0.78fr) minmax(240px, 0.44fr);
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 320px);
   gap: 18px;
   align-items: start;
 }
@@ -3961,7 +3961,7 @@ small {
 
 .trainer-content-studio-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 0.8fr) minmax(240px, 0.38fr);
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 320px);
   gap: 18px;
   align-items: start;
 }
@@ -4104,6 +4104,209 @@ small {
 .trainer-content-state-error {
   border-color: rgba(248, 113, 113, 0.28);
   color: #fecaca;
+}
+
+.trainer-product-builder,
+.trainer-content-studio,
+.trainer-product-builder *,
+.trainer-content-studio * {
+  box-sizing: border-box;
+}
+
+.trainer-product-builder,
+.trainer-content-studio {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.trainer-product-builder-grid,
+.trainer-content-studio-grid,
+.trainer-product-form-grid,
+.trainer-content-form-grid {
+  min-width: 0;
+}
+
+.trainer-product-list,
+.trainer-product-editor,
+.trainer-product-preview,
+.trainer-product-readiness,
+.trainer-content-list,
+.trainer-content-editor,
+.trainer-content-card,
+.trainer-lesson-card,
+.trainer-bundle-item-card {
+  min-width: 0;
+}
+
+.trainer-product-builder h1,
+.trainer-product-builder h2,
+.trainer-product-builder h3,
+.trainer-product-builder h4,
+.trainer-product-builder p,
+.trainer-product-builder span,
+.trainer-product-builder strong,
+.trainer-content-studio h1,
+.trainer-content-studio h2,
+.trainer-content-studio h3,
+.trainer-content-studio h4,
+.trainer-content-studio p,
+.trainer-content-studio span,
+.trainer-content-studio strong {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.trainer-product-actions,
+.trainer-content-actions,
+.trainer-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trainer-product-actions button,
+.trainer-content-actions button,
+.trainer-card-actions button,
+.trainer-product-actions a,
+.trainer-content-actions a,
+.trainer-card-actions a {
+  white-space: normal;
+  min-height: 42px;
+  line-height: 1.2;
+}
+
+.trainer-product-field,
+.trainer-content-field,
+.trainer-product-field input,
+.trainer-product-field textarea,
+.trainer-product-field select,
+.trainer-content-field input,
+.trainer-content-field textarea,
+.trainer-content-field select {
+  min-width: 0;
+  width: 100%;
+}
+
+.trainer-product-field small,
+.trainer-content-field small {
+  display: block;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.trainer-product-field textarea,
+.trainer-content-field textarea {
+  resize: vertical;
+  max-width: 100%;
+}
+
+.trainer-product-preview {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.trainer-product-preview * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.trainer-status-badge,
+.customer-status-badge,
+.badge {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.trainer-content-input,
+.trainer-content-textarea,
+.trainer-content-select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #ffffff;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.trainer-content-textarea {
+  resize: vertical;
+}
+
+.trainer-content-button,
+.trainer-content-button-secondary {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  background: rgba(125, 211, 252, 0.14);
+  font-weight: 850;
+  white-space: normal;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.trainer-content-button-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.trainer-video-upload-card-highlight {
+  border-color: rgba(125, 211, 252, 0.46);
+  box-shadow: 0 24px 80px rgba(14, 165, 233, 0.16);
+}
+
+.trainer-upload-dropzone {
+  min-width: 0;
+  width: 100%;
+  border: 1px dashed rgba(125, 211, 252, 0.40);
+  border-radius: 22px;
+  background: rgba(14, 165, 233, 0.07);
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+  color: rgba(226, 232, 240, 0.74);
+  cursor: pointer;
+}
+
+.trainer-upload-dropzone input {
+  width: 100%;
+  max-width: 100%;
+}
+
+.trainer-upload-dropzone strong {
+  color: #ffffff;
+}
+
+.trainer-upload-dropzone-active {
+  border-color: rgba(74, 222, 128, 0.42);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.trainer-content-upload-step,
+.trainer-product-upload-bridge,
+.trainer-product-material-empty,
+.trainer-product-advanced-note {
+  border: 1px solid rgba(125, 211, 252, 0.20);
+  border-radius: 18px;
+  background: rgba(125, 211, 252, 0.07);
+  color: rgba(226, 232, 240, 0.78);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.trainer-product-advanced-note {
+  border-color: rgba(250, 204, 21, 0.22);
+  background: rgba(250, 204, 21, 0.07);
 }
 
 .trainer-product-danger-action {

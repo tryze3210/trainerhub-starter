@@ -34,6 +34,11 @@ const requiredFiles = [
   '../docs/design-system/v157_premium_trainer_cabinet.md',
   '../docs/design-system/v158_premium_trainer_product_builder.md',
   '../docs/design-system/v158_1_product_builder_video_studio_repair.md',
+  '../docs/design-system/v158_2_product_video_usability_repair.md',
+  'src/modules/upload/components/trainer-content-studio.tsx',
+  'src/modules/upload/components/trainer-video-upload-card.tsx',
+  'src/modules/upload/components/trainer-content-card.tsx',
+  'src/modules/upload/components/trainer-upload-format.ts',
   'src/components/session-nav.tsx',
   'src/app/checkout/page.tsx',
   'src/app/checkout/success/page.tsx',
@@ -389,6 +394,14 @@ for (const fragment of [
   '.trainer-content-form',
   '.trainer-content-actions',
   '.trainer-content-preview',
+  '.trainer-content-field',
+  '.trainer-content-input',
+  '.trainer-content-textarea',
+  '.trainer-content-select',
+  '.trainer-content-button',
+  '.trainer-content-button-secondary',
+  '.trainer-upload-dropzone',
+  '.trainer-upload-dropzone-active',
   '.trainer-lesson-editor',
   '.trainer-lesson-list',
   '.trainer-lesson-card',
@@ -398,6 +411,9 @@ for (const fragment of [
   'max-width: 480px',
   'scroll-snap-type: x proximity',
   'overflow-x: hidden',
+  'overflow-wrap: anywhere',
+  'min-width: 0',
+  'white-space: normal',
   '.skeleton',
   '.focus-ring',
 ]) {
@@ -548,6 +564,10 @@ const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/bus
 const trainerReviewsPage = fs.readFileSync(path.join(root, 'src/app/trainer/reviews/page.tsx'), 'utf8');
 const trainerProductBuilder = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx'), 'utf8');
 const trainerUploadPanel = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-upload-panel.tsx'), 'utf8');
+const trainerContentStudio = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-content-studio.tsx'), 'utf8');
+const trainerVideoUploadCard = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-video-upload-card.tsx'), 'utf8');
+const trainerContentCard = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-content-card.tsx'), 'utf8');
+const trainerUploadFormat = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-upload-format.ts'), 'utf8');
 const trainerAssignmentsPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/assignments/page.tsx'), 'utf8');
 const productLanding = [
   contentDetail,
@@ -730,21 +750,33 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-for (const fragment of ['Продукты', 'Готовность к публикации', 'Так продукт будет выглядеть в каталоге', 'Новый продукт']) {
+for (const fragment of ['Продукты', 'Готовность к публикации', 'Так продукт будет выглядеть в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео', 'Библиотека видео', 'ID видео из библиотеки']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['Видео и материалы', 'Видеоурок', 'Программа', 'Набор', 'Уроки программы']) {
+for (const fragment of ['TrainerUploadPanel', 'TrainerContentStudio']) {
   if (!trainerUploadPanel.includes(fragment)) {
-    throw new Error(`trainer upload panel missing fragment: ${fragment}`);
+    throw new Error(`trainer upload panel missing wrapper fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Загрузить видеоурок', 'Видеофайл', 'Файл выбран', 'Видео', 'Программы', 'Наборы', 'Уроки программы']) {
+  if (!`${trainerContentStudio}\n${trainerVideoUploadCard}`.includes(fragment)) {
+    throw new Error(`trainer content studio missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['TrainerContentCard', 'trainerContentStatusLabel', 'trainerContentFileSize']) {
+  if (!`${trainerContentCard}\n${trainerUploadFormat}\n${trainerVideoUploadCard}`.includes(fragment)) {
+    throw new Error(`trainer upload split files missing fragment: ${fragment}`);
   }
 }
 
 for (const [fileName, source, forbiddenFragments] of [
   ['trainer-product-builder-dashboard.tsx', trainerProductBuilder, ['Draft, publish and archive', 'Product type', 'Single video', 'Video bundle', 'Access type', 'One-time purchase', 'Subscription access', 'Video ids', 'Save product', 'Create draft', 'Readiness checks']],
-  ['trainer-upload-panel.tsx', trainerUploadPanel, ['Video draft editor', 'Program draft editor', 'Lessons editor', 'video asset', 'storefront', 'bundle сохран', 'Lesson сохран', '>Published<', '>Under review<', '>Submitted<', '>Draft<']],
+  ['trainer-content-studio.tsx', `${trainerContentStudio}\n${trainerVideoUploadCard}`, ['Video draft editor', 'Program draft editor', 'Lessons editor', 'Bundle draft editor', 'Bundle composition editor', 'video asset', 'metadata draft', 'storefront', 'New draft', 'Edit lesson', '>Published<', '>Under review<', '>Draft<']],
   ['assignments/page.tsx', trainerAssignmentsPage, ['content id', 'lesson id, optional', 'placeholder="score"', 'Сохранить ревью', 'Published']],
 ]) {
   for (const forbiddenFragment of forbiddenFragments) {
@@ -754,4 +786,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v158.1 design system contract ok');
+console.log('v131-v158.2 design system contract ok');
