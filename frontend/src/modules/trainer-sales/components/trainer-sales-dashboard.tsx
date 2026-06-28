@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+
 import { trainerSalesApi, type TrainerSalesDashboardSnapshot } from '@/modules/trainer-sales/api';
 import type { TrainerContentPerformanceRow, TrainerSaleAnalyticsRow } from '@/modules/trainer-analytics/api';
 import type { TrainerRevenueTransaction } from '@/modules/trainer-revenue/api';
@@ -18,181 +19,170 @@ function money(value?: string | number | null, currency = 'RUB') {
 }
 
 function dateTime(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return 'Дата не указана';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-function statusText(value?: string | null) {
-  return value ? value.replaceAll('_', ' ') : '-';
-}
-
 function percent(value?: string | number | null) {
   const parsed = Number(value ?? 0);
   if (!Number.isFinite(parsed)) return '0%';
-  return `${parsed.toFixed(2)}%`;
+  return `${parsed.toFixed(1)}%`;
 }
 
-function shortId(value?: string | null) {
-  if (!value) return '-';
-  return value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
+function contentTypeLabel(value?: string | null) {
+  if (value === 'video') return 'Видео';
+  if (value === 'product') return 'Продукт';
+  if (value === 'subscription') return 'Подписка';
+  return 'Материал';
+}
+
+function saleStatusLabel(value?: string | null) {
+  const status = (value || '').toLowerCase();
+  if (status === 'paid' || status === 'completed' || status === 'succeeded') return 'Оплачено';
+  if (status === 'pending') return 'Ожидает';
+  if (status === 'refunded') return 'Возврат выполнен';
+  if (status === 'disputed' || status === 'chargeback') return 'Спор';
+  if (status === 'failed' || status === 'error') return 'Ошибка';
+  if (status === 'cancelled') return 'Отменено';
+  return 'Требуется проверка';
+}
+
+function statusTone(value?: string | null) {
+  const status = (value || '').toLowerCase();
+  if (['paid', 'completed', 'succeeded', 'published', 'active'].includes(status)) return 'success';
+  if (['pending', 'review', 'submitted', 'under_review'].includes(status)) return 'warning';
+  if (['failed', 'error', 'cancelled', 'refunded', 'disputed', 'chargeback'].includes(status)) return 'danger';
+  return 'neutral';
+}
+
+function statusClass(value?: string | null) {
+  return `trainer-finance-status trainer-finance-status-${statusTone(value)}`;
 }
 
 function isRefundTransaction(entry: TrainerRevenueTransaction) {
   const text = `${entry.entry_type} ${entry.source_type} ${entry.description}`.toLowerCase();
-  return text.includes('refund') || entry.direction === 'debit';
+  return text.includes('refund') || text.includes('chargeback') || entry.direction === 'debit';
 }
 
-function StatCard({ title, value, hint }: { title: string; value: string | number; hint?: string }) {
+function KpiCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
+    <article className="trainer-finance-kpi-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {hint ? <small>{hint}</small> : null}
+    </article>
+  );
+}
+
+function ProductRail({ rows, currency }: { rows: TrainerContentPerformanceRow[]; currency: string }) {
+  if (!rows.length) {
+    return (
+      <div className="trainer-finance-empty">
+        <strong>Продуктов с продажами пока нет</strong>
+        <p>Когда ученик купит видео или продукт, лучшие позиции появятся в этой ленте.</p>
       </div>
+    );
+  }
+
+  return (
+    <div className="trainer-sales-rail" aria-label="Лучшие продукты">
+      {rows.slice(0, 12).map((item) => (
+        <article className="trainer-sales-product-card" key={`${item.content_type}:${item.id}`}>
+          <span className={statusClass(item.status)}>{saleStatusLabel(item.status)}</span>
+          <strong>{item.title}</strong>
+          <span>{contentTypeLabel(item.content_type)} · {item.purchase_count} продаж</span>
+          <span>{money(item.net_revenue, item.currency || currency)}</span>
+          <small>Возвраты: {money(item.refund_amount, item.currency || currency)} · конверсия {percent(item.conversion_rate)}</small>
+        </article>
+      ))}
     </div>
   );
 }
 
-function ContentPerformanceTable({ rows, currency }: { rows: TrainerContentPerformanceRow[]; currency: string }) {
-  if (!rows.length) return <p className="muted">Контентных продаж за период пока нет.</p>;
+function SalesTimeline({ rows, currency }: { rows: TrainerSaleAnalyticsRow[]; currency: string }) {
+  if (!rows.length) {
+    return (
+      <div className="trainer-finance-empty">
+        <strong>Продаж за период пока нет</strong>
+        <p>Проверьте период или откройте каталог, чтобы убедиться, что продукты опубликованы.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Контент</th>
-            <th>Просмотры</th>
-            <th>Покупки</th>
-            <th>Конверсия</th>
-            <th>Чистая выручка</th>
-            <th>Возвраты</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((item) => (
-            <tr key={`${item.content_type}:${item.id}`}>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <strong>{item.title}</strong>
-                  <span className="muted">{item.content_type} · {item.status}</span>
-                </div>
-              </td>
-              <td>{item.views_count}</td>
-              <td>{item.purchase_count}</td>
-              <td>{percent(item.conversion_rate)}</td>
-              <td>{money(item.net_revenue, item.currency || currency)}</td>
-              <td>{money(item.refund_amount, item.currency || currency)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="trainer-finance-timeline">
+      {rows.slice(0, 12).map((sale) => (
+        <article className="trainer-sales-timeline-card" key={`${sale.order_id}:${sale.item_type}:${sale.item_id}`}>
+          <div className="trainer-finance-row">
+            <div>
+              <strong>{sale.title}</strong>
+              <span className="trainer-finance-muted">{contentTypeLabel(sale.matched_content_type)} · {dateTime(sale.created_at)}</span>
+            </div>
+            <span className={statusClass(sale.order_status)}>{saleStatusLabel(sale.order_status)}</span>
+          </div>
+          <div className="trainer-finance-row">
+            <span>Покупатель</span>
+            <strong>{sale.quantity} шт. · {money(sale.total_price, sale.currency || currency)}</strong>
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
 
-function SalesTable({ rows, currency }: { rows: TrainerSaleAnalyticsRow[]; currency: string }) {
-  if (!rows.length) return <p className="muted">Продаж за период пока нет.</p>;
+function RefundPanel({ rows, currency }: { rows: TrainerRevenueTransaction[]; currency: string }) {
+  if (!rows.length) {
+    return (
+      <div className="trainer-finance-empty">
+        <strong>Рисков не найдено</strong>
+        <p>За выбранный период нет возвратов, спорных операций или ошибок списания.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Заказ</th>
-            <th>Продукт</th>
-            <th>Кол-во</th>
-            <th>Сумма</th>
-            <th>Статус</th>
-            <th>Дата</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((sale) => (
-            <tr key={`${sale.order_id}:${sale.item_type}:${sale.item_id}`}>
-              <td>{shortId(sale.order_id)}</td>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <strong>{sale.title}</strong>
-                  <span className="muted">{sale.item_type} · {shortId(sale.item_id)}</span>
-                </div>
-              </td>
-              <td>{sale.quantity}</td>
-              <td>{money(sale.total_price, sale.currency || currency)}</td>
-              <td><span className="badge secondary">{statusText(sale.order_status)}</span></td>
-              <td>{dateTime(sale.created_at)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="trainer-finance-timeline">
+      {rows.slice(0, 8).map((entry) => (
+        <article className="trainer-finance-compact-card" key={entry.id}>
+          <div className="trainer-finance-row">
+            <strong>{money(entry.amount, entry.currency || currency)}</strong>
+            <span className={statusClass(entry.status)}>{saleStatusLabel(entry.status)}</span>
+          </div>
+          <span>{dateTime(entry.created_at)}</span>
+          <small className="trainer-finance-muted">{entry.description || 'Финансовая операция'}</small>
+        </article>
+      ))}
     </div>
   );
 }
 
-function RefundTable({ rows, currency }: { rows: TrainerRevenueTransaction[]; currency: string }) {
-  if (!rows.length) return <p className="muted">Операций возврата за период не найдено.</p>;
+function AccessPanel({ rows, salesByContent }: { rows: TrainerContentPerformanceRow[]; salesByContent: Record<string, number> }) {
+  const activeRows = rows.filter((item) => (salesByContent[item.id] ?? item.purchase_count) > 0);
+
+  if (!activeRows.length) {
+    return (
+      <div className="trainer-finance-empty">
+        <strong>Активных доступов пока нет</strong>
+        <p>После покупки ученики получат доступы, а карточки появятся здесь.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Тип</th>
-            <th>Сумма</th>
-            <th>Статус</th>
-            <th>Источник</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((entry) => (
-            <tr key={entry.id}>
-              <td>{dateTime(entry.created_at)}</td>
-              <td>{statusText(entry.entry_type)}</td>
-              <td>{money(entry.amount, entry.currency || currency)}</td>
-              <td><span className="badge secondary">{statusText(entry.status)}</span></td>
-              <td>{entry.source_type}:{shortId(entry.source_id)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function StudentAccessTable({ rows, salesByContent }: { rows: TrainerContentPerformanceRow[]; salesByContent: Record<string, number> }) {
-  if (!rows.length) return <p className="muted">Доступов учеников пока нет.</p>;
-
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Контент</th>
-            <th>Тип</th>
-            <th>Доступы учеников</th>
-            <th>Статус</th>
-            <th>Обновлено</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((item) => {
-            const salesCount = salesByContent[item.id] ?? item.purchase_count;
-            return (
-              <tr key={`access:${item.content_type}:${item.id}`}>
-                <td>{item.title}</td>
-                <td>{item.content_type}</td>
-                <td>{salesCount}</td>
-                <td><span className="badge secondary">{salesCount > 0 ? 'доступ выдан' : 'нет активных покупателей'}</span></td>
-                <td>{dateTime(item.updated_at)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="trainer-sales-rail" aria-label="Доступы учеников">
+      {activeRows.slice(0, 10).map((item) => {
+        const accessCount = salesByContent[item.id] ?? item.purchase_count;
+        return (
+          <article className="trainer-sales-product-card" key={`access:${item.content_type}:${item.id}`}>
+            <span className="trainer-finance-status trainer-finance-status-success">Активно</span>
+            <strong>{item.title}</strong>
+            <span>{contentTypeLabel(item.content_type)}</span>
+            <small>{accessCount} активных доступов</small>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -209,7 +199,7 @@ export function TrainerSalesDashboard() {
       setMessage('');
       setState(await trainerSalesApi.getSnapshot(selectedDays, 50));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить панель продаж');
+      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить продажи');
     } finally {
       setLoading(false);
     }
@@ -225,10 +215,10 @@ export function TrainerSalesDashboard() {
     () => (state?.transactions.results || []).filter(isRefundTransaction),
     [state?.transactions.results]
   );
-  const конверсияRate = useMemo(() => {
-    const просмотров = state?.overview.performance.total_views || 0;
+  const conversionRate = useMemo(() => {
+    const views = state?.overview.performance.total_views || 0;
     const purchases = state?.overview.performance.total_purchases || 0;
-    return просмотров ? (purchases / просмотров) * 100 : 0;
+    return views ? (purchases / views) * 100 : 0;
   }, [state]);
   const salesByContent = useMemo(() => {
     return (state?.sales.results || []).reduce<Record<string, number>>((acc, sale) => {
@@ -236,80 +226,76 @@ export function TrainerSalesDashboard() {
       return acc;
     }, {});
   }, [state?.sales.results]);
+  const averageOrder = state?.sales.summary.purchased_units
+    ? Number(state.overview.sales.gross_order_sales || 0) / state.sales.summary.purchased_units
+    : 0;
+  const activeAccesses = state?.overview.performance.total_purchases || 0;
 
   return (
-    <section className="trainer-sales-page stack" style={{ gap: 24 }}>
-      <div className="card row" style={{ gap: 16, alignItems: 'flex-end' }}>
-        <div className="stack" style={{ gap: 8 }}>
-          <span className="badge secondary">Продажи</span>
-          <h2 className="title-md">Продажи тренера</h2>
-          <p className="muted">Продажи, выручка, возвраты, конверсия и выданные доступы учеников.</p>
+    <section className="trainer-sales-workbench">
+      <section className="trainer-sales-hero">
+        <div>
+          <h2>Продажи</h2>
+          <p>Контроль оплат, возвратов и доступа учеников.</p>
         </div>
-        <div className="inline" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <select value={days} onChange={(event) => setDays(Number(event.target.value))} className="input" aria-label="Период продаж">
-            {DAY_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option} дней</option>
-            ))}
-          </select>
-          <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
-            {loading ? 'Загрузка...' : 'Обновить'}
-          </button>
-          <Link href="/trainer/dashboard/revenue" className="button ghost">Детализация выручки</Link>
+        <div className="trainer-finance-hero-total">
+          <span>Выручка за период</span>
+          <strong>{money(state?.revenue.revenue.net_revenue, currency)}</strong>
+          <small>{state?.sales.summary.matched_sales || 0} заказов · {refundTransactions.length} возвратов · {activeAccesses} доступов</small>
         </div>
-      </div>
+      </section>
 
-      {message ? <div className="card error">{message}</div> : null}
-      {loading && !state ? <div className="card">Загрузка панели продаж...</div> : null}
+      <section className="trainer-finance-toolbar" aria-label="Фильтры продаж">
+        <label className="trainer-finance-field">
+          <span>Период</span>
+          <select value={days} onChange={(event) => setDays(Number(event.target.value))}>
+            {DAY_OPTIONS.map((option) => <option key={option} value={option}>{option} дней</option>)}
+          </select>
+        </label>
+        <button type="button" className="premium-secondary-button" onClick={() => void load()} disabled={loading}>
+          {loading ? 'Загружаем' : 'Обновить'}
+        </button>
+        <Link href="/trainer/dashboard/revenue" className="premium-secondary-button">Финансы</Link>
+      </section>
+
+      {message ? <div className="trainer-finance-message"><strong>Не удалось обновить продажи</strong><p>{message}</p></div> : null}
+      {loading && !state ? <div className="trainer-finance-message"><strong>Загружаем продажи</strong><p>Собираем оплаты, возвраты и доступы учеников.</p></div> : null}
 
       {state ? (
         <>
-          <div className="grid-4">
-            <StatCard title="Продажи" value={state.sales.summary.purchased_units} hint={`${state.sales.summary.matched_sales} заказов`} />
-            <StatCard title="Чистая выручка" value={money(state.revenue.revenue.net_revenue, currency)} hint={`${days} дней`} />
-            <StatCard title="Возвраты" value={money(state.revenue.revenue.refunds, currency)} hint={`${refundTransactions.length} операций`} />
-            <StatCard title="Конверсия" value={percent(конверсияRate)} hint={`${state.overview.performance.total_views} просмотров`} />
-          </div>
+          <section className="trainer-finance-kpi-grid" aria-label="Показатели продаж">
+            <KpiCard label="Выручка" value={money(state.revenue.revenue.net_revenue, currency)} hint={`${days} дней`} />
+            <KpiCard label="Оплаты" value={state.sales.summary.purchased_units} hint={`${state.sales.summary.matched_sales} заказов`} />
+            <KpiCard label="Средний чек" value={money(averageOrder, currency)} />
+            <KpiCard label="Возвраты" value={money(state.revenue.revenue.refunds, currency)} hint={`${refundTransactions.length} операций`} />
+            <KpiCard label="Активные доступы" value={activeAccesses} hint={`Конверсия ${percent(conversionRate)}`} />
+          </section>
 
-          <div className="grid-4">
-            <StatCard title="Валовые продажи" value={money(state.overview.sales.gross_order_sales, currency)} />
-            <StatCard title="Покупки контента" value={state.overview.performance.total_purchases} />
-            <StatCard title="Активный каталог" value={state.overview.counts.published_products + state.overview.counts.published_videos} />
-            <StatCard title="Доступно к выплате" value={money(state.revenue.revenue.available_payout, currency)} />
-          </div>
+          <section className="trainer-finance-workspace">
+            <div className="trainer-finance-main">
+              <article className="trainer-sales-card">
+                <h3>Лучшие продукты</h3>
+                <ProductRail rows={state.content.results} currency={currency} />
+              </article>
 
-          <div className="trainer-sales-table-card">
-            <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-              <span className="badge secondary">Лучшие продукты</span>
-              <h2 className="title-md">Выручка и конверсия</h2>
-            </div>
-            <ContentPerformanceTable rows={state.content.results} currency={currency} />
-          </div>
-
-          <div className="trainer-sales-table-card">
-            <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-              <span className="badge secondary">Продажи</span>
-              <h2 className="title-md">Последние продажи</h2>
-            </div>
-            <SalesTable rows={state.sales.results} currency={currency} />
-          </div>
-
-          <div className="grid-2">
-            <div className="trainer-sales-card">
-              <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Возвраты</span>
-                <h2 className="title-md">Возвраты</h2>
-              </div>
-              <RefundTable rows={refundTransactions} currency={currency} />
+              <article className="trainer-sales-card">
+                <h3>Последние продажи</h3>
+                <SalesTimeline rows={state.sales.results} currency={currency} />
+              </article>
             </div>
 
-            <div className="trainer-sales-card">
-              <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Доступы учеников</span>
-                <h2 className="title-md">Доступы учеников</h2>
-              </div>
-              <StudentAccessTable rows={state.content.results} salesByContent={salesByContent} />
-            </div>
-          </div>
+            <aside className="trainer-finance-sidebar">
+              <article className="trainer-sales-card">
+                <h3>Возвраты и риски</h3>
+                <RefundPanel rows={refundTransactions} currency={currency} />
+              </article>
+
+              <article className="trainer-sales-card">
+                <h3>Доступ учеников</h3>
+                <AccessPanel rows={state.content.results} salesByContent={salesByContent} />
+              </article>
+            </aside>
+          </section>
         </>
       ) : null}
     </section>

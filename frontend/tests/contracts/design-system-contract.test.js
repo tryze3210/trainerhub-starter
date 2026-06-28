@@ -7,6 +7,7 @@ const requiredFiles = [
   'src/app/globals.css',
   'src/app/profile-workbench.css',
   'src/app/trainer-operations.css',
+  'src/app/trainer-finance-analytics.css',
   'src/design-system/tokens.ts',
   'src/design-system/components.tsx',
   'src/design-system/feedback.tsx',
@@ -48,6 +49,7 @@ const requiredFiles = [
   '../docs/design-system/v160_3_product_media_picker_cleanup.md',
   '../docs/design-system/v160_4_product_media_single_source.md',
   '../docs/design-system/v161_premium_trainer_operations.md',
+  '../docs/design-system/v162_premium_trainer_finance_analytics.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -104,6 +106,7 @@ for (const file of requiredFiles) {
 const globals = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8');
 const profileWorkbenchCss = fs.readFileSync(path.join(root, 'src/app/profile-workbench.css'), 'utf8');
 const trainerOperationsCss = fs.readFileSync(path.join(root, 'src/app/trainer-operations.css'), 'utf8');
+const trainerFinanceAnalyticsCss = fs.readFileSync(path.join(root, 'src/app/trainer-finance-analytics.css'), 'utf8');
 const tokens = fs.readFileSync(path.join(root, 'src/design-system/tokens.ts'), 'utf8');
 const components = fs.readFileSync(path.join(root, 'src/design-system/components.tsx'), 'utf8');
 const feedback = fs.readFileSync(path.join(root, 'src/design-system/feedback.tsx'), 'utf8');
@@ -537,6 +540,10 @@ if (!globals.includes("@import './trainer-operations.css'")) {
   throw new Error('globals.css missing trainer-operations.css import');
 }
 
+if (!globals.includes("@import './trainer-finance-analytics.css'")) {
+  throw new Error('globals.css missing trainer-finance-analytics.css import');
+}
+
 for (const fragment of [
   '.profile-workbench',
   '.profile-workbench-content',
@@ -554,6 +561,12 @@ for (const fragment of [
 for (const fragment of ['.trainer-operations-page', '.trainer-operations-rail', '.trainer-operations-detail-panel', 'overflow-y: visible !important']) {
   if (!trainerOperationsCss.includes(fragment)) {
     throw new Error(`trainer-operations.css missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['.trainer-finance-workbench', '.trainer-finance-hero', '.trainer-finance-kpi-grid', '.trainer-finance-rail', '.trainer-finance-timeline', '.trainer-sales-workbench', '.trainer-sales-hero', '.trainer-analytics-workbench', '.trainer-analytics-hero', '.trainer-analytics-content-grid', 'overflow-y: visible !important']) {
+  if (!trainerFinanceAnalyticsCss.includes(fragment)) {
+    throw new Error(`trainer-finance-analytics.css missing fragment: ${fragment}`);
   }
 }
 
@@ -698,6 +711,9 @@ const trainerCabinetNav = fs.readFileSync(path.join(root, 'src/modules/trainer-c
 const trainerCrmDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-crm/components/trainer-crm-dashboard.tsx'), 'utf8');
 const trainerBookingDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-booking/components/trainer-booking-dashboard.tsx'), 'utf8');
 const trainerOperationsFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-operations/format.ts'), 'utf8');
+const trainerSalesDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-sales/components/trainer-sales-dashboard.tsx'), 'utf8');
+const trainerRevenueDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-revenue/components/trainer-revenue-dashboard.tsx'), 'utf8');
+const trainerAnalyticsDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-analytics/components/trainer-content-analytics-dashboard.tsx'), 'utf8');
 const profileWorkbench = fs.readFileSync(path.join(root, 'src/design-system/profile-workbench.tsx'), 'utf8');
 const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
@@ -928,6 +944,36 @@ for (const fragment of ['trainerOperationStatusLabel', 'trainerOperationStatusTo
   }
 }
 
+for (const [fileName, source, forbiddenFragments] of [
+  ['trainer-sales-dashboard.tsx', trainerSalesDashboard, ['table-wrap', '<table', 'grid-4', 'Net revenue', 'Gross revenue', 'Purchases', 'Views', 'Direction', 'Source', 'Payout requests', 'source_type:', 'source_id:', 'v8.43']],
+  ['trainer-revenue-dashboard.tsx', trainerRevenueDashboard, ['table-wrap', '<table', 'grid-4', 'Net revenue', 'Gross revenue', 'Purchases', 'Views', 'Direction', 'Source', 'Payout requests', 'source_type:', 'source_id:', 'v8.43']],
+  ['trainer-content-analytics-dashboard.tsx', trainerAnalyticsDashboard, ['table-wrap', '<table', 'grid-4', 'Net revenue', 'Gross revenue', 'Purchases', 'Views', 'Direction', 'Source', 'Payout requests', 'Content performance analytics', 'Order item matching', 'UUID/slug', 'v8.43']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains v162 forbidden fragment: ${forbiddenFragment}`);
+    }
+  }
+}
+
+for (const fragment of ['trainer-sales-workbench', 'trainer-sales-hero', 'Выручка', 'Лучшие продукты', 'Последние продажи', 'Возвраты и риски', 'Доступ учеников']) {
+  if (!trainerSalesDashboard.includes(fragment)) {
+    throw new Error(`trainer sales dashboard missing v162 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-finance-workbench', 'trainer-finance-hero', 'Финансы', 'Wallet cockpit', 'Источники дохода', 'Движение средств', 'Заявки на выплаты', 'sourceLabel', 'directionLabel']) {
+  if (!trainerRevenueDashboard.includes(fragment)) {
+    throw new Error(`trainer revenue dashboard missing v162 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-analytics-workbench', 'trainer-analytics-hero', 'Аналитика контента', 'Лучший контент', 'Последние продажи', 'Качество данных', 'trainer-analytics-progress']) {
+  if (!trainerAnalyticsDashboard.includes(fragment)) {
+    throw new Error(`trainer analytics dashboard missing v162 fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
@@ -1089,4 +1135,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v161 design system contract ok');
+console.log('v131-v162 design system contract ok');

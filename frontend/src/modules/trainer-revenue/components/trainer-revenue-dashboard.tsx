@@ -29,22 +29,67 @@ function money(value: string | number | null | undefined, currency = 'RUB') {
 }
 
 function dateTime(value: string | null) {
-  if (!value) return '—';
+  if (!value) return 'Дата не указана';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value));
+  }).format(date);
 }
 
-function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function sourceLabel(value?: string | null) {
+  const source = (value || '').toLowerCase();
+  if (source === 'product') return 'Продукт';
+  if (source === 'course') return 'Курс';
+  if (source === 'video') return 'Видео';
+  if (source === 'subscription') return 'Подписка';
+  if (source === 'order') return 'Заказ';
+  if (source === 'manual') return 'Ручная операция';
+  return 'Источник дохода';
+}
+
+function directionLabel(value?: string | null) {
+  const direction = (value || '').toLowerCase();
+  if (direction === 'credit' || direction === 'incoming') return 'Поступление';
+  if (direction === 'debit' || direction === 'outgoing') return 'Списание';
+  if (direction === 'hold') return 'Резерв';
+  if (direction === 'reversal') return 'Возврат резерва';
+  return 'Операция';
+}
+
+function statusLabel(value?: string | null) {
+  const status = (value || '').toLowerCase();
+  if (status === 'posted' || status === 'paid' || status === 'completed' || status === 'success') return 'Проведено';
+  if (status === 'pending' || status === 'processing') return 'В обработке';
+  if (status === 'approved') return 'Одобрено';
+  if (status === 'rejected') return 'Отклонено';
+  if (status === 'failed' || status === 'error') return 'Ошибка';
+  if (status === 'cancelled') return 'Отменено';
+  return 'Требуется проверка';
+}
+
+function statusTone(value?: string | null) {
+  const status = (value || '').toLowerCase();
+  if (['posted', 'paid', 'completed', 'success', 'approved'].includes(status)) return 'success';
+  if (['pending', 'processing', 'hold'].includes(status)) return 'warning';
+  if (['rejected', 'failed', 'error', 'cancelled'].includes(status)) return 'danger';
+  return 'neutral';
+}
+
+function statusClass(value?: string | null) {
+  return `trainer-finance-status trainer-finance-status-${statusTone(value)}`;
+}
+
+function KpiCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <article className="card stack">
-      <span className="muted">{label}</span>
-      <strong className="stat-value">{value}</strong>
-      {hint ? <span className="muted">{hint}</span> : null}
+    <article className="trainer-finance-kpi-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {hint ? <small>{hint}</small> : null}
     </article>
   );
 }
@@ -72,7 +117,7 @@ export function TrainerRevenueDashboard() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Не удалось загрузить доходы тренера');
+          setError(err instanceof Error ? err.message : 'Не удалось загрузить финансы тренера');
         }
       })
       .finally(() => {
@@ -86,165 +131,191 @@ export function TrainerRevenueDashboard() {
 
   const summary = state.summary;
   const currency = summary?.currency ?? 'RUB';
-  const maxTopSource = useMemo(() => {
+  const maxRevenueOrigin = useMemo(() => {
     const amounts = summary?.top_sources.map((item) => Number(item.net_revenue)) ?? [];
     return Math.max(...amounts, 1);
   }, [summary]);
 
   if (isLoading && !summary) {
-    return <section className="card">Загружаем revenue dashboard…</section>;
+    return (
+      <section className="trainer-finance-workbench">
+        <div className="trainer-finance-message">
+          <strong>Загружаем финансы</strong>
+          <p>Собираем баланс, комиссии, операции и заявки на выплаты.</p>
+        </div>
+      </section>
+    );
   }
 
   if (error) {
     return (
-      <section className="card stack">
-        <h2>Revenue dashboard недоступен</h2>
-        <p className="muted">{error}</p>
+      <section className="trainer-finance-workbench">
+        <div className="trainer-finance-message">
+          <strong>Финансы недоступны</strong>
+          <p>{error}</p>
+        </div>
       </section>
     );
   }
 
   if (!summary) {
-    return <section className="card">Нет данных по доходам.</section>;
+    return (
+      <section className="trainer-finance-workbench">
+        <div className="trainer-finance-empty">
+          <strong>Финансовых данных пока нет</strong>
+          <p>Когда появятся продажи или выплаты, баланс и операции будут показаны здесь.</p>
+        </div>
+      </section>
+    );
   }
 
   return (
-    <section className="stack gap-lg">
-      <div className="card row between wrap gap-md">
+    <section className="trainer-finance-workbench">
+      <section className="trainer-finance-hero">
         <div>
-          <h2>Доходы тренера</h2>
-          <p className="muted">
-            {summary.trainer.display_name} · {summary.trainer.status} · период {summary.period.days} дней
-          </p>
+          <h2>Финансы</h2>
+          <p>Баланс, комиссии, выплаты и движение средств.</p>
         </div>
-        <div className="row wrap gap-sm">
-          <Link className="btn primary" href="/trainer/dashboard/payouts">
-            Запросить выплату
-          </Link>
-          <label className="field-inline">
-            Период
-            <select value={days} onChange={(event) => setDays(Number(event.target.value))}>
-              <option value={7}>7 дней</option>
-              <option value={30}>30 дней</option>
-              <option value={90}>90 дней</option>
-              <option value={365}>365 дней</option>
-            </select>
-          </label>
+        <div className="trainer-finance-hero-total">
+          <span>Доступно к выплате</span>
+          <strong>{money(summary.revenue.available_payout, currency)}</strong>
+          <small>{summary.trainer.display_name} · период {summary.period.days} дней</small>
         </div>
-      </div>
+      </section>
 
-      <div className="grid-4">
-        <MetricCard label="Net revenue" value={money(summary.revenue.net_revenue, currency)} hint="доход тренера после комиссии" />
-        <MetricCard label="Estimated gross sales" value={money(summary.revenue.gross_sales, currency)} hint="оценка до комиссии" />
-        <MetricCard label="Platform commission" value={money(summary.revenue.platform_commission, currency)} />
-        <MetricCard label="Available payout" value={money(summary.revenue.available_payout, currency)} />
-      </div>
+      <section className="trainer-finance-toolbar" aria-label="Фильтры финансов">
+        <label className="trainer-finance-field">
+          <span>Период</span>
+          <select value={days} onChange={(event) => setDays(Number(event.target.value))}>
+            <option value={7}>7 дней</option>
+            <option value={30}>30 дней</option>
+            <option value={90}>90 дней</option>
+            <option value={365}>365 дней</option>
+          </select>
+        </label>
+        <Link className="premium-secondary-button" href="/trainer/dashboard/payouts">Запросить выплату</Link>
+      </section>
 
-      <div className="grid-4">
-        <MetricCard label="Pending payout" value={money(summary.revenue.pending_payout, currency)} />
-        <MetricCard label="Reserved / locked" value={money(summary.revenue.reserved_balance, currency)} />
-        <MetricCard label="Refunds" value={money(summary.revenue.refunds, currency)} />
-        <MetricCard label="Chargebacks" value={money(summary.revenue.chargebacks, currency)} />
-      </div>
+      <section className="trainer-finance-kpi-grid" aria-label="Финансовые показатели">
+        <KpiCard label="Доступно к выплате" value={money(summary.revenue.available_payout, currency)} />
+        <KpiCard label="Чистая выручка" value={money(summary.revenue.net_revenue, currency)} />
+        <KpiCard label="Валовая выручка" value={money(summary.revenue.gross_sales, currency)} />
+        <KpiCard label="Комиссия платформы" value={money(summary.revenue.platform_commission, currency)} />
+        <KpiCard label="В обработке" value={money(summary.revenue.pending_payout, currency)} />
+      </section>
 
-      <div className="grid-2">
-        <article className="card stack">
-          <h3>Wallet</h3>
-          <dl className="details-list">
-            <div><dt>Available</dt><dd>{money(summary.wallet.available_amount, currency)}</dd></div>
-            <div><dt>Pending</dt><dd>{money(summary.wallet.pending_amount, currency)}</dd></div>
-            <div><dt>Locked</dt><dd>{money(summary.wallet.locked_amount, currency)}</dd></div>
-            <div><dt>Lifetime earned</dt><dd>{money(summary.wallet.lifetime_earned, currency)}</dd></div>
-          </dl>
-        </article>
-
-        <article className="card stack">
-          <h3>Top revenue sources</h3>
-          {summary.top_sources.length === 0 ? (
-            <p className="muted">Продаж за выбранный период пока нет.</p>
-          ) : (
-            <div className="stack">
-              {summary.top_sources.map((item) => {
-                const width = Math.max(6, (Number(item.net_revenue) / maxTopSource) * 100);
-                return (
-                  <div key={`${item.source_type}:${item.source_id ?? 'none'}`} className="stack gap-xs">
-                    <div className="row between gap-md">
-                      <span>{item.source_type}</span>
-                      <strong>{money(item.net_revenue, currency)}</strong>
-                    </div>
-                    <div className="progress"><span style={{ width: `${width}%` }} /></div>
-                    <span className="muted">{item.transaction_count} transactions · {item.source_id ?? 'no source id'}</span>
-                  </div>
-                );
-              })}
+      <section className="trainer-finance-workspace">
+        <div className="trainer-finance-main">
+          <article className="trainer-finance-panel">
+            <h3>Wallet cockpit</h3>
+            <div className="trainer-finance-kpi-grid">
+              <KpiCard label="Доступный баланс" value={money(summary.wallet.available_amount, currency)} />
+              <KpiCard label="Ожидает подтверждения" value={money(summary.wallet.pending_amount, currency)} />
+              <KpiCard label="Заблокировано" value={money(summary.wallet.locked_amount, currency)} />
+              <KpiCard label="Всего заработано" value={money(summary.wallet.lifetime_earned, currency)} />
             </div>
-          )}
-        </article>
-      </div>
+            <div className="trainer-finance-row">
+              <span className="trainer-finance-muted">Ближайшее действие</span>
+              <Link className="premium-secondary-button" href="/trainer/dashboard/payouts">Открыть выплаты</Link>
+            </div>
+          </article>
 
-      <article className="card stack">
-        <h3>Recent ledger transactions</h3>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Дата</th>
-                <th>Тип</th>
-                <th>Direction</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Source</th>
-              </tr>
-            </thead>
-            <tbody>
+          <article className="trainer-finance-panel">
+            <h3>Источники дохода</h3>
+            {summary.top_sources.length === 0 ? (
+              <div className="trainer-finance-empty">
+                <strong>Источников дохода пока нет</strong>
+                <p>Опубликуйте продукт или видео, чтобы увидеть доход по материалам.</p>
+              </div>
+            ) : (
+              <div className="trainer-finance-rail" aria-label="Источники дохода">
+                {summary.top_sources.map((item, index) => {
+                  const width = Math.max(6, (Number(item.net_revenue) / maxRevenueOrigin) * 100);
+                  return (
+                    <article className="trainer-finance-source-card" key={`${item.source_type}:${item.source_id ?? index}`}>
+                      <strong>{sourceLabel(item.source_type)}</strong>
+                      <span>{money(item.net_revenue, currency)}</span>
+                      <small>{item.transaction_count} операций</small>
+                      <div className="trainer-analytics-progress"><span style={{ width: `${width}%` }} /></div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+
+          <article className="trainer-finance-panel">
+            <h3>Движение средств</h3>
+            <div className="trainer-finance-timeline">
               {(state.transactions?.results ?? []).map((entry) => (
-                <tr key={entry.id}>
-                  <td>{dateTime(entry.created_at)}</td>
-                  <td>{entry.entry_type}</td>
-                  <td><span className="badge">{entry.direction}</span></td>
-                  <td>{money(entry.amount, entry.currency)}</td>
-                  <td>{entry.status}</td>
-                  <td>{entry.source_type}:{entry.source_id ?? '—'}</td>
-                </tr>
+                <article className="trainer-finance-timeline-item" key={entry.id}>
+                  <div className="trainer-finance-row">
+                    <div>
+                      <strong>{directionLabel(entry.direction)}</strong>
+                      <span className="trainer-finance-muted">{sourceLabel(entry.source_type)} · {dateTime(entry.created_at)}</span>
+                    </div>
+                    <span className={statusClass(entry.status)}>{statusLabel(entry.status)}</span>
+                  </div>
+                  <div className="trainer-finance-row">
+                    <span>{entry.description || 'Финансовая операция'}</span>
+                    <strong>{money(entry.amount, entry.currency)}</strong>
+                  </div>
+                </article>
               ))}
-            </tbody>
-          </table>
+              {!state.transactions?.results.length ? (
+                <div className="trainer-finance-empty">
+                  <strong>Операций пока нет</strong>
+                  <p>Движение средств появится после продаж, возвратов или выплат.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
         </div>
-      </article>
 
-      <article className="card stack">
-        <h3>Payout requests</h3>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Дата</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Processed at</th>
-                <th>Reject reason</th>
-              </tr>
-            </thead>
-            <tbody>
+        <aside className="trainer-finance-sidebar">
+          <article className="trainer-finance-panel">
+            <h3>Заявки на выплаты</h3>
+            <div className="trainer-finance-timeline">
               {(state.payouts?.results ?? []).map((payout) => (
-                <tr key={payout.id}>
-                  <td>{dateTime(payout.created_at)}</td>
-                  <td>{money(payout.amount, payout.currency)}</td>
-                  <td><span className="badge">{payout.status}</span></td>
-                  <td>{dateTime(payout.processed_at)}</td>
-                  <td>{payout.rejected_reason || '—'}</td>
-                </tr>
+                <article className="trainer-finance-compact-card" key={payout.id}>
+                  <div className="trainer-finance-row">
+                    <strong>{money(payout.amount, payout.currency)}</strong>
+                    <span className={statusClass(payout.status)}>{statusLabel(payout.status)}</span>
+                  </div>
+                  <span>{dateTime(payout.created_at)}</span>
+                  <small className="trainer-finance-muted">{payout.destination_masked || 'Метод выплаты не указан'}</small>
+                  {payout.rejected_reason ? <small>{payout.rejected_reason}</small> : null}
+                </article>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </article>
+              {!state.payouts?.results.length ? (
+                <div className="trainer-finance-empty">
+                  <strong>Заявок пока нет</strong>
+                  <p>Когда вы запросите выплату, её статус появится здесь.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
 
-      {summary.notes.length > 0 ? (
-        <aside className="card muted">
-          {summary.notes.map((note) => <p key={note}>{note}</p>)}
+          <article className="trainer-finance-panel">
+            <h3>Финансовые сигналы</h3>
+            <div className="trainer-finance-timeline">
+              <div className="trainer-finance-compact-card">
+                <span className="trainer-finance-muted">В резерве</span>
+                <strong>{money(summary.revenue.reserved_balance, currency)}</strong>
+              </div>
+              <div className="trainer-finance-compact-card">
+                <span className="trainer-finance-muted">Возвраты</span>
+                <strong>{money(summary.revenue.refunds, currency)}</strong>
+              </div>
+              <div className="trainer-finance-compact-card">
+                <span className="trainer-finance-muted">Споры</span>
+                <strong>{money(summary.revenue.chargebacks, currency)}</strong>
+              </div>
+              {summary.notes.map((note) => <p className="trainer-finance-muted" key={note}>{note}</p>)}
+            </div>
+          </article>
         </aside>
-      ) : null}
+      </section>
     </section>
   );
 }

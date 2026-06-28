@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v161
+# MANIFEST — TrainerHub v162
 
-This manifest describes the current repository state after v161 Premium Trainer CRM and Schedule Pages.
+This manifest describes the current repository state after v162 Premium Trainer Finance & Analytics Workbenches.
 
 ## Current Version
 
-- Current roadmap version: `v161`
+- Current roadmap version: `v162`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v161` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish, media picker single source of truth and trainer operations workbench
+- Current storefront block: `v151-v162` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish, media picker single source of truth, trainer operations and trainer finance analytics workbenches
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v161 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v162 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -443,6 +443,7 @@ Premium trainer product builder modules:
 - `frontend/src/modules/trainer-products/types/product-media.ts` — v160.4 shared product media video helpers.
 - `frontend/src/app/profile-workbench.css` — v160.4 extracted profile/workbench/media picker CSS layer.
 - `frontend/src/app/trainer-operations.css` — v161 premium trainer CRM and schedule operations CSS layer.
+- `frontend/src/app/trainer-finance-analytics.css` — v162 premium trainer finance, sales and analytics CSS layer.
 - `frontend/src/modules/trainer-operations/format.ts` — v161 Russian trainer operations status helpers.
 - `frontend/src/modules/upload/components/trainer-upload-panel.tsx` — v158.2 thin trainer upload wrapper.
 - `frontend/src/modules/upload/components/trainer-content-studio.tsx` — v158.2 upload-first video/material studio.
@@ -465,6 +466,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v160_3_product_media_picker_cleanup.md` — v160.3 media picker cleanup notes.
 - `docs/design-system/v160_4_product_media_single_source.md` — v160.4 product media single source notes.
 - `docs/design-system/v161_premium_trainer_operations.md` — v161 premium trainer operations notes.
+- `docs/design-system/v162_premium_trainer_finance_analytics.md` — v162 premium trainer finance and analytics notes.
 
 ## Roadmap Status
 
@@ -530,7 +532,8 @@ Premium trainer product builder modules:
 | v160.2 | Product/video flow stabilization before CRM | Done |
 | v160.3 | Product media picker cleanup and CSS layer stabilization | Done |
 | v160.4 | Product media single source of truth | Done |
-| v161 | Premium trainer CRM and schedule pages | Current |
+| v161 | Premium trainer CRM and schedule pages | Done |
+| v162 | Premium trainer finance and analytics workbenches | Current |
 
 ## Current Frontend Modules
 

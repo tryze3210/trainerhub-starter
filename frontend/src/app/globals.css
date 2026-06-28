@@ -1,5 +1,6 @@
 @import './profile-workbench.css';
 @import './trainer-operations.css';
+@import './trainer-finance-analytics.css';
 
 :root {
   color-scheme: light;
