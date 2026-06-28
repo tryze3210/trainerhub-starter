@@ -5,33 +5,38 @@ import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
 import { privateApi } from '@/lib/api';
+import {
+  CustomerCabinetShell,
+  CustomerEmptyState,
+  CustomerErrorState,
+  CustomerLoadingState,
+  CustomerMetricCard,
+  CustomerStatusBadge,
+  type CustomerMetric,
+} from '@/modules/customer-cabinet/components';
+import {
+  formatCustomerDate,
+  formatCustomerMoney,
+  paymentStatusLabel,
+  paymentTitle,
+  shortCustomerNumber,
+  statusTone,
+} from '@/modules/customer-cabinet/components/customer-format';
 import type { Payment } from '@/types/api';
 
-function formatMoney(value?: string | number, currency = 'RUB'): string {
-  if (value === undefined || value === null || value === '') return `— ${currency}`;
-  return `${value} ${currency}`;
-}
-
-function formatDate(value?: string | null): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
-}
-
 export default function PaymentsPage() {
-  const [list, setList] = useState<Payment[]>([]);
-  const [msg, setMsg] = useState('');
+  const [items, setItems] = useState<Payment[]>([]);
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, isLoading: sessionLoading, user } = useAuthSession();
-  const isTrainer = user?.active_role === 'trainer';
+  const { isAuthenticated, isLoading: sessionLoading } = useAuthSession();
 
-  async function loadPayments() {
+  async function load() {
     try {
       setLoading(true);
-      setMsg('');
-      setList(await privateApi.listPayments());
+      setMessage('');
+      setItems(await privateApi.listPayments());
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить платежи');
+      setMessage(err instanceof Error ? err.message : 'Не удалось загрузить данные');
     } finally {
       setLoading(false);
     }
@@ -43,69 +48,56 @@ export default function PaymentsPage() {
       setLoading(false);
       return;
     }
-    void loadPayments();
+    void load();
   }, [isAuthenticated, sessionLoading]);
 
   const stats = useMemo(() => ({
-    total: list.length,
-    paid: list.filter((item) => (item.status || '').toLowerCase() === 'succeeded').length,
-    pending: list.filter((item) => (item.status || '').toLowerCase() === 'pending').length,
-    volume: list.reduce((acc, item) => acc + Number(item.amount || 0), 0),
-  }), [list]);
+    success: items.filter((item) => ['succeeded', 'paid', 'completed'].includes((item.status || '').toLowerCase())).length,
+    pending: items.filter((item) => ['pending', 'created'].includes((item.status || '').toLowerCase())).length,
+    failed: items.filter((item) => ['failed', 'cancelled', 'canceled'].includes((item.status || '').toLowerCase())).length,
+    volume: items.reduce((sum, item) => sum + Number(item.amount || item.gross_amount || 0), 0),
+  }), [items]);
+
+  const metrics: CustomerMetric[] = [
+    { label: 'Успешные', value: stats.success, hint: 'Подтверждены', tone: 'success' },
+    { label: 'В ожидании', value: stats.pending, hint: 'Обрабатываются', tone: stats.pending ? 'warning' : 'neutral' },
+    { label: 'Не прошли', value: stats.failed, hint: 'Нужна проверка', tone: stats.failed ? 'danger' : 'neutral' },
+    { label: 'Оборот', value: formatCustomerMoney(stats.volume, 'RUB'), hint: 'По платежам', tone: 'neutral' },
+  ];
 
   return (
     <ProtectedPage title="Платежи" description="История платежей доступна только авторизованным пользователям.">
-      <section className="stack" style={{ gap: 28 }}>
-        <div className="row" style={{ alignItems: 'flex-start' }}>
-          <div className="stack" style={{ gap: 10 }}>
-            <span className="badge secondary">Payments</span>
-            <h1>Платежи</h1>
-            <p className="lead">Payment ledger с детальными страницами, mock confirm/cancel и provider-specific checkout contract.</p>
-          </div>
-          <div className="inline">
-            <button className="button secondary" onClick={() => void loadPayments()}>Обновить</button>
-            <Link href="/orders" className="button ghost">Заказы</Link>
-            {isTrainer ? <Link href="/payouts" className="button ghost">Payouts</Link> : null}
-          </div>
+      <CustomerCabinetShell
+        title="Платежи"
+        description="Статусы оплат, подтверждения и история платёжных операций."
+        actions={<button className="premium-secondary-button" type="button" onClick={() => void load()} disabled={loading}>Обновить</button>}
+      >
+        <div className="customer-metric-grid">
+          {metrics.map((metric) => <CustomerMetricCard key={metric.label} metric={metric} />)}
         </div>
+        {message ? <CustomerErrorState message={message} onRetry={() => void load()} /> : null}
+        {loading ? <CustomerLoadingState /> : null}
+        {!loading && !items.length ? <CustomerEmptyState title="Платежей пока нет" description="После оплаты история появится здесь." /> : null}
 
-        <div className="grid-4">
-          <div className="card"><div className="kpi"><span className="muted">Всего платежей</span><strong>{stats.total}</strong></div></div>
-          <div className="card"><div className="kpi"><span className="muted">Успешные</span><strong>{stats.paid}</strong></div></div>
-          <div className="card"><div className="kpi"><span className="muted">В ожидании</span><strong>{stats.pending}</strong></div></div>
-          <div className="card"><div className="kpi"><span className="muted">Оборот</span><strong>{stats.volume.toFixed(2)} RUB</strong></div></div>
+        <div className="customer-commerce-list">
+          {items.map((item) => (
+            <article className="customer-commerce-card" key={item.id}>
+              <CustomerStatusBadge tone={statusTone(item.status)}>{paymentStatusLabel(item.status)}</CustomerStatusBadge>
+              <strong>{paymentTitle(item)}</strong>
+              <span>{shortCustomerNumber(item.id, 'PAY')} · {formatCustomerMoney(item.amount || item.gross_amount, item.currency || 'RUB')}</span>
+              <div className="customer-commerce-list">
+                <div><span>Платёжный провайдер</span><strong>{item.provider || 'TrainerHub'}</strong></div>
+                <div><span>Создан</span><strong>{formatCustomerDate(item.created_at)}</strong></div>
+                <div><span>Подтверждён</span><strong>{formatCustomerDate(item.confirmed_at)}</strong></div>
+              </div>
+              <div className="customer-page-actions">
+                <Link href={`/payments/${item.id}`} className="premium-secondary-button">Детали платежа</Link>
+                {item.order_id ? <Link href={`/orders/${item.order_id}`} className="premium-secondary-button">Заказ</Link> : null}
+              </div>
+            </article>
+          ))}
         </div>
-
-        {msg ? <div className="card error">{msg}</div> : null}
-        {loading ? (
-          <div className="card">Загрузка платежей...</div>
-        ) : list.length === 0 ? (
-          <div className="empty-state"><h3>Платежей пока нет</h3><p>После checkout они появятся в этом разделе.</p></div>
-        ) : (
-          <div className="grid-2">
-            {list.map((item) => (
-              <article className="card" key={item.id}>
-                <div className="stack" style={{ gap: 14 }}>
-                  <div className="row">
-                    <strong>{item.id}</strong>
-                    <span className="badge secondary">{item.status || '—'}</span>
-                  </div>
-                  <div className="grid-2">
-                    <div className="list-item"><span className="muted">Провайдер</span><strong>{item.provider || '—'}</strong></div>
-                    <div className="list-item"><span className="muted">Сумма</span><strong>{formatMoney(item.amount, item.currency || 'RUB')}</strong></div>
-                    <div className="list-item"><span className="muted">Создан</span><strong>{formatDate(item.created_at)}</strong></div>
-                    <div className="list-item"><span className="muted">Подтверждён</span><strong>{formatDate(item.confirmed_at)}</strong></div>
-                  </div>
-                  <div className="inline">
-                    <Link href={`/payments/${item.id}`} className="button secondary">Детали платежа</Link>
-                    {item.order_id ? <Link href={`/orders/${item.order_id}`} className="button ghost">Заказ</Link> : null}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      </CustomerCabinetShell>
     </ProtectedPage>
   );
 }

@@ -3045,6 +3045,489 @@ small {
   width: 100%;
 }
 
+/* Premium customer cabinet */
+
+.customer-cabinet-shell {
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
+  padding: 48px 24px 88px;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(45, 212, 191, 0.14), transparent 28rem),
+    radial-gradient(circle at 90% 12%, rgba(125, 211, 252, 0.10), transparent 30rem),
+    linear-gradient(180deg, #07111f 0%, #101827 100%);
+}
+
+.customer-cabinet-topbar {
+  width: min(1180px, 100%);
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.customer-cabinet-topbar h1,
+.customer-page-title {
+  margin: 8px 0 12px;
+  color: #ffffff;
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  line-height: 1;
+}
+
+.customer-cabinet-topbar p,
+.customer-page-subtitle {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.customer-cabinet-layout {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.customer-cabinet-sidebar {
+  position: sticky;
+  top: calc(var(--header-height) + 24px);
+  display: grid;
+  gap: 14px;
+}
+
+.customer-cabinet-sidebar-card,
+.customer-cabinet-content,
+.customer-dashboard-card,
+.customer-section-card,
+.customer-page-hero,
+.customer-learning-continue-card,
+.customer-lesson-panel,
+.customer-conversation-list,
+.customer-message-thread {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 26px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.30);
+  backdrop-filter: blur(18px);
+}
+
+.customer-cabinet-sidebar-card {
+  padding: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.customer-cabinet-sidebar-card strong {
+  color: #ffffff;
+}
+
+.customer-cabinet-sidebar-card span {
+  color: rgba(226, 232, 240, 0.62);
+  line-height: 1.5;
+}
+
+.customer-cabinet-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.customer-cabinet-nav-link {
+  display: grid;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  color: rgba(226, 232, 240, 0.68);
+  background: rgba(255, 255, 255, 0.035);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.customer-cabinet-nav-link strong {
+  color: #f8fafc;
+}
+
+.customer-cabinet-nav-link span {
+  font-size: 0.78rem;
+}
+
+.customer-cabinet-nav-link:hover,
+.customer-cabinet-nav-link-active {
+  transform: translateY(-1px);
+  border-color: rgba(45, 212, 191, 0.38);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.customer-cabinet-content {
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.customer-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.customer-page-hero,
+.customer-learning-continue-card {
+  padding: clamp(22px, 4vw, 34px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.16), rgba(15, 23, 42, 0.70)),
+    rgba(15, 23, 42, 0.70);
+}
+
+.customer-page-hero h2,
+.customer-learning-continue-card h2 {
+  margin: 8px 0;
+  color: #ffffff;
+  font-size: clamp(1.6rem, 3vw, 2.55rem);
+}
+
+.customer-page-hero p,
+.customer-learning-continue-card p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.customer-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.customer-dashboard-card,
+.customer-section-card {
+  padding: clamp(18px, 3vw, 26px);
+  display: grid;
+  gap: 16px;
+}
+
+.customer-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.customer-section-header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+}
+
+.customer-section-header p {
+  margin: 6px 0 0;
+  color: rgba(226, 232, 240, 0.62);
+  line-height: 1.55;
+}
+
+.customer-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customer-metric-card {
+  min-height: 132px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.055);
+  display: grid;
+  align-content: space-between;
+  gap: 10px;
+}
+
+.customer-metric-card span,
+.customer-metric-card small {
+  color: rgba(226, 232, 240, 0.62);
+}
+
+.customer-metric-card strong {
+  color: #ffffff;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  line-height: 1;
+}
+
+.customer-metric-card-success {
+  border-color: rgba(45, 212, 191, 0.28);
+}
+
+.customer-metric-card-warning {
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+.customer-metric-card-danger {
+  border-color: rgba(248, 113, 113, 0.28);
+}
+
+.customer-status-badge {
+  width: fit-content;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: rgba(226, 232, 240, 0.78);
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.customer-status-neutral {
+  color: rgba(226, 232, 240, 0.78);
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.customer-status-success {
+  color: #ccfbf1;
+  background: rgba(20, 184, 166, 0.13);
+  border-color: rgba(45, 212, 191, 0.30);
+}
+
+.customer-status-warning {
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.10);
+  border-color: rgba(251, 191, 36, 0.26);
+}
+
+.customer-status-danger {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.22);
+  border-color: rgba(248, 113, 113, 0.30);
+}
+
+.customer-empty-state,
+.customer-loading-state,
+.customer-error-state {
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.045);
+  display: grid;
+  gap: 10px;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.customer-empty-state h3,
+.customer-error-state strong {
+  margin: 0;
+  color: #ffffff;
+}
+
+.customer-empty-state p,
+.customer-error-state p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.customer-loading-state {
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+}
+
+.customer-loading-state span {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(226, 232, 240, 0.22);
+  border-top-color: #2dd4bf;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.customer-error-state {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(127, 29, 29, 0.20);
+}
+
+.customer-access-grid,
+.customer-materials-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customer-access-card,
+.customer-commerce-card,
+.customer-material-card,
+.customer-learning-item,
+.customer-lesson-row,
+.customer-conversation-card,
+.customer-message-bubble {
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  color: rgba(226, 232, 240, 0.72);
+  min-width: 0;
+}
+
+.customer-access-card h3,
+.customer-commerce-card strong,
+.customer-material-card strong,
+.customer-learning-item strong,
+.customer-lesson-row strong,
+.customer-conversation-card strong,
+.customer-message-bubble strong {
+  color: #ffffff;
+}
+
+.customer-access-card p,
+.customer-commerce-card span,
+.customer-commerce-card small,
+.customer-material-card span,
+.customer-learning-item span,
+.customer-learning-item small,
+.customer-lesson-row span,
+.customer-conversation-card span,
+.customer-conversation-card small {
+  color: rgba(226, 232, 240, 0.62);
+  line-height: 1.5;
+}
+
+.customer-commerce-list {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-commerce-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.customer-commerce-list > div:last-child {
+  border-bottom: 0;
+}
+
+.customer-commerce-list > div span {
+  color: rgba(226, 232, 240, 0.58);
+}
+
+.customer-commerce-list > div strong {
+  color: #ffffff;
+  text-align: right;
+}
+
+.customer-billing-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.customer-billing-tabs a {
+  flex: 0 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  padding: 10px 14px;
+  color: rgba(226, 232, 240, 0.74);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.customer-learning-page {
+  display: grid;
+  gap: 22px;
+}
+
+.customer-learning-grid,
+.customer-message-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.customer-learning-list,
+.customer-conversation-list,
+.customer-message-thread {
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.customer-learning-item,
+.customer-conversation-card {
+  width: 100%;
+  text-align: left;
+}
+
+.customer-learning-item-active,
+.customer-conversation-card-active {
+  border-color: rgba(45, 212, 191, 0.38);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.customer-lesson-panel {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.customer-lesson-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.customer-progress-bar {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.customer-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2dd4bf, #7dd3fc);
+}
+
+.customer-message-composer {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-message-thread {
+  min-height: 460px;
+}
+
+.customer-message-bubble {
+  background: rgba(45, 212, 191, 0.07);
+}
+
+.customer-message-bubble div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.customer-message-bubble p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.65;
+}
+
 /* Responsive */
 
 @media (max-width: 1100px) {
@@ -3144,12 +3627,34 @@ small {
   }
 
   .premium-site-footer__inner,
-  .premium-checkout-layout {
+  .premium-checkout-layout,
+  .customer-cabinet-layout,
+  .customer-learning-grid,
+  .customer-message-layout {
     grid-template-columns: 1fr;
   }
 
   .premium-checkout-panel-sticky {
     position: static;
+  }
+
+  .customer-cabinet-sidebar {
+    position: static;
+  }
+
+  .customer-cabinet-nav {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .customer-cabinet-nav-link {
+    flex: 0 0 190px;
+  }
+
+  .customer-dashboard-grid,
+  .customer-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero-product-preview__metrics {
@@ -3290,6 +3795,54 @@ small {
   .premium-checkout-actions .premium-primary-button,
   .premium-checkout-actions .premium-secondary-button {
     width: 100%;
+  }
+
+  .customer-cabinet-shell {
+    padding: 36px 16px 64px;
+  }
+
+  .customer-cabinet-topbar,
+  .customer-page-hero,
+  .customer-learning-continue-card,
+  .customer-section-header,
+  .customer-lesson-row,
+  .customer-message-bubble div {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .customer-dashboard-grid,
+  .customer-metric-grid,
+  .customer-access-grid,
+  .customer-materials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-cabinet-content,
+  .customer-dashboard-card,
+  .customer-section-card,
+  .customer-lesson-panel,
+  .customer-learning-list,
+  .customer-conversation-list,
+  .customer-message-thread {
+    border-radius: 20px;
+  }
+
+  .customer-page-actions,
+  .customer-page-actions .premium-primary-button,
+  .customer-page-actions .premium-secondary-button,
+  .customer-page-actions button,
+  .customer-page-actions a {
+    width: 100%;
+  }
+
+  .customer-commerce-list > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-commerce-list > div strong {
+    text-align: left;
   }
 
   .hero__panel {

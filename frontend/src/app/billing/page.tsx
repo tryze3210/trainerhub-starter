@@ -4,266 +4,52 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
-import { customerBillingApi } from '@/modules/customer-billing/api';
-import type { CustomerBillingSnapshot } from '@/modules/customer-billing/api';
-import type { Entitlement, Order, Payment, Subscription } from '@/types/api';
+import { customerBillingApi, type CustomerBillingSnapshot } from '@/modules/customer-billing/api';
+import {
+  CustomerCabinetShell,
+  CustomerEmptyState,
+  CustomerErrorState,
+  CustomerLoadingState,
+  CustomerMetricCard,
+  CustomerStatusBadge,
+  type CustomerMetric,
+} from '@/modules/customer-cabinet/components';
+import {
+  entitlementStatus,
+  entitlementTitle,
+  entitlementType,
+  formatCustomerDate,
+  formatCustomerMoney,
+  orderAmount,
+  orderStatusLabel,
+  orderTitle,
+  paymentStatusLabel,
+  shortCustomerNumber,
+  statusTone,
+  subscriptionStatusLabel,
+  subscriptionTitle,
+} from '@/modules/customer-cabinet/components/customer-format';
+import type { Entitlement, Order, Payment } from '@/types/api';
 
-type InvoiceRow = {
-  id: string;
-  order: Order;
-  payment?: Payment;
-  status: string;
-  amount: string;
-  currency: string;
-  issued_at?: string | null;
+const emptySnapshot: CustomerBillingSnapshot = {
+  orders: [],
+  payments: [],
+  subscriptions: [],
+  entitlements: [],
 };
-
-function formatDate(value?: string | null) {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
-}
-
-function money(value?: string | number | null, currency = 'RUB') {
-  if (value === undefined || value === null || value === '') return `0 ${currency}`;
-  return `${value} ${currency}`;
-}
-
-function shortId(value?: string | null) {
-  if (!value) return '-';
-  return value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
-}
-
-function statusText(value?: string | null) {
-  return value ? value.replaceAll('_', ' ') : '-';
-}
-
-function titleFromOrder(order: Order) {
-  return order.title || order.items?.[0]?.title_snapshot || order.order_type || 'Покупка';
-}
-
-function titleFromSubscription(item: Subscription) {
-  return item.plan?.title || item.plan_name || item.title || item.product_title || 'Подписка';
-}
-
-function titleFromEntitlement(item: Entitlement) {
-  return item.content_title || item.title || item.product_title || item.target_type || item.kind || 'Доступ';
-}
-
-function entitlementStatus(item: Entitlement) {
-  return item.status || item.access_status || (item.is_active ? 'active' : 'inactive');
-}
 
 function isActiveEntitlement(item: Entitlement) {
   const status = entitlementStatus(item).toLowerCase();
-  if (status === 'active' || status === 'granted') return true;
-  return Boolean(item.is_active);
+  return item.is_active || status === 'active' || status === 'granted';
 }
 
-function paymentForOrder(payments: Payment[], orderId?: string) {
-  if (!orderId) return undefined;
-  return payments.find((payment) => payment.order_id === orderId);
-}
-
-function buildInvoices(snapshot: CustomerBillingSnapshot): InvoiceRow[] {
-  return snapshot.orders
-    .filter((order) => ['paid', 'completed', 'refunded'].includes((order.status || '').toLowerCase()))
-    .map((order) => {
-      const payment = paymentForOrder(snapshot.payments, order.id);
-      return {
-        id: `invoice-${order.id}`,
-        order,
-        payment,
-        status: payment?.status || order.status || 'issued',
-        amount: order.total_amount || order.gross_amount || order.amount || payment?.amount || '0',
-        currency: order.currency || payment?.currency || 'RUB',
-        issued_at: order.paid_at || order.completed_at || payment?.confirmed_at || order.created_at,
-      };
-    });
-}
-
-function StatCard({ title, value, hint }: { title: string; value: string | number; hint?: string }) {
-  return (
-    <div className="card">
-      <div className="kpi">
-        <span className="muted">{title}</span>
-        <strong>{value}</strong>
-        {hint ? <small className="muted">{hint}</small> : null}
-      </div>
-    </div>
-  );
-}
-
-function OrdersTable({ orders, payments }: { orders: Order[]; payments: Payment[] }) {
-  if (!orders.length) return <p className="muted">Покупок пока нет.</p>;
-
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Покупка</th>
-            <th>Статус</th>
-            <th>Сумма</th>
-            <th>Платёж</th>
-            <th>Дата</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => {
-            const payment = paymentForOrder(payments, order.id);
-            return (
-              <tr key={order.id}>
-                <td>
-                  <div className="stack" style={{ gap: 4 }}>
-                    <Link href={`/orders/${order.id}`}>{titleFromOrder(order)}</Link>
-                    <span className="muted">{shortId(order.id)} · {statusText(order.order_type)}</span>
-                  </div>
-                </td>
-                <td><span className="badge secondary">{statusText(order.status)}</span></td>
-                <td>{money(order.total_amount || order.gross_amount || order.amount, order.currency || 'RUB')}</td>
-                <td>{payment ? <Link href={`/payments/${payment.id}`}>{statusText(payment.status)}</Link> : '-'}</td>
-                <td>{formatDate(order.paid_at || order.completed_at || order.created_at || order.createdAt)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function SubscriptionsTable({ subscriptions }: { subscriptions: Subscription[] }) {
-  if (!subscriptions.length) return <p className="muted">Подписок пока нет.</p>;
-
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Подписка</th>
-            <th>Статус</th>
-            <th>Период</th>
-            <th>Сумма</th>
-            <th>Автопродление</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subscriptions.map((item) => (
-            <tr key={item.id}>
-              <td>
-                <div className="stack" style={{ gap: 4 }}>
-                  <Link href="/subscriptions">{titleFromSubscription(item)}</Link>
-                  <span className="muted">{shortId(item.id)}</span>
-                </div>
-              </td>
-              <td><span className="badge secondary">{statusText(item.status)}</span></td>
-              <td>{formatDate(item.starts_at || item.started_at)} / {formatDate(item.ends_at || item.current_period_end)}</td>
-              <td>{money(item.amount || item.price_amount || item.plan?.price, item.currency || item.plan?.currency || 'RUB')}</td>
-              <td>{item.auto_renew ? 'Включено' : 'Выключено'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function PaymentsTable({ payments }: { payments: Payment[] }) {
-  if (!payments.length) return <p className="muted">Платежей пока нет.</p>;
-
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Платёж</th>
-            <th>Provider</th>
-            <th>Статус</th>
-            <th>Сумма</th>
-            <th>Дата</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payments.map((payment) => (
-            <tr key={payment.id}>
-              <td><Link href={`/payments/${payment.id}`}>{shortId(payment.id)}</Link></td>
-              <td>{payment.provider || '-'}</td>
-              <td><span className="badge secondary">{statusText(payment.status)}</span></td>
-              <td>{money(payment.amount || payment.gross_amount, payment.currency || 'RUB')}</td>
-              <td>{formatDate(payment.confirmed_at || payment.created_at)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function InvoicesTable({ invoices }: { invoices: InvoiceRow[] }) {
-  if (!invoices.length) return <p className="muted">Чеков и инвойсов пока нет.</p>;
-
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Документ</th>
-            <th>Покупка</th>
-            <th>Статус</th>
-            <th>Сумма</th>
-            <th>Дата</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.map((invoice) => (
-            <tr key={invoice.id}>
-              <td>{shortId(invoice.id)}</td>
-              <td><Link href={`/orders/${invoice.order.id}`}>{titleFromOrder(invoice.order)}</Link></td>
-              <td><span className="badge secondary">{statusText(invoice.status)}</span></td>
-              <td>{money(invoice.amount, invoice.currency)}</td>
-              <td>{formatDate(invoice.issued_at)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function EntitlementsGrid({ entitlements }: { entitlements: Entitlement[] }) {
-  const active = entitlements.filter(isActiveEntitlement);
-  if (!active.length) return <p className="muted">Активных доступов пока нет.</p>;
-
-  return (
-    <div className="grid-2">
-      {active.slice(0, 8).map((item) => (
-        <article className="card compact" key={item.id}>
-          <div className="stack" style={{ gap: 10 }}>
-            <div className="row">
-              <strong>{titleFromEntitlement(item)}</strong>
-              <span className="badge success">{statusText(entitlementStatus(item))}</span>
-            </div>
-            <div className="grid-2">
-              <div className="list-item"><span className="muted">Тип</span><strong>{statusText(item.target_type || item.kind)}</strong></div>
-              <div className="list-item"><span className="muted">Истекает</span><strong>{formatDate(item.ends_at || item.expires_at)}</strong></div>
-            </div>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
+function paymentForOrder(payments: Payment[], order: Order) {
+  return payments.find((payment) => payment.order_id === order.id);
 }
 
 export default function BillingPage() {
   const { isAuthenticated, isLoading: sessionLoading } = useAuthSession();
-  const [snapshot, setSnapshot] = useState<CustomerBillingSnapshot>({
-    orders: [],
-    payments: [],
-    subscriptions: [],
-    entitlements: [],
-  });
+  const [snapshot, setSnapshot] = useState<CustomerBillingSnapshot>(emptySnapshot);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -272,8 +58,8 @@ export default function BillingPage() {
       setLoading(true);
       setMessage('');
       setSnapshot(await customerBillingApi.getSnapshot());
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить billing center');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Не удалось загрузить данные');
     } finally {
       setLoading(false);
     }
@@ -288,91 +74,113 @@ export default function BillingPage() {
     void load();
   }, [isAuthenticated, sessionLoading]);
 
-  const invoices = useMemo(() => buildInvoices(snapshot), [snapshot]);
   const activeEntitlements = useMemo(() => snapshot.entitlements.filter(isActiveEntitlement), [snapshot.entitlements]);
-  const failedPayments = useMemo(
-    () => snapshot.payments.filter((payment) => ['failed', 'cancelled', 'disputed', 'charged_back'].includes((payment.status || '').toLowerCase())),
-    [snapshot.payments]
-  );
-  const totalSpend = useMemo(
-    () => snapshot.orders.reduce((sum, order) => sum + Number(order.total_amount || order.gross_amount || order.amount || 0), 0),
-    [snapshot.orders]
-  );
+  const totalSpend = useMemo(() => snapshot.orders.reduce((sum, order) => sum + Number(order.total_amount || order.gross_amount || order.amount || 0), 0), [snapshot.orders]);
+  const metrics: CustomerMetric[] = [
+    { label: 'Покупки', value: snapshot.orders.length, hint: formatCustomerMoney(totalSpend, 'RUB'), tone: 'neutral' },
+    { label: 'Подписки', value: snapshot.subscriptions.length, hint: `${snapshot.subscriptions.filter((item) => item.status === 'active').length} активных`, tone: 'success' },
+    { label: 'Платежи', value: snapshot.payments.length, hint: 'История оплат', tone: 'neutral' },
+    { label: 'Активные доступы', value: activeEntitlements.length, hint: 'Готовы к обучению', tone: 'success' },
+  ];
 
   return (
-    <ProtectedPage title="Billing" description="Покупки, подписки, платежи, чеки и активные доступы клиента.">
-      <section className="stack" style={{ gap: 24 }}>
-        <div className="row" style={{ alignItems: 'flex-start' }}>
-          <div className="stack" style={{ gap: 10 }}>
-            <span className="badge secondary">Customer billing</span>
-            <h1>Billing</h1>
-            <p className="lead">Единый кабинет для покупок, подписок, чеков, платежных статусов и активных доступов.</p>
-          </div>
-          <div className="inline">
-            <button className="button secondary" type="button" onClick={() => void load()} disabled={loading}>
-              {loading ? 'Загрузка...' : 'Обновить'}
-            </button>
-            <Link href="/customer/hub" className="button ghost">Customer hub</Link>
-          </div>
+    <ProtectedPage title="Финансы и документы" description="Финансовый раздел доступен только после входа.">
+      <CustomerCabinetShell
+        title="Финансы и документы"
+        description="Покупки, платежи, подписки, чеки и активные доступы в одном разделе."
+        actions={<button className="premium-secondary-button" type="button" onClick={() => void load()} disabled={loading}>Обновить</button>}
+      >
+        <div className="customer-metric-grid">
+          {metrics.map((metric) => <CustomerMetricCard key={metric.label} metric={metric} />)}
+        </div>
+        {message ? <CustomerErrorState message={message} onRetry={() => void load()} /> : null}
+        {loading ? <CustomerLoadingState /> : null}
+
+        <div className="customer-billing-tabs">
+          <Link href="#orders">Покупки</Link>
+          <Link href="#subscriptions">Подписки</Link>
+          <Link href="#documents">Чеки и документы</Link>
+          <Link href="#payments">Платежи</Link>
+          <Link href="#accesses">Активные доступы</Link>
         </div>
 
-        <div className="grid-4">
-          <StatCard title="Покупки" value={snapshot.orders.length} hint={`${totalSpend.toFixed(2)} RUB`} />
-          <StatCard title="Подписки" value={snapshot.subscriptions.length} hint={`${snapshot.subscriptions.filter((item) => item.status === 'active').length} active`} />
-          <StatCard title="Платежи" value={snapshot.payments.length} hint={`${failedPayments.length} need attention`} />
-          <StatCard title="Активные доступы" value={activeEntitlements.length} hint={`${snapshot.entitlements.length} total`} />
-        </div>
+        <section id="orders" className="customer-section-card">
+          <div className="customer-section-header"><h2>Покупки</h2><Link href="/orders" className="premium-secondary-button">Все заказы</Link></div>
+          <div className="customer-commerce-list">
+            {snapshot.orders.slice(0, 8).map((order) => {
+              const payment = paymentForOrder(snapshot.payments, order);
+              return (
+                <article className="customer-commerce-card" key={order.id}>
+                  <CustomerStatusBadge tone={statusTone(order.status)}>{orderStatusLabel(order.status)}</CustomerStatusBadge>
+                  <strong>{orderTitle(order)}</strong>
+                  <span>{shortCustomerNumber(order.id, 'ORD')} · {orderAmount(order)}</span>
+                  {payment ? <small>Платёж: {paymentStatusLabel(payment.status)}</small> : null}
+                </article>
+              );
+            })}
+            {!snapshot.orders.length && !loading ? <CustomerEmptyState title="Покупок пока нет" description="После покупки данные появятся здесь." /> : null}
+          </div>
+        </section>
 
-        {message ? <div className="card error">{message}</div> : null}
-        {loading ? <div className="card">Загрузка billing center...</div> : null}
+        <section id="subscriptions" className="customer-section-card">
+          <div className="customer-section-header"><h2>Подписки</h2><Link href="/subscriptions" className="premium-secondary-button">Управлять</Link></div>
+          <div className="customer-commerce-list">
+            {snapshot.subscriptions.slice(0, 8).map((item) => (
+              <article className="customer-commerce-card" key={item.id}>
+                <CustomerStatusBadge tone={statusTone(item.status, item.is_active)}>{subscriptionStatusLabel(item.status)}</CustomerStatusBadge>
+                <strong>{subscriptionTitle(item)}</strong>
+                <span>{formatCustomerMoney(item.amount || item.price_amount || item.plan?.price, item.currency || item.plan?.currency || 'RUB')}</span>
+              </article>
+            ))}
+            {!snapshot.subscriptions.length && !loading ? <CustomerEmptyState title="Подписок пока нет" description="Они появятся после оформления." /> : null}
+          </div>
+        </section>
 
-        {!loading ? (
-          <>
-            <div className="card">
-              <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Мои покупки</span>
-                <h2 className="title-md">Orders</h2>
-              </div>
-              <OrdersTable orders={snapshot.orders} payments={snapshot.payments} />
-            </div>
+        <section id="documents" className="customer-section-card">
+          <div className="customer-section-header"><h2>Чеки и документы</h2></div>
+          <div className="customer-commerce-list">
+            {snapshot.orders.filter((order) => ['paid', 'completed', 'refunded'].includes((order.status || '').toLowerCase())).slice(0, 8).map((order) => (
+              <article className="customer-commerce-card" key={`doc-${order.id}`}>
+                <CustomerStatusBadge tone="success">Сформирован</CustomerStatusBadge>
+                <strong>{shortCustomerNumber(order.id, 'DOC')}</strong>
+                <span>{orderTitle(order)} · {orderAmount(order)}</span>
+                <small>{formatCustomerDate(order.paid_at || order.completed_at || order.created_at)}</small>
+              </article>
+            ))}
+            {!snapshot.orders.some((order) => ['paid', 'completed', 'refunded'].includes((order.status || '').toLowerCase())) && !loading ? (
+              <CustomerEmptyState title="Документов пока нет" description="Чеки появятся после успешной оплаты." actionHref="/orders" actionLabel="Открыть заказы" />
+            ) : null}
+          </div>
+        </section>
 
-            <div className="card">
-              <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Мои подписки</span>
-                <h2 className="title-md">Subscriptions</h2>
-              </div>
-              <SubscriptionsTable subscriptions={snapshot.subscriptions} />
-            </div>
+        <section id="payments" className="customer-section-card">
+          <div className="customer-section-header"><h2>Платежи</h2><Link href="/payments" className="premium-secondary-button">Все платежи</Link></div>
+          <div className="customer-commerce-list">
+            {snapshot.payments.slice(0, 8).map((payment) => (
+              <article className="customer-commerce-card" key={payment.id}>
+                <CustomerStatusBadge tone={statusTone(payment.status)}>{paymentStatusLabel(payment.status)}</CustomerStatusBadge>
+                <strong>{shortCustomerNumber(payment.id, 'PAY')}</strong>
+                <span>{formatCustomerMoney(payment.amount || payment.gross_amount, payment.currency || 'RUB')}</span>
+              </article>
+            ))}
+            {!snapshot.payments.length && !loading ? <CustomerEmptyState title="Платежей пока нет" description="После оплаты история появится здесь." /> : null}
+          </div>
+        </section>
 
-            <div className="card">
-              <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Чеки / инвойсы</span>
-                <h2 className="title-md">Receipts</h2>
-              </div>
-              <InvoicesTable invoices={invoices} />
-            </div>
-
-            <div className="card">
-              <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Статусы платежей</span>
-                <h2 className="title-md">Payments</h2>
-              </div>
-              <PaymentsTable payments={snapshot.payments} />
-            </div>
-
-            <div className="card">
-              <div className="row" style={{ gap: 12, alignItems: 'flex-start', marginBottom: 18 }}>
-                <div className="stack" style={{ gap: 8 }}>
-                  <span className="badge secondary">Активные доступы</span>
-                  <h2 className="title-md">Entitlements</h2>
-                </div>
-                <Link href="/entitlements" className="button secondary">Все доступы</Link>
-              </div>
-              <EntitlementsGrid entitlements={snapshot.entitlements} />
-            </div>
-          </>
-        ) : null}
-      </section>
+        <section id="accesses" className="customer-section-card">
+          <div className="customer-section-header"><h2>Активные доступы</h2><Link href="/entitlements" className="premium-secondary-button">Все доступы</Link></div>
+          <div className="customer-access-grid">
+            {activeEntitlements.slice(0, 8).map((item) => (
+              <article className="customer-access-card" key={item.id}>
+                <CustomerStatusBadge tone="success">Активен</CustomerStatusBadge>
+                <h3>{entitlementTitle(item)}</h3>
+                <p>{entitlementType(item)} · {item.trainer_name || 'TrainerHub'}</p>
+              </article>
+            ))}
+            {!activeEntitlements.length && !loading ? <CustomerEmptyState title="Активных доступов пока нет" description="Они появятся после оплаты." /> : null}
+          </div>
+        </section>
+      </CustomerCabinetShell>
     </ProtectedPage>
   );
 }

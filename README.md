@@ -1,8 +1,8 @@
-# TrainerHub — current version v155
+# TrainerHub — current version v156
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v155 Premium App Shell, Footer Cleanup and Checkout Page. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v155 premium storefront block is now implemented.
+This README describes the current roadmap state after v156 Premium Customer Cabinet and All Customer Sections. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v156 premium storefront and customer workspace block is now implemented.
 
 ## Current Roadmap State
 
@@ -64,7 +64,8 @@ Roadmap status table:
 | v153 | Premium Storefront Stabilization | Done |
 | v154-prep | Marketplace Catalog Premium Foundation | Done |
 | v154 | Premium Product Detail Landing Pages | Done |
-| v155 | Premium App Shell, Footer Cleanup and Checkout Page | Current |
+| v155 | Premium App Shell, Footer Cleanup and Checkout Page | Done |
+| v156 | Premium Customer Cabinet and All Customer Sections | Current |
 
 Completed implementation line:
 
@@ -142,6 +143,7 @@ Completed implementation line:
 - v154-prep — Marketplace Catalog Premium Foundation
 - v154 — Premium Product Detail Landing Pages
 - v155 — Premium App Shell, Footer Cleanup and Checkout Page
+- v156 — Premium Customer Cabinet and All Customer Sections
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -614,6 +616,32 @@ Covered behavior:
 - premium footer focused on public product and user entry points;
 - checkout page with stable idempotency key, provider selection and order summary;
 - Russian premium success and cancel states.
+
+## Premium Customer Cabinet
+
+v156 turns the post-purchase customer area into a unified premium workspace.
+
+Updated customer layer:
+
+- `frontend/src/modules/customer-cabinet/components/*`
+- `frontend/src/app/cabinet/page.tsx`
+- `frontend/src/app/customer/hub/page.tsx`
+- `frontend/src/app/learning/page.tsx`
+- `frontend/src/app/entitlements/page.tsx`
+- `frontend/src/app/orders/page.tsx`
+- `frontend/src/app/payments/page.tsx`
+- `frontend/src/app/subscriptions/page.tsx`
+- `frontend/src/app/billing/page.tsx`
+- `frontend/src/app/messages/page.tsx`
+- `docs/design-system/v156_premium_customer_cabinet.md`
+
+Covered behavior:
+
+- shared customer shell and internal navigation;
+- premium customer dashboard at `/cabinet`;
+- premium learning area, access cards, order/payment/subscription polish;
+- finance and documents section without customer-facing technical labels;
+- premium messages inbox with conversation list, thread and composer.
 
 ## Demo Data / Seed Scenarios
 

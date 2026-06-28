@@ -3,30 +3,25 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
-import { DSEmptyState, DSPageHeader, DSSection, DSSkeleton, DSStatsGrid, DSStatusDot, DSTransitionPanel } from '@/design-system';
 import { customerHubApi } from '@/lib/api';
+import {
+  CustomerCabinetShell,
+  CustomerEmptyState,
+  CustomerErrorState,
+  CustomerLoadingState,
+  CustomerMetricCard,
+  CustomerStatusBadge,
+  type CustomerMetric,
+} from '@/modules/customer-cabinet/components';
+import {
+  accessTypeLabel,
+  formatCustomerMoney,
+  orderStatusLabel,
+  shortCustomerNumber,
+  statusTone,
+  subscriptionStatusLabel,
+} from '@/modules/customer-cabinet/components/customer-format';
 import type { CustomerMarketplaceHub } from '@/types/api';
-
-function formatMoney(value?: string | number, currency = 'RUB') {
-  if (value === undefined || value === null || value === '') return `0.00 ${currency}`;
-  return `${value} ${currency}`;
-}
-
-function statusBadge(status?: string) {
-  if (!status) return 'badge secondary';
-  if (['active', 'available', 'paid', 'completed', 'ready', 'done'].includes(status)) return 'badge success';
-  if (['failed', 'cancelled', 'revoked', 'expired', 'attention'].includes(status)) return 'badge error';
-  if (['pending', 'created', 'todo'].includes(status)) return 'badge warning';
-  return 'badge secondary';
-}
-
-function statusTone(status?: string): 'neutral' | 'primary' | 'success' | 'warning' | 'danger' {
-  if (!status) return 'neutral';
-  if (['active', 'available', 'paid', 'completed', 'ready', 'done'].includes(status)) return 'success';
-  if (['failed', 'cancelled', 'revoked', 'expired', 'attention'].includes(status)) return 'danger';
-  if (['pending', 'created', 'todo'].includes(status)) return 'warning';
-  return 'neutral';
-}
 
 function contentHref(type?: string, slug?: string) {
   if (!slug) return '/catalog';
@@ -39,231 +34,151 @@ export default function CustomerHubPage() {
   const [days, setDays] = useState(30);
   const [hub, setHub] = useState<CustomerMarketplaceHub | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  async function load(selectedDays = days) {
+    try {
+      setLoading(true);
+      setMessage('');
+      setHub(await customerHubApi.getHub(selectedDays));
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const payload = await customerHubApi.getHub(days);
-        if (!cancelled) setHub(payload);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Не удалось загрузить customer hub');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void load(days);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
 
-  const currency = useMemo(() => {
-    const paidOrder = hub?.orders.recent.find((order) => order.currency);
-    return paidOrder?.currency || hub?.subscriptions.items[0]?.plan?.currency || 'RUB';
-  }, [hub]);
+  const currency = useMemo(() => hub?.orders.recent.find((order) => order.currency)?.currency || hub?.subscriptions.items[0]?.plan?.currency || 'RUB', [hub]);
+  const metrics: CustomerMetric[] = [
+    { label: 'Активные доступы', value: hub?.summary.active_entitlements_count ?? 0, hint: 'В библиотеке', tone: 'success' },
+    { label: 'Покупки за период', value: formatCustomerMoney(hub?.summary.period_spent, currency), hint: `${days} дней`, tone: 'neutral' },
+    { label: 'Оплаченные заказы', value: hub?.summary.paid_orders_count ?? 0, hint: 'Успешно', tone: 'success' },
+    { label: 'Избранное', value: hub?.summary.favorites_count ?? 0, hint: 'Сохранено', tone: 'neutral' },
+  ];
 
   return (
-    <ProtectedPage title="Customer hub" description="Покупательский marketplace-кабинет доступен только авторизованным пользователям.">
-      <section className="stack" style={{ gap: 24 }}>
-        <DSPageHeader
-          eyebrow="Customer marketplace"
-          title="Customer hub"
-          description="Библиотека доступов, заказы, подписки, избранное, отзывы и рекомендации в одном customer-facing cockpit."
-          actions={
-            <>
-              {[7, 30, 90].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`button ${days === value ? 'primary' : 'secondary'}`}
-                  onClick={() => setDays(value)}
-                >
-                  {value}d
-                </button>
-              ))}
-            </>
-          }
-        />
-
-        {loading ? <div className="card"><DSSkeleton lines={5} /></div> : null}
-        {error ? <div className="card error">{error}</div> : null}
+    <ProtectedPage title="Обзор" description="Покупательский кабинет доступен только авторизованным пользователям.">
+      <CustomerCabinetShell
+        title="Расширенный обзор"
+        description="Готовность аккаунта, библиотека, покупки, подписки, рекомендации, избранное и отзывы."
+        actions={
+          <>
+            <select className="select" value={days} onChange={(event) => setDays(Number(event.target.value))}>
+              {[7, 30, 90].map((value) => <option key={value} value={value}>{value} дней</option>)}
+            </select>
+            <button className="premium-secondary-button" type="button" onClick={() => void load()} disabled={loading}>Обновить</button>
+          </>
+        }
+      >
+        <div className="customer-metric-grid">
+          {metrics.map((metric) => <CustomerMetricCard key={metric.label} metric={metric} />)}
+        </div>
+        {message ? <CustomerErrorState message={message} onRetry={() => void load()} /> : null}
+        {loading ? <CustomerLoadingState /> : null}
 
         {hub ? (
-          <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
-            <DSStatsGrid
-              stats={[
-                { label: 'Активные доступы', value: hub.summary.active_entitlements_count, tone: 'success' },
-                { label: 'Потрачено за период', value: formatMoney(hub.summary.period_spent, currency), tone: 'primary' },
-                { label: 'Оплаченные заказы', value: hub.summary.paid_orders_count, tone: 'success' },
-                { label: 'Избранное', value: hub.summary.favorites_count, tone: 'warning' },
-              ]}
-            />
-
-            <div className="grid-2">
-              <div className="card dark hero">
-                <div className="stack" style={{ gap: 12 }}>
-                  <span className={statusBadge(hub.readiness.status)}>{hub.readiness.status}</span>
-                  <h2 className="title-lg" style={{ margin: 0 }}>{hub.profile.display_name || hub.profile.email || 'Customer'}</h2>
-                  <p>Streak: {hub.profile.streak_count || 0} · Активные подписки: {hub.summary.active_subscriptions_count}</p>
-                  <div className="inline">
-                    <Link className="button" href="/catalog">Открыть каталог</Link>
-                    <Link className="button secondary" href="/orders">История заказов</Link>
-                  </div>
-                </div>
+          <div className="customer-dashboard-grid">
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Готовность аккаунта</h2></div>
+              <div className="customer-commerce-list">
+                {hub.readiness.checks.map((check) => (
+                  <article className="customer-commerce-card" key={check.code}>
+                    <CustomerStatusBadge tone={statusTone(check.status)}>{check.status === 'done' || check.status === 'ready' ? 'Готово' : 'Проверить'}</CustomerStatusBadge>
+                    <strong>{check.title}</strong>
+                  </article>
+                ))}
               </div>
+            </section>
 
-              <DSSection title="Customer readiness" description="Готовность customer кабинета и access runtime.">
-                <div className="card compact">
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.readiness.checks.map((check) => (
-                    <div className="list-item" key={check.code}>
-                      <span>{check.title}</span>
-                      <DSStatusDot tone={statusTone(check.status)} label={check.status} />
-                    </div>
-                  ))}
-                </div>
-                </div>
-              </DSSection>
-            </div>
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Библиотека</h2><Link href="/learning" className="premium-secondary-button">Перейти к обучению</Link></div>
+              <div className="customer-commerce-list">
+                {hub.library.items.slice(0, 8).map((item) => (
+                  <Link className="customer-commerce-card" href={contentHref(item.target_type, item.slug)} key={item.id}>
+                    <CustomerStatusBadge tone={statusTone(item.access_status || item.status)}>{item.access_status === 'active' ? 'Активен' : 'Доступ'}</CustomerStatusBadge>
+                    <strong>{item.title || accessTypeLabel(item.target_type)}</strong>
+                    <span>{item.trainer_name || 'TrainerHub'} · {accessTypeLabel(item.target_type)}</span>
+                  </Link>
+                ))}
+                {!hub.library.items.length ? <CustomerEmptyState title="Библиотека пока пустая" description="После покупки материалы появятся здесь." /> : null}
+              </div>
+            </section>
 
-            <div className="grid-2">
-              <DSSection
-                title="Моя библиотека"
-                description="Активные доступы к видео, программам и bundles."
-                actions={
-                  <>
-                    <Link className="button secondary" href="/learning">Обучение</Link>
-                    <Link className="button secondary" href="/entitlements">Все доступы</Link>
-                  </>
-                }
-              >
-                <div className="card compact">
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.library.items.length === 0 ? (
-                    <DSEmptyState title="Нет купленного контента" description="Открой каталог и оформи первый доступ." />
-                  ) : (
-                    hub.library.items.slice(0, 8).map((item) => (
-                      <Link className="list-item" href={contentHref(item.target_type, item.slug)} key={item.id}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{item.title || item.target_type}</strong>
-                          <small>{item.trainer_name || 'trainer'} · {item.target_type}</small>
-                        </div>
-                        <span className={statusBadge(item.access_status || item.status)}>{item.access_status || item.status}</span>
-                      </Link>
-                    ))
-                  )}
-                </div>
-                </div>
-              </DSSection>
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Недавние заказы</h2><Link href="/orders" className="premium-secondary-button">Все заказы</Link></div>
+              <div className="customer-commerce-list">
+                {hub.orders.recent.slice(0, 8).map((order) => (
+                  <Link className="customer-commerce-card" href={`/orders/${order.id}`} key={order.id}>
+                    <CustomerStatusBadge tone={statusTone(order.status)}>{orderStatusLabel(order.status)}</CustomerStatusBadge>
+                    <strong>{order.items?.[0]?.title || 'Покупка TrainerHub'}</strong>
+                    <span>{shortCustomerNumber(order.id, 'ORD')} · {formatCustomerMoney(order.total_amount, order.currency || currency)}</span>
+                  </Link>
+                ))}
+                {!hub.orders.recent.length ? <CustomerEmptyState title="Заказов пока нет" description="История покупок появится здесь." /> : null}
+              </div>
+            </section>
 
-              <DSSection title="Последние заказы" description="Недавние checkout/order операции." actions={<Link className="button secondary" href="/orders">Все заказы</Link>}>
-                <div className="card compact">
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.orders.recent.length === 0 ? (
-                    <DSEmptyState title="Заказов пока нет" description="После checkout заказы появятся здесь." />
-                  ) : (
-                    hub.orders.recent.slice(0, 8).map((order) => (
-                      <Link className="list-item" href={`/orders/${order.id}`} key={order.id}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{formatMoney(order.total_amount, order.currency || currency)}</strong>
-                          <small>{order.items?.[0]?.title || order.order_type || 'order'}</small>
-                        </div>
-                        <span className={statusBadge(order.status)}>{order.status}</span>
-                      </Link>
-                    ))
-                  )}
-                </div>
-                </div>
-              </DSSection>
-            </div>
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Подписки</h2><Link href="/subscriptions" className="premium-secondary-button">Управлять</Link></div>
+              <div className="customer-commerce-list">
+                {hub.subscriptions.items.slice(0, 6).map((item) => (
+                  <article className="customer-commerce-card" key={item.id}>
+                    <CustomerStatusBadge tone={statusTone(item.status)}>{subscriptionStatusLabel(item.status)}</CustomerStatusBadge>
+                    <strong>{item.plan?.title || 'Подписка'}</strong>
+                    <span>{item.plan?.period_days || 30} дней · {formatCustomerMoney(item.plan?.price, item.plan?.currency || currency)}</span>
+                  </article>
+                ))}
+                {!hub.subscriptions.items.length ? <CustomerEmptyState title="Подписок пока нет" description="Подписки появятся после оформления." /> : null}
+              </div>
+            </section>
 
-            <div className="grid-2">
-              <DSSection title="Подписки и платежи" description="Активные подписки и платежные проблемы." actions={<Link className="button secondary" href="/subscriptions">Подписки</Link>}>
-                <div className="card compact">
-                <div className="grid-2" style={{ marginTop: 16 }}>
-                  <div className="card compact"><div className="kpi"><span className="muted">Активные подписки</span><strong>{hub.subscriptions.summary.active_count}</strong></div></div>
-                  <div className="card compact"><div className="kpi"><span className="muted">Проблемные платежи</span><strong>{hub.payments.summary.failed_count}</strong></div></div>
-                </div>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.subscriptions.items.slice(0, 4).map((subscription) => (
-                    <div className="list-item" key={subscription.id}>
-                      <div className="stack" style={{ gap: 2 }}>
-                        <strong>{subscription.plan?.title || 'Subscription'}</strong>
-                        <small>{subscription.plan?.period_days || 30} days · {formatMoney(subscription.plan?.price, subscription.plan?.currency || currency)}</small>
-                      </div>
-                      <span className={statusBadge(subscription.status)}>{subscription.status}</span>
-                    </div>
-                  ))}
-                  {hub.subscriptions.items.length === 0 ? <DSEmptyState title="Активных подписок пока нет" description="Подписки появятся после покупки subscription продукта." /> : null}
-                </div>
-                </div>
-              </DSSection>
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Рекомендации</h2><Link href="/catalog" className="premium-secondary-button">Открыть каталог</Link></div>
+              <div className="customer-commerce-list">
+                {hub.recommendations.items.slice(0, 8).map((item) => (
+                  <Link className="customer-commerce-card" href={contentHref(item.target_type, item.slug)} key={`${item.target_type}-${item.target_id}`}>
+                    <strong>{item.title}</strong>
+                    <span>{item.trainer_name || 'TrainerHub'} · {formatCustomerMoney(item.price_amount, item.currency || currency)}</span>
+                  </Link>
+                ))}
+                {!hub.recommendations.items.length ? <CustomerEmptyState title="Рекомендаций пока нет" description="Новые материалы появятся после публикации тренерами." /> : null}
+              </div>
+            </section>
 
-              <DSSection title="Отзывы к написанию" description="Контент, по которому можно оставить feedback.">
-                <div className="card compact">
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.reviews.opportunities.length === 0 ? (
-                    <DSEmptyState title="Нет новых позиций для отзыва" description="Новые review opportunities появятся после завершенного доступа." />
-                  ) : (
-                    hub.reviews.opportunities.slice(0, 6).map((item) => (
-                      <Link className="list-item" href={contentHref(item.target_type, item.slug)} key={`${item.target_type}-${item.target_id}`}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{item.title || item.target_type}</strong>
-                          <small>{item.trainer_name || 'trainer'}</small>
-                        </div>
-                        <span className="badge warning">review</span>
-                      </Link>
-                    ))
-                  )}
-                </div>
-                </div>
-              </DSSection>
-            </div>
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Избранное</h2></div>
+              <div className="customer-commerce-list">
+                {hub.favorites.items.slice(0, 8).map((item) => (
+                  <Link className="customer-commerce-card" href={item.target_type === 'trainer' ? `/trainers/${item.slug}` : contentHref(item.target_type, item.slug)} key={item.id}>
+                    <strong>{item.title || 'Сохранённый материал'}</strong>
+                    <span>{accessTypeLabel(item.target_type)}</span>
+                  </Link>
+                ))}
+                {!hub.favorites.items.length ? <CustomerEmptyState title="Избранного пока нет" description="Сохраняйте тренеров и программы из каталога." /> : null}
+              </div>
+            </section>
 
-            <div className="grid-2">
-              <DSSection title="Избранное" description="Сохраненные тренеры, курсы и программы.">
-                <div className="card compact">
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.favorites.items.length === 0 ? (
-                    <DSEmptyState title="Избранного пока нет" description="Сохраняй тренеров и программы из каталога." />
-                  ) : (
-                    hub.favorites.items.slice(0, 8).map((item) => (
-                      <Link className="list-item" href={item.target_type === 'trainer' ? `/trainers/${item.slug}` : contentHref(item.target_type, item.slug)} key={item.id}>
-                        <span>{item.title || item.target_id}</span>
-                        <span className="badge secondary">{item.target_type}</span>
-                      </Link>
-                    ))
-                  )}
-                </div>
-                </div>
-              </DSSection>
-
-              <DSSection title="Рекомендации" description="Новые материалы из marketplace.">
-                <div className="card compact">
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {hub.recommendations.items.length === 0 ? (
-                    <DSEmptyState title="Рекомендаций пока нет" description="Рекомендации появятся после публикации контента тренерами." />
-                  ) : (
-                    hub.recommendations.items.slice(0, 8).map((item) => (
-                      <Link className="list-item" href={contentHref(item.target_type, item.slug)} key={`${item.target_type}-${item.target_id}`}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{item.title}</strong>
-                          <small>{item.trainer_name || 'trainer'} · {item.difficulty || 'any level'}</small>
-                        </div>
-                        <strong>{formatMoney(item.price_amount, item.currency || currency)}</strong>
-                      </Link>
-                    ))
-                  )}
-                </div>
-                </div>
-              </DSSection>
-            </div>
-          </DSTransitionPanel>
+            <section className="customer-section-card">
+              <div className="customer-section-header"><h2>Отзывы</h2></div>
+              <div className="customer-commerce-list">
+                {hub.reviews.opportunities.slice(0, 6).map((item) => (
+                  <Link className="customer-commerce-card" href={contentHref(item.target_type, item.slug)} key={`${item.target_type}-${item.target_id}`}>
+                    <CustomerStatusBadge tone="warning">Оставить отзыв</CustomerStatusBadge>
+                    <strong>{item.title || accessTypeLabel(item.target_type)}</strong>
+                    <span>{item.trainer_name || 'тренер'}</span>
+                  </Link>
+                ))}
+                {!hub.reviews.opportunities.length ? <CustomerEmptyState title="Новых отзывов нет" description="После завершения обучения здесь появятся материалы для отзыва." actionHref="/learning" actionLabel="Перейти к обучению" /> : null}
+              </div>
+            </section>
+          </div>
         ) : null}
-      </section>
+      </CustomerCabinetShell>
     </ProtectedPage>
   );
 }

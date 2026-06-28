@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v155
+# MANIFEST — TrainerHub v156
 
-This manifest describes the current repository state after v155 Premium App Shell, Footer Cleanup and Checkout Page.
+This manifest describes the current repository state after v156 Premium Customer Cabinet and All Customer Sections.
 
 ## Current Version
 
-- Current roadmap version: `v155`
+- Current roadmap version: `v156`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v155` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages and checkout shell
+- Current storefront block: `v151-v156` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell and customer cabinet
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v155 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v156 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -253,6 +253,7 @@ UI design system modules and contracts:
 - `docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md` — v154-prep marketplace catalog foundation notes.
 - `docs/design-system/v154_premium_product_detail_landing_pages.md` — v154 premium product detail landing notes.
 - `docs/design-system/v155_premium_app_shell_checkout.md` — v155 premium shell and checkout notes.
+- `docs/design-system/v156_premium_customer_cabinet.md` — v156 premium customer cabinet notes.
 
 Admin dashboard redesign modules:
 
@@ -391,6 +392,29 @@ Premium app shell and checkout modules:
 - `frontend/src/modules/checkout/components/checkout-state-card.tsx` — v155 checkout auth/loading state card.
 - `docs/design-system/v155_premium_app_shell_checkout.md` — v155 implementation notes.
 
+Premium customer cabinet modules:
+
+- `frontend/src/modules/customer-cabinet/components/customer-cabinet-shell.tsx` — v156 customer workspace shell.
+- `frontend/src/modules/customer-cabinet/components/customer-cabinet-nav.tsx` — v156 internal customer navigation.
+- `frontend/src/modules/customer-cabinet/components/customer-dashboard-card.tsx` — v156 customer section card.
+- `frontend/src/modules/customer-cabinet/components/customer-status-badge.tsx` — v156 customer status badge.
+- `frontend/src/modules/customer-cabinet/components/customer-empty-state.tsx` — v156 empty state.
+- `frontend/src/modules/customer-cabinet/components/customer-loading-state.tsx` — v156 loading state.
+- `frontend/src/modules/customer-cabinet/components/customer-error-state.tsx` — v156 error state.
+- `frontend/src/modules/customer-cabinet/components/customer-metric-card.tsx` — v156 metric card.
+- `frontend/src/modules/customer-cabinet/components/customer-section-header.tsx` — v156 section header.
+- `frontend/src/modules/customer-cabinet/components/customer-format.ts` — v156 Russian labels and formatting helpers.
+- `frontend/src/app/cabinet/page.tsx` — v156 main customer dashboard.
+- `frontend/src/app/customer/hub/page.tsx` — v156 extended customer overview.
+- `frontend/src/app/learning/page.tsx` — v156 premium learning area.
+- `frontend/src/app/entitlements/page.tsx` — v156 customer access center.
+- `frontend/src/app/orders/page.tsx` — v156 customer orders.
+- `frontend/src/app/payments/page.tsx` — v156 customer payments.
+- `frontend/src/app/subscriptions/page.tsx` — v156 customer subscriptions.
+- `frontend/src/app/billing/page.tsx` — v156 finance and documents section.
+- `frontend/src/app/messages/page.tsx` — v156 premium inbox.
+- `docs/design-system/v156_premium_customer_cabinet.md` — v156 implementation notes.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -439,7 +463,8 @@ Premium app shell and checkout modules:
 | v153 | Premium storefront stabilization | Done |
 | v154-prep | Marketplace catalog premium foundation | Done |
 | v154 | Premium product detail landing pages | Done |
-| v155 | Premium app shell, footer cleanup and checkout page | Current |
+| v155 | Premium app shell, footer cleanup and checkout page | Done |
+| v156 | Premium customer cabinet and all customer sections | Current |
 
 ## Current Frontend Modules
 

@@ -30,6 +30,7 @@ const requiredFiles = [
   '../docs/design-system/v154_prep_marketplace_catalog_premium_foundation.md',
   '../docs/design-system/v154_premium_product_detail_landing_pages.md',
   '../docs/design-system/v155_premium_app_shell_checkout.md',
+  '../docs/design-system/v156_premium_customer_cabinet.md',
   'src/components/session-nav.tsx',
   'src/app/checkout/page.tsx',
   'src/app/checkout/success/page.tsx',
@@ -39,6 +40,15 @@ const requiredFiles = [
   'src/modules/checkout/components/checkout-payment-method.tsx',
   'src/modules/checkout/components/checkout-trust-panel.tsx',
   'src/modules/checkout/components/checkout-state-card.tsx',
+  'src/modules/customer-cabinet/components/customer-cabinet-shell.tsx',
+  'src/modules/customer-cabinet/components/customer-cabinet-nav.tsx',
+  'src/modules/customer-cabinet/components/customer-dashboard-card.tsx',
+  'src/modules/customer-cabinet/components/customer-status-badge.tsx',
+  'src/modules/customer-cabinet/components/customer-empty-state.tsx',
+  'src/modules/customer-cabinet/components/customer-loading-state.tsx',
+  'src/modules/customer-cabinet/components/customer-error-state.tsx',
+  'src/modules/customer-cabinet/components/customer-metric-card.tsx',
+  'src/modules/customer-cabinet/components/customer-section-header.tsx',
   'src/modules/public-storefront/components/marketing-home-page.tsx',
   'src/modules/public-storefront/components/hero-business-console.tsx',
   'src/modules/public-storefront/components/platform-map-section.tsx',
@@ -246,6 +256,57 @@ for (const fragment of [
   '.premium-checkout-error',
   '.premium-checkout-success',
   '.premium-checkout-actions',
+  '.customer-cabinet-shell',
+  '.customer-cabinet-layout',
+  '.customer-cabinet-sidebar',
+  '.customer-cabinet-sidebar-card',
+  '.customer-cabinet-nav',
+  '.customer-cabinet-nav-link',
+  '.customer-cabinet-nav-link-active',
+  '.customer-cabinet-content',
+  '.customer-cabinet-topbar',
+  '.customer-page-hero',
+  '.customer-page-title',
+  '.customer-page-subtitle',
+  '.customer-page-actions',
+  '.customer-dashboard-grid',
+  '.customer-dashboard-card',
+  '.customer-metric-grid',
+  '.customer-metric-card',
+  '.customer-section-card',
+  '.customer-section-header',
+  '.customer-status-badge',
+  '.customer-status-success',
+  '.customer-status-warning',
+  '.customer-status-danger',
+  '.customer-status-neutral',
+  '.customer-empty-state',
+  '.customer-loading-state',
+  '.customer-error-state',
+  '.customer-learning-page',
+  '.customer-learning-continue-card',
+  '.customer-learning-grid',
+  '.customer-learning-list',
+  '.customer-learning-item',
+  '.customer-learning-item-active',
+  '.customer-lesson-panel',
+  '.customer-lesson-row',
+  '.customer-materials-grid',
+  '.customer-material-card',
+  '.customer-progress-bar',
+  '.customer-progress-fill',
+  '.customer-access-grid',
+  '.customer-access-card',
+  '.customer-commerce-list',
+  '.customer-commerce-card',
+  '.customer-billing-tabs',
+  '.customer-message-layout',
+  '.customer-conversation-list',
+  '.customer-conversation-card',
+  '.customer-conversation-card-active',
+  '.customer-message-thread',
+  '.customer-message-bubble',
+  '.customer-message-composer',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -384,6 +445,13 @@ const sessionNav = fs.readFileSync(path.join(root, 'src/components/session-nav.t
 const checkoutPage = fs.readFileSync(path.join(root, 'src/modules/checkout/components/checkout-page.tsx'), 'utf8');
 const checkoutSuccess = fs.readFileSync(path.join(root, 'src/app/checkout/success/page.tsx'), 'utf8');
 const checkoutCancel = fs.readFileSync(path.join(root, 'src/app/checkout/cancel/page.tsx'), 'utf8');
+const customerCabinet = fs.readFileSync(path.join(root, 'src/app/cabinet/page.tsx'), 'utf8');
+const customerHub = fs.readFileSync(path.join(root, 'src/app/customer/hub/page.tsx'), 'utf8');
+const learningPage = fs.readFileSync(path.join(root, 'src/app/learning/page.tsx'), 'utf8');
+const messagesPage = fs.readFileSync(path.join(root, 'src/app/messages/page.tsx'), 'utf8');
+const billingPage = fs.readFileSync(path.join(root, 'src/app/billing/page.tsx'), 'utf8');
+const subscriptionsPage = fs.readFileSync(path.join(root, 'src/app/subscriptions/page.tsx'), 'utf8');
+const entitlementsPage = fs.readFileSync(path.join(root, 'src/app/entitlements/page.tsx'), 'utf8');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -477,4 +545,61 @@ for (const forbidden of ['Checkout success', 'Checkout cancelled', 'Commercial m
   }
 }
 
-console.log('v131-v155 design system contract ok');
+for (const [fileName, source] of [
+  ['cabinet/page.tsx', customerCabinet],
+  ['customer/hub/page.tsx', customerHub],
+  ['learning/page.tsx', learningPage],
+  ['messages/page.tsx', messagesPage],
+  ['billing/page.tsx', billingPage],
+  ['subscriptions/page.tsx', subscriptionsPage],
+  ['entitlements/page.tsx', entitlementsPage],
+]) {
+  if (!source.includes('CustomerCabinetShell')) {
+    throw new Error(`${fileName} must use CustomerCabinetShell`);
+  }
+}
+
+for (const fragment of ['Личный кабинет', 'Ваши программы, доступы, заказы, подписки и сообщения']) {
+  if (!customerCabinet.includes(fragment)) {
+    throw new Error(`cabinet/page.tsx missing customer dashboard fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Моё обучение', 'customer-learning-grid', 'Продолжить', 'Открыть урок', 'Завершить урок']) {
+  if (!learningPage.includes(fragment)) {
+    throw new Error(`learning/page.tsx missing premium learning fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Сообщения', 'customer-message-layout', 'Новый диалог', 'Получатель', 'Первое сообщение']) {
+  if (!messagesPage.includes(fragment)) {
+    throw new Error(`messages/page.tsx missing premium inbox fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Финансы и документы', 'Покупки', 'Чеки и документы', 'Активные доступы']) {
+  if (!billingPage.includes(fragment)) {
+    throw new Error(`billing/page.tsx missing finance fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Мои доступы', 'Номер доступа', 'Перейти к обучению']) {
+  if (!entitlementsPage.includes(fragment)) {
+    throw new Error(`entitlements/page.tsx missing access fragment: ${fragment}`);
+  }
+}
+
+for (const [fileName, source, forbiddenFragments] of [
+  ['billing/page.tsx', billingPage, ['<h1>Billing</h1>', '>Billing<', 'Customer billing', 'Загрузка billing center']],
+  ['subscriptions/page.tsx', subscriptionsPage, ['Sync access', 'Lifecycle policy', 'Readiness', 'v8.46', 'virtual statuses', 'customer_self_service']],
+  ['messages/page.tsx', messagesPage, ['recipient user id', 'Unread', 'Role', 'Selected', 'notification hooks', 'trainer ↔ student']],
+  ['entitlements/page.tsx', entitlementsPage, ['Entitlement ID', '<th>ID</th>', '>Bundle<']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains customer technical label: ${forbiddenFragment}`);
+    }
+  }
+}
+
+console.log('v131-v156 design system contract ok');
