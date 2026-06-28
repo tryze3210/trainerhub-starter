@@ -5,7 +5,7 @@ export default function TrainerProductsPage() {
   return (
     <TrainerDashboardShell
       title="Продукты"
-      description="Создавайте, проверяйте и публикуйте платные продукты тренера."
+      description="Создавайте платные видео, наборы и программы, настраивайте цену, доступ и публикацию для каталога TrainerHub."
     >
       <TrainerProductBuilderDashboard />
     </TrainerDashboardShell>

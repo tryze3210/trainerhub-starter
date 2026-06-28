@@ -9,7 +9,6 @@ import {
   type TrainerProduct,
   type TrainerProductPayload,
 } from '@/modules/trainer-products/api';
-import { CourseProgramBuilderPanel } from '@/modules/trainer-products/components/course-program-builder-panel';
 import {
   TrainerEmptyState,
   TrainerErrorState,
@@ -18,7 +17,7 @@ import {
   TrainerStatusBadge,
   type TrainerMetric,
 } from '@/modules/trainer-cabinet/components';
-import { formatTrainerMoney, trainerProductTypeLabel, trainerStatusLabel, trainerStatusTone } from '@/modules/trainer-cabinet/components/trainer-format';
+import { formatTrainerMoney, trainerProductTypeLabel, trainerStatusTone } from '@/modules/trainer-cabinet/components/trainer-format';
 
 type ProductBuilderMetric = {
   label: string;
@@ -60,16 +59,35 @@ function accessLabel(value?: string): string {
   return 'Разовая покупка';
 }
 
+function productStatusLabel(value?: string): string {
+  const status = (value || '').toLowerCase();
+  if (status === 'draft') return 'Черновик';
+  if (status === 'published') return 'Опубликован';
+  if (status === 'archived') return 'В архиве';
+  if (status === 'pending_review' || status === 'review' || status === 'under_review') return 'На проверке';
+  if (status === 'submitted') return 'Отправлен на проверку';
+  if (status === 'approved') return 'Одобрен';
+  if (status === 'rejected') return 'Отклонён';
+  return 'Требуется проверка';
+}
+
 function readinessLabel(value?: string): string {
-  if (value === 'ready' || value === 'pass' || value === 'passed') return 'Готово';
-  if (value === 'blocker' || value === 'failed' || value === 'blocked') return 'Требует исправления';
+  if (value === 'ready') return 'Готов к публикации';
+  if (value === 'pass' || value === 'passed') return 'Готово';
+  if (value === 'failed') return 'Требует исправления';
   if (value === 'warning') return 'Проверьте';
   if (value === 'pending') return 'В ожидании';
-  return 'Проверка продукта';
+  if (value === 'blocker' || value === 'blocked') return 'Публикация недоступна';
+  return 'Требуется проверка';
 }
 
 function checkTitle(check: ProductReadinessCheck): string {
   const known: Record<string, string> = {
+    title_required: 'Название заполнено',
+    description_required: 'Описание заполнено',
+    price_required: 'Цена настроена',
+    items_required: 'Материалы добавлены',
+    access_required: 'Доступ настроен',
     title: 'Название продукта',
     description: 'Описание продукта',
     price: 'Цена',
@@ -77,6 +95,17 @@ function checkTitle(check: ProductReadinessCheck): string {
     access: 'Настройки доступа',
   };
   return known[check.code] || check.title || 'Проверка продукта';
+}
+
+function checkMessage(check: ProductReadinessCheck): string {
+  const known: Record<string, string> = {
+    title_required: 'Добавьте понятное название продукта.',
+    description_required: 'Заполните описание для каталога и страницы покупки.',
+    price_required: 'Проверьте цену и валюту продукта.',
+    items_required: 'Добавьте видео или материалы из библиотеки.',
+    access_required: 'Проверьте формат доступа.',
+  };
+  return known[check.code] || 'Требуется уточнение настроек продукта.';
 }
 
 function previewHref(product: TrainerProduct | null, slug?: string, type?: string): string | undefined {
@@ -209,26 +238,24 @@ export function TrainerProductBuilderDashboard() {
     }
   }
 
-  const metrics: TrainerMetric[] = [
-    { label: 'Всего продуктов', value: products.length, tone: 'primary' },
-    { label: 'Опубликовано', value: products.filter((item) => item.status === 'published').length, tone: 'success' },
-    { label: 'Черновики', value: products.filter((item) => item.status === 'draft').length, tone: 'neutral' },
-    { label: 'На проверке', value: products.filter((item) => item.status === 'pending_review').length, tone: 'warning' },
-    { label: 'Наборы', value: products.filter((item) => item.product_type === 'bundle').length, tone: 'primary' },
-    { label: 'С подпиской', value: products.filter((item) => item.access_type === 'subscription').length, tone: 'success' },
+  const metrics: ProductBuilderMetric[] = [
+    { label: 'Всего продуктов', value: products.length },
+    { label: 'Опубликовано', value: products.filter((item) => item.status === 'published').length },
+    { label: 'Черновики', value: products.filter((item) => item.status === 'draft').length },
+    { label: 'На проверке', value: products.filter((item) => ['pending_review', 'review', 'submitted', 'under_review'].includes(item.status || '')).length },
+    { label: 'Наборы', value: products.filter((item) => item.product_type === 'bundle').length },
+    { label: 'С подпиской', value: products.filter((item) => item.access_type === 'subscription').length },
   ];
   const preview = buildPreview(form, selectedProduct);
   const readiness = selectedProduct?.readiness || null;
 
   return (
     <div className="trainer-product-builder">
-      <CourseProgramBuilderPanel />
-
       <section className="trainer-section-card">
-        <div className="trainer-section-header">
+        <div className="trainer-product-builder-hero">
           <div>
             <h2>Продукты</h2>
-            <p>Создавайте платные видео, наборы и программы, настраивайте доступы, цену и публикацию для каталога TrainerHub.</p>
+            <p>Создавайте платные видео, наборы и программы, настраивайте цену, доступ и публикацию для каталога TrainerHub.</p>
           </div>
           <div className="trainer-product-actions">
             <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
@@ -236,8 +263,11 @@ export function TrainerProductBuilderDashboard() {
           </div>
         </div>
 
-        <div className="trainer-metric-grid">
-          {metrics.map((metric) => <TrainerMetricCard key={metric.label} metric={metric} />)}
+        <div className="trainer-product-builder-metrics">
+          {metrics.map((metric) => {
+            const cardMetric: TrainerMetric = { ...metric, tone: metric.label === 'Опубликовано' || metric.label === 'С подпиской' ? 'success' : metric.label === 'На проверке' ? 'warning' : 'primary' };
+            return <TrainerMetricCard key={metric.label} metric={cardMetric} />;
+          })}
         </div>
 
         {isLoading ? <TrainerLoadingState title="Загружаем продукты" /> : null}
@@ -256,7 +286,7 @@ export function TrainerProductBuilderDashboard() {
                 onClick={() => setSelectedId(product.id)}
                 type="button"
               >
-                <TrainerStatusBadge tone={trainerStatusTone(product.status)}>{trainerStatusLabel(product.status)}</TrainerStatusBadge>
+                <TrainerStatusBadge tone={trainerStatusTone(product.status)}>{productStatusLabel(product.status)}</TrainerStatusBadge>
                 <strong>{product.title}</strong>
                 <span>{trainerProductTypeLabel(product.product_type)} · {formatTrainerMoney(product.price_amount, product.currency)}</span>
                 <small>{accessLabel(product.access_type)} · {productMaterialCount(product)} материалов</small>
@@ -328,8 +358,8 @@ export function TrainerProductBuilderDashboard() {
               </label>
 
               <div className="trainer-product-actions">
-                <button className="premium-primary-button" disabled={isSaving} type="submit">
-                  Сохранить черновик
+                  <button className="premium-primary-button" disabled={isSaving} type="submit">
+                  {selectedProduct ? 'Сохранить черновик' : 'Создать черновик'}
                 </button>
                 {selectedProduct ? (
                   <>
@@ -363,7 +393,7 @@ export function TrainerProductBuilderDashboard() {
                 <div className="trainer-product-readiness-item" key={check.code}>
                   <TrainerStatusBadge tone={trainerStatusTone(check.status)}>{readinessLabel(check.status)}</TrainerStatusBadge>
                   <strong>{checkTitle(check)}</strong>
-                  <span>{check.message || 'Требуется уточнение настроек'}</span>
+                  <span>{checkMessage(check)}</span>
                 </div>
               ))}
               {!readiness ? <TrainerEmptyState title="Проверка появится после сохранения" description="Сохраните черновик, чтобы увидеть готовность к публикации." /> : null}

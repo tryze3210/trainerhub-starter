@@ -45,6 +45,13 @@ function statusBadge(status?: string) {
   return 'badge';
 }
 
+function statusBadgeText(status?: string) {
+  if (status === 'published') return 'Опубликовано';
+  if (status === 'archived') return 'В архиве';
+  if (status === 'review' || status === 'submitted' || status === 'under_review') return 'На проверке';
+  return 'Черновик';
+}
+
 function parseMaterials(value: string): LessonMaterial[] {
   return value
     .split('\n')
@@ -60,8 +67,8 @@ function parseMaterials(value: string): LessonMaterial[] {
     });
 }
 
-function formatMaterials(materials?: LessonMaterial[]) {
-  return (materials || [])
+function formatMaterials(материалов?: LessonMaterial[]) {
+  return (материалов || [])
     .map((item) => [item.title, item.url || '', item.kind || ''].filter(Boolean).join(' | '))
     .join('\n');
 }
@@ -177,10 +184,10 @@ export function CourseProgramBuilderPanel() {
       const course = selectedCourseId
         ? await uploadApi.updateCourseDraft(selectedCourseId, payload)
         : await uploadApi.createCourseDraft(payload);
-      setMessage(selectedCourseId ? 'Курс обновлён' : 'Курс создан');
+      setMessage(selectedCourseId ? 'Программа обновлена' : 'Программа создана');
       await reloadCourses(course.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Курс не сохранён');
+      setError(err instanceof Error ? err.message : 'Программа не сохранена');
     } finally {
       setIsSaving(false);
     }
@@ -245,10 +252,10 @@ export function CourseProgramBuilderPanel() {
     setMessage(null);
     try {
       await uploadApi.publishCourseDraft(selectedCourseId);
-      setMessage('Курс опубликован в CMS history');
+      setMessage('Программа опубликована');
       await reloadCourses(selectedCourseId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Курс не опубликован');
+      setError(err instanceof Error ? err.message : 'Программа не опубликована');
     } finally {
       setIsSaving(false);
     }
@@ -258,11 +265,11 @@ export function CourseProgramBuilderPanel() {
     <section className="card">
       <div className="card-header">
         <div>
-          <h2>Course / Program Builder</h2>
-          <p>Course drafts with ordered lessons, video asset links and lesson materials.</p>
+          <h2>Программа</h2>
+          <p>Черновик программы с уроками, материалами и привязанными видеофайлами.</p>
         </div>
         <button className="btn btn-secondary" onClick={newCourse} type="button">
-          New course
+          Новая программа
         </button>
       </div>
 
@@ -271,8 +278,8 @@ export function CourseProgramBuilderPanel() {
 
       <div className="grid grid-2 gap-4">
         <div className="stack gap-3">
-          {isLoading ? <p>Загрузка...</p> : null}
-          {!isLoading && courses.length === 0 ? <p>Курсов пока нет.</p> : null}
+          {isLoading ? <p>Загружаем программы...</p> : null}
+          {!isLoading && courses.length === 0 ? <p>Программ пока нет.</p> : null}
           {courses.map((course) => (
             <button
               className={`card text-left ${selectedCourseId === course.id ? 'is-active' : ''}`}
@@ -282,9 +289,9 @@ export function CourseProgramBuilderPanel() {
             >
               <div className="row row-between">
                 <strong>{course.title}</strong>
-                <span className={statusBadge(course.status)}>{course.status || 'draft'}</span>
+                <span className={statusBadge(course.status)}>{statusBadgeText(course.status)}</span>
               </div>
-              <p>{course.price_amount} {course.currency} · lessons: {course.lessons?.length ?? 0}</p>
+              <p>{course.price_amount} {course.currency} · Уроков: {course.lessons?.length ?? 0}</p>
             </button>
           ))}
         </div>
@@ -293,25 +300,25 @@ export function CourseProgramBuilderPanel() {
           <form className="form stack gap-3" onSubmit={submitCourse}>
             <div className="grid grid-2 gap-3">
               <label>
-                Course title
+                Название программы
                 <input value={courseForm.title} onChange={(event) => setCourseForm((current) => ({ ...current, title: event.target.value }))} required />
               </label>
               <label>
-                Slug
+                Публичный адрес
                 <input value={courseForm.slug} onChange={(event) => setCourseForm((current) => ({ ...current, slug: event.target.value }))} required />
               </label>
             </div>
             <label>
-              Description
+              Описание
               <textarea value={courseForm.description} onChange={(event) => setCourseForm((current) => ({ ...current, description: event.target.value }))} rows={3} />
             </label>
             <div className="grid grid-2 gap-3">
               <label>
-                Price
+                Цена
                 <input value={courseForm.price_amount} onChange={(event) => setCourseForm((current) => ({ ...current, price_amount: event.target.value }))} inputMode="decimal" />
               </label>
               <label>
-                Currency
+                Валюта
                 <select value={courseForm.currency} onChange={(event) => setCourseForm((current) => ({ ...current, currency: event.target.value }))}>
                   <option value="RUB">RUB</option>
                   <option value="USD">USD</option>
@@ -321,11 +328,11 @@ export function CourseProgramBuilderPanel() {
             </div>
             <div className="row gap-2">
               <button className="btn" disabled={isSaving} type="submit">
-                {selectedCourse ? 'Save course' : 'Create course'}
+                {selectedCourse ? 'Сохранить' : 'Сохранить'}
               </button>
               {selectedCourse ? (
                 <button className="btn btn-secondary" disabled={isSaving} onClick={() => void publishCourse()} type="button">
-                  Publish course
+                  Опубликовать
                 </button>
               ) : null}
             </div>
@@ -333,36 +340,36 @@ export function CourseProgramBuilderPanel() {
 
           {selectedCourse ? (
             <form className="form stack gap-3" onSubmit={submitLesson}>
-              <h3>{editingLessonId ? 'Edit lesson' : 'Add lesson'}</h3>
+              <h3>{editingLessonId ? 'Редактировать урок' : 'Добавить урок'}</h3>
               <div className="grid grid-2 gap-3">
                 <label>
-                  Lesson title
+                  Название урока
                   <input value={lessonForm.title} onChange={(event) => setLessonForm((current) => ({ ...current, title: event.target.value }))} required />
                 </label>
                 <label>
-                  Position
+                  Порядок
                   <input value={lessonForm.position} onChange={(event) => setLessonForm((current) => ({ ...current, position: Number(event.target.value) }))} min={1} type="number" />
                 </label>
               </div>
               <label>
-                Video asset id
-                <input value={lessonForm.video_asset_id} onChange={(event) => setLessonForm((current) => ({ ...current, video_asset_id: event.target.value }))} placeholder="UUID" />
+                Видеофайл
+                <input value={lessonForm.video_asset_id} onChange={(event) => setLessonForm((current) => ({ ...current, video_asset_id: event.target.value }))} placeholder="ID видеофайла из библиотеки" />
               </label>
               <label>
-                Materials
-                <textarea value={lessonForm.materials_text} onChange={(event) => setLessonForm((current) => ({ ...current, materials_text: event.target.value }))} placeholder="Title | https://url | pdf" rows={4} />
+                Материалы
+                <textarea value={lessonForm.materials_text} onChange={(event) => setLessonForm((current) => ({ ...current, materials_text: event.target.value }))} placeholder="Название | https://url | pdf" rows={4} />
               </label>
               <label className="row gap-2">
                 <input checked={lessonForm.is_preview} onChange={(event) => setLessonForm((current) => ({ ...current, is_preview: event.target.checked }))} type="checkbox" />
-                Preview lesson
+                Открытый урок для просмотра
               </label>
               <div className="row gap-2">
                 <button className="btn" disabled={isSaving} type="submit">
-                  {editingLessonId ? 'Save lesson' : 'Add lesson'}
+                  {editingLessonId ? 'Сохранить урок' : 'Добавить урок'}
                 </button>
                 {editingLessonId ? (
                   <button className="btn btn-secondary" onClick={() => { setEditingLessonId(null); setLessonForm(emptyLessonForm); }} type="button">
-                    Cancel
+                    Отмена
                   </button>
                 ) : null}
               </div>
@@ -373,21 +380,21 @@ export function CourseProgramBuilderPanel() {
 
       {selectedCourse ? (
         <div className="mt-4 stack gap-3">
-          <h3>Lessons</h3>
+          <h3>Уроки</h3>
           {lessons.length === 0 ? <p>Уроки ещё не добавлены.</p> : null}
           {lessons.map((lesson) => (
             <div className="card" key={lesson.id}>
               <div className="row row-between">
                 <strong>{lesson.position}. {lesson.title}</strong>
-                <span className="badge">{lesson.materials?.length || 0} materials</span>
+                <span className="badge">{lesson.materials?.length || 0} материалов</span>
               </div>
-              <p>{lesson.description || 'No description'} · video: {lesson.video_asset_id || 'not linked'}</p>
+              <p>{lesson.description || 'Описание не заполнено'} · видеофайл: {lesson.video_asset_id || 'не выбран'}</p>
               <div className="row gap-2">
                 <button className="btn btn-secondary" onClick={() => editLesson(lesson)} type="button">
-                  Edit
+                  Редактировать
                 </button>
                 <button className="btn btn-danger" disabled={isSaving} onClick={() => void deleteLesson(lesson.id)} type="button">
-                  Delete
+                  Удалить
                 </button>
               </div>
             </div>

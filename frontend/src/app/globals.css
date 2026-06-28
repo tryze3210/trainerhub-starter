@@ -3913,6 +3913,199 @@ small {
   align-items: center;
 }
 
+.trainer-product-builder-hero,
+.trainer-content-studio-hero,
+.trainer-content-editor-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.trainer-product-builder-hero h2,
+.trainer-content-studio-hero h2,
+.trainer-content-editor h2,
+.trainer-content-preview h3,
+.trainer-lesson-editor h3,
+.trainer-bundle-editor h3 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.trainer-product-builder-hero p,
+.trainer-content-studio-hero p,
+.trainer-content-editor-header p,
+.trainer-content-preview p,
+.trainer-content-form p {
+  margin: 6px 0 0;
+  color: rgba(226, 232, 240, 0.66);
+  line-height: 1.6;
+}
+
+.trainer-product-builder-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.trainer-content-studio,
+.trainer-content-form,
+.trainer-program-editor,
+.trainer-bundle-editor,
+.trainer-lesson-editor,
+.trainer-lesson-list,
+.trainer-content-list {
+  display: grid;
+  gap: 16px;
+}
+
+.trainer-content-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 0.8fr) minmax(240px, 0.38fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.trainer-content-editor,
+.trainer-content-list,
+.trainer-content-preview,
+.trainer-content-card,
+.trainer-lesson-card,
+.trainer-bundle-item-card,
+.trainer-content-metric,
+.trainer-content-state {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.68);
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.22);
+  backdrop-filter: blur(18px);
+  padding: 18px;
+  min-width: 0;
+}
+
+.trainer-content-card,
+.trainer-lesson-card,
+.trainer-bundle-item-card,
+.trainer-content-preview {
+  display: grid;
+  gap: 10px;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.trainer-content-card {
+  text-align: left;
+}
+
+.trainer-content-card-active {
+  border-color: rgba(125, 211, 252, 0.42);
+  background: rgba(125, 211, 252, 0.08);
+}
+
+.trainer-content-card h3,
+.trainer-content-card strong,
+.trainer-lesson-card strong,
+.trainer-bundle-item-card strong,
+.trainer-content-preview strong {
+  color: #ffffff;
+}
+
+.trainer-content-card p,
+.trainer-lesson-card span,
+.trainer-bundle-item-card span,
+.trainer-content-preview span,
+.trainer-content-field-hint {
+  color: rgba(226, 232, 240, 0.64);
+  line-height: 1.55;
+}
+
+.trainer-content-studio-tabs,
+.trainer-content-actions,
+.trainer-content-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trainer-content-studio-tab {
+  min-height: 40px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  padding: 0 16px;
+  color: rgba(226, 232, 240, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 800;
+}
+
+.trainer-content-studio-tab-active {
+  border-color: rgba(125, 211, 252, 0.42);
+  color: #ffffff;
+  background: rgba(125, 211, 252, 0.10);
+}
+
+.trainer-content-kicker,
+.trainer-content-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: rgba(226, 232, 240, 0.72);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.trainer-content-status-success {
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #bbf7d0;
+}
+
+.trainer-content-status-warning {
+  border-color: rgba(250, 204, 21, 0.28);
+  color: #fef08a;
+}
+
+.trainer-content-status-danger {
+  border-color: rgba(248, 113, 113, 0.30);
+  color: #fecaca;
+}
+
+.trainer-content-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.trainer-content-field {
+  display: grid;
+  gap: 7px;
+}
+
+.trainer-content-field > span {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.trainer-content-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(226, 232, 240, 0.76);
+  font-weight: 700;
+}
+
+.trainer-content-state-success {
+  border-color: rgba(74, 222, 128, 0.24);
+  color: #bbf7d0;
+}
+
+.trainer-content-state-error {
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+}
+
 .trainer-product-danger-action {
   min-height: 42px;
   display: inline-flex;
@@ -4239,7 +4432,10 @@ small {
   .customer-lesson-row,
   .customer-message-bubble div,
   .trainer-page-hero,
-  .trainer-section-header {
+  .trainer-section-header,
+  .trainer-product-builder-hero,
+  .trainer-content-studio-hero,
+  .trainer-content-editor-header {
     flex-direction: column;
     align-items: stretch;
   }
@@ -4253,7 +4449,10 @@ small {
   .trainer-metric-grid,
   .trainer-business-grid,
   .trainer-product-builder-grid,
+  .trainer-product-builder-metrics,
   .trainer-product-form-grid,
+  .trainer-content-studio-grid,
+  .trainer-content-form-grid,
   .trainer-assignment-grid,
   .trainer-sales-grid,
   .trainer-crm-grid {

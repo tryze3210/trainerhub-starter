@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v158
+# BUILD REPORT — TrainerHub v158.1
 
 ## Summary
 
-Current version: `v158`
+Current version: `v158.1`
 
 The repository has been updated through:
 
@@ -65,8 +65,9 @@ The repository has been updated through:
 - premium trainer cabinet shell and core trainer sections: v157
 - trainer cabinet integration repair: v157.1
 - premium trainer product builder: v158
+- final product builder and video studio repair: v158.1
 
-v158 upgrades the trainer product builder into a premium commercial workspace and repairs trainer shell integration.
+v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio, localizes visible trainer content UI, and adds contract guards for the repair.
 
 ## Verification Performed In This Workspace
 
@@ -84,11 +85,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v158.
+- README current version and roadmap/status table updated to v158.1.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v158 premium trainer product builder status.
+- BUILD_REPORT updated with v158.1 product builder and video studio repair status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v158.
+- Frontend design-system contract extended for v131-v158.1.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -111,7 +112,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v158 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v158.1 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 
