@@ -7,7 +7,7 @@ export default function TrainerSchedulePage() {
   return (
     <TrainerDashboardShell
       title="Расписание"
-      description="Расписание, запись на занятия, лимиты мест, отмены и лист ожидания."
+      description="Настраивайте рабочие часы, создавайте слоты и ведите посещаемость."
     >
       <TrainerBookingDashboard />
     </TrainerDashboardShell>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { TrainerCabinetShell } from '@/modules/trainer-cabinet/components';
+import { TrainerCabinetShell } from '@/modules/trainer-cabinet/components/trainer-cabinet-shell';
 
 export function TrainerDashboardShell({
   title,

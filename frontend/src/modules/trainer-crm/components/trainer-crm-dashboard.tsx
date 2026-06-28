@@ -1,18 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  DSDataTable,
-  DSEmptyState,
-  DSRichTextEditor,
-  DSSection,
-  DSSelect,
-  DSSkeleton,
-  DSStatsGrid,
-  DSStatusDot,
-  DSTextField,
-  DSTransitionPanel,
-} from '@/design-system';
+
 import {
   trainerCrmApi,
   type TrainerCRMCustomer,
@@ -20,6 +9,7 @@ import {
   type TrainerCRMSegment,
   type TrainerCRMSnapshot,
 } from '@/modules/trainer-crm/api';
+import { trainerOperationStatusLabel, trainerOperationStatusTone } from '@/modules/trainer-operations/format';
 
 const DAY_OPTIONS = [30, 90, 180, 365];
 
@@ -29,13 +19,17 @@ function money(value?: string | number | null, currency = 'RUB') {
 }
 
 function dateTime(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return 'Дата не указана';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-function CustomerTable({
+function statusClass(value?: string | null) {
+  return `trainer-operations-status trainer-operations-status-${trainerOperationStatusTone(value)}`;
+}
+
+function CustomerRail({
   rows,
   selectedId,
   onSelect,
@@ -45,150 +39,237 @@ function CustomerTable({
   onSelect: (customerId: string) => void;
 }) {
   if (!rows.length) {
-    return <DSEmptyState title="Клиенты пока не найдены" description="Попробуй изменить поиск или период CRM." />;
+    return (
+      <div className="trainer-operations-empty">
+        <strong>Ученики пока не найдены</strong>
+        <p>Когда ученик купит продукт или получит доступ, он появится здесь.</p>
+      </div>
+    );
   }
 
   return (
-    <DSDataTable
-      columns={[
-        { key: 'client', label: 'Клиент' },
-        { key: 'revenue', label: 'Выручка' },
-        { key: 'orders', label: 'Заказы' },
-        { key: 'access', label: 'Доступы' },
-        { key: 'segments', label: 'Сегменты' },
-        { key: 'lastOrder', label: 'Последний заказ' },
-      ]}
-      rows={rows.map((customer) => ({
-        client: (
-          <button type="button" className="link-button" onClick={() => onSelect(customer.customer_id)}>
-            <strong>{customer.display_name}</strong>
-            <span className="muted" style={{ display: 'block' }}>{customer.email}</span>
-          </button>
-        ),
-        revenue: money(customer.total_spent),
-        orders: `${customer.paid_orders_count}/${customer.orders_count}`,
-        access: <span className="badge secondary">{customer.active_entitlements_count} активных</span>,
-        segments: customer.segments.map((segment) => segment.name).join(', ') || '-',
-        lastOrder: dateTime(customer.last_order_at),
-        selected: selectedId === customer.customer_id ? 'выбран' : '',
-      }))}
-      getRowKey={(row, index) => `${String(row.selected)}-${rows[index]?.customer_id || index}`}
-    />
+    <div className="trainer-operations-rail" aria-label="Ученики">
+      {rows.map((customer) => (
+        <button
+          className={selectedId === customer.customer_id ? 'trainer-operations-card trainer-operations-card-active' : 'trainer-operations-card'}
+          key={customer.customer_id}
+          type="button"
+          onClick={() => onSelect(customer.customer_id)}
+        >
+          <span className={statusClass(customer.status)}>{trainerOperationStatusLabel(customer.status)}</span>
+          <strong>{customer.display_name || customer.email}</strong>
+          <span>{customer.email}</span>
+          <span>{money(customer.total_spent)} потрачено</span>
+          <span>{customer.paid_orders_count} оплаченных из {customer.orders_count} заказов</span>
+          <span>{customer.active_entitlements_count} активных доступов</span>
+          <small>{customer.segments.map((segment) => segment.name).join(', ') || 'Без сегмента'}</small>
+        </button>
+      ))}
+    </div>
   );
 }
 
-function DetailPanel({
+function DetailPanel({ detail }: { detail: TrainerCRMDetail | null }) {
+  if (!detail) {
+    return (
+      <section className="trainer-operations-detail-panel">
+        <h3>Выберите ученика</h3>
+        <p>Откройте карточку ученика из ленты, чтобы увидеть покупки, доступы, заметки и посещения.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="trainer-operations-detail-panel">
+      <header className="trainer-operations-section-header">
+        <div>
+          <h3>Профиль ученика</h3>
+          <p>{detail.customer.display_name || detail.customer.email}</p>
+        </div>
+        <span className={statusClass(detail.customer.status)}>{trainerOperationStatusLabel(detail.customer.status)}</span>
+      </header>
+
+      <section className="trainer-operations-metrics" aria-label="Показатели ученика">
+        <div className="trainer-operations-metric"><span>Потрачено</span><strong>{money(detail.customer.total_spent)}</strong></div>
+        <div className="trainer-operations-metric"><span>Заказы</span><strong>{detail.customer.paid_orders_count}</strong></div>
+        <div className="trainer-operations-metric"><span>Активные доступы</span><strong>{detail.customer.active_entitlements_count}</strong></div>
+        <div className="trainer-operations-metric"><span>Заметки</span><strong>{detail.customer.notes_count}</strong></div>
+      </section>
+
+      <div className="trainer-operations-support-panels">
+        <article className="trainer-operations-panel">
+          <h4>Контакты</h4>
+          <div className="trainer-operations-row-list">
+            <div className="trainer-operations-row"><div><strong>Email</strong><span>{detail.customer.email}</span></div></div>
+            <div className="trainer-operations-row"><div><strong>Сегменты</strong><span>{detail.segments.map((segment) => segment.name).join(', ') || 'Не назначены'}</span></div></div>
+            <div className="trainer-operations-row"><div><strong>Последний заказ</strong><span>{dateTime(detail.customer.last_order_at)}</span></div></div>
+          </div>
+        </article>
+
+        <article className="trainer-operations-panel">
+          <h4>Покупки</h4>
+          <div className="trainer-operations-row-list">
+            {detail.purchase_history.slice(0, 8).map((order) => (
+              <div className="trainer-operations-row" key={order.id}>
+                <div>
+                  <strong>{money(order.total_amount, order.currency)}</strong>
+                  <span>{trainerOperationStatusLabel(order.status)} · {dateTime(order.created_at)}</span>
+                </div>
+                <span className={statusClass(order.status)}>{order.items_count} позиций</span>
+              </div>
+            ))}
+            {!detail.purchase_history.length ? <div className="trainer-operations-empty"><strong>Покупок пока нет</strong><p>История появится после первого заказа.</p></div> : null}
+          </div>
+        </article>
+      </div>
+
+      <div className="trainer-operations-support-panels">
+        <article className="trainer-operations-panel">
+          <h4>Доступы</h4>
+          <div className="trainer-operations-row-list">
+            {detail.access_history.slice(0, 8).map((item) => (
+              <div className="trainer-operations-row" key={item.id}>
+                <div>
+                  <strong>Доступ к материалу</strong>
+                  <span>{trainerOperationStatusLabel(item.status)} · выдан {dateTime(item.created_at)}</span>
+                </div>
+                <span className={statusClass(item.status)}>{trainerOperationStatusLabel(item.status)}</span>
+              </div>
+            ))}
+            {!detail.access_history.length ? <div className="trainer-operations-empty"><strong>Доступов пока нет</strong><p>Доступы появятся после покупки или ручной выдачи.</p></div> : null}
+          </div>
+        </article>
+
+        <article className="trainer-operations-panel">
+          <h4>Посещения</h4>
+          <div className="trainer-operations-row-list">
+            {detail.attendance_history.slice(0, 8).map((item) => (
+              <div className="trainer-operations-row" key={item.id}>
+                <div>
+                  <strong>{item.title || 'Занятие'}</strong>
+                  <span>{trainerOperationStatusLabel(item.status)} · {dateTime(item.starts_at)}</span>
+                </div>
+                <span className={statusClass(item.status)}>{trainerOperationStatusLabel(item.status)}</span>
+              </div>
+            ))}
+            {!detail.attendance_history.length ? <div className="trainer-operations-empty"><strong>Посещений пока нет</strong><p>История появится после записи и отметки посещения.</p></div> : null}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function NotesPanel({
   detail,
   note,
   setNote,
   onCreateNote,
-  selectedSegment,
-  setSelectedSegment,
-  onAssignSegment,
-  allSegments,
   saving,
 }: {
   detail: TrainerCRMDetail | null;
   note: string;
   setNote: (value: string) => void;
   onCreateNote: () => void;
-  selectedSegment: string;
-  setSelectedSegment: (value: string) => void;
-  onAssignSegment: () => void;
-  allSegments: TrainerCRMSegment[];
   saving: boolean;
 }) {
-  if (!detail) {
-    return <DSEmptyState title="Выберите клиента" description="CRM-карточка откроется после выбора строки в таблице." />;
-  }
-
   return (
-    <DSTransitionPanel active className="stack" style={{ gap: 18 }}>
-      <div className="card">
-        <div className="stack" style={{ gap: 8 }}>
-          <DSStatusDot tone={detail.customer.active_entitlements_count > 0 ? 'success' : 'neutral'} label={detail.customer.status} />
-          <h2 className="title-md">{detail.customer.display_name}</h2>
-          <p className="muted">{detail.customer.email}</p>
-        </div>
-        <div style={{ marginTop: 18 }}>
-          <DSStatsGrid
-            stats={[
-              { label: 'Всего потрачено', value: money(detail.customer.total_spent), tone: 'success' },
-              { label: 'Заказы', value: detail.customer.paid_orders_count, tone: 'primary' },
-              { label: 'Доступы', value: detail.customer.active_entitlements_count, tone: detail.customer.active_entitlements_count > 0 ? 'success' : 'neutral' },
-              { label: 'Заметки', value: detail.customer.notes_count, tone: detail.customer.notes_count > 0 ? 'primary' : 'neutral' },
-            ]}
-          />
-        </div>
+    <article className="trainer-operations-panel">
+      <h3>Заметки тренера</h3>
+      <label className="trainer-operations-field">
+        <span>Заметка</span>
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          rows={4}
+          placeholder="Напишите заметку о прогрессе, целях или договорённостях."
+        />
+      </label>
+      <div className="trainer-operations-actions">
+        <button type="button" className="premium-secondary-button" onClick={onCreateNote} disabled={saving || !detail || !note.trim()}>
+          Сохранить заметку
+        </button>
       </div>
-
-      <div className="grid-2">
-        <DSSection title="Заметки" description="Внутренние заметки по клиенту.">
-          <div className="card compact">
-          <DSRichTextEditor label="Заметка" value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Заметка тренера" />
-          <button type="button" className="button secondary" onClick={onCreateNote} disabled={saving || !note.trim()} style={{ marginTop: 10 }}>
-            Сохранить заметку
-          </button>
-          <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-            {detail.notes.map((item) => (
-              <div key={item.id} className="list-item">
-                <strong>{item.pinned ? 'Закреплённая заметка' : 'Заметка'}</strong>
-                <p className="muted">{item.body}</p>
-                <small className="muted">{dateTime(item.created_at)}</small>
-              </div>
-            ))}
-            {!detail.notes.length ? <DSEmptyState title="Заметок пока нет" description="Добавь первую заметку по клиенту." /> : null}
+      <div className="trainer-operations-row-list">
+        {detail?.notes.map((item) => (
+          <div className="trainer-operations-row" key={item.id}>
+            <div>
+              <strong>{item.pinned ? 'Закреплённая заметка' : 'Заметка'}</strong>
+              <p>{item.body}</p>
+              <small>{dateTime(item.created_at)}</small>
+            </div>
           </div>
+        ))}
+        {!detail?.notes.length ? (
+          <div className="trainer-operations-empty">
+            <strong>Заметок пока нет</strong>
+            <p>Добавьте первую заметку, чтобы фиксировать контекст работы с учеником.</p>
           </div>
-        </DSSection>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
-        <DSSection title="Сегменты" description="Назначение клиента в рабочий сегмент.">
-          <div className="card compact">
-          <DSSelect label="Сегмент" value={selectedSegment} onChange={(event) => setSelectedSegment(event.target.value)}>
+function SegmentsPanel({
+  segments,
+  segmentName,
+  setSegmentName,
+  selectedSegment,
+  setSelectedSegment,
+  onCreateSegment,
+  onAssignSegment,
+  saving,
+  canAssign,
+}: {
+  segments: TrainerCRMSegment[];
+  segmentName: string;
+  setSegmentName: (value: string) => void;
+  selectedSegment: string;
+  setSelectedSegment: (value: string) => void;
+  onCreateSegment: () => void;
+  onAssignSegment: () => void;
+  saving: boolean;
+  canAssign: boolean;
+}) {
+  return (
+    <article className="trainer-operations-panel">
+      <h3>Сегменты</h3>
+      <div className="trainer-operations-toolbar-fields">
+        <label className="trainer-operations-field">
+          <span>Новый сегмент</span>
+          <input value={segmentName} onChange={(event) => setSegmentName(event.target.value)} placeholder="Например: регулярные ученики" />
+        </label>
+        <label className="trainer-operations-field">
+          <span>Выберите сегмент</span>
+          <select value={selectedSegment} onChange={(event) => setSelectedSegment(event.target.value)}>
             <option value="">Выберите сегмент</option>
-            {allSegments.map((segment) => (
+            {segments.map((segment) => (
               <option key={segment.id} value={segment.id}>{segment.name}</option>
             ))}
-          </DSSelect>
-          <button type="button" className="button secondary" onClick={onAssignSegment} disabled={saving || !selectedSegment} style={{ marginTop: 10 }}>
-            Назначить сегмент
-          </button>
-          </div>
-        </DSSection>
+          </select>
+        </label>
       </div>
-
-      <div className="grid-2">
-        <DSSection title="История покупок" description="История заказов клиента.">
-          <div className="card compact stack" style={{ gap: 10 }}>
-            {detail.purchase_history.map((order) => (
-              <div key={order.id} className="list-item">
-                <strong>{money(order.total_amount, order.currency)}</strong>
-                <span className="muted">{order.status} · {dateTime(order.created_at)}</span>
-              </div>
-            ))}
-            {!detail.purchase_history.length ? <DSEmptyState title="Покупок пока нет" description="История появится после первого заказа." /> : null}
-          </div>
-        </DSSection>
-
-        <DSSection title="Посещения и доступы" description="Посещения и выданные доступы.">
-          <div className="card compact stack" style={{ gap: 10 }}>
-            {detail.attendance_history.map((item) => (
-              <div key={item.id} className="list-item">
-                <strong>{item.title}</strong>
-                <span className="muted">{item.status} · {dateTime(item.starts_at)}</span>
-              </div>
-            ))}
-            {detail.access_history.slice(0, 8).map((item) => (
-              <div key={item.id} className="list-item">
-                <strong>{item.target_type}</strong>
-                <span className="muted">{item.status} · {dateTime(item.created_at)}</span>
-              </div>
-            ))}
-            {!detail.attendance_history.length && !detail.access_history.length ? <DSEmptyState title="Истории пока нет" description="Доступы и посещения появятся после активности клиента." /> : null}
-          </div>
-        </DSSection>
+      <div className="trainer-operations-actions">
+        <button type="button" className="premium-secondary-button" onClick={onCreateSegment} disabled={saving || !segmentName.trim()}>
+          Создать сегмент
+        </button>
+        <button type="button" className="premium-secondary-button" onClick={onAssignSegment} disabled={saving || !canAssign || !selectedSegment}>
+          Назначить сегмент
+        </button>
       </div>
-    </DSTransitionPanel>
+      <div className="trainer-operations-row-list">
+        {segments.map((segment) => (
+          <div className="trainer-operations-row" key={segment.id}>
+            <div>
+              <strong>{segment.name}</strong>
+              <span>{segment.customers_count || 0} учеников</span>
+            </div>
+          </div>
+        ))}
+        {!segments.length ? <div className="trainer-operations-empty"><strong>Сегментов пока нет</strong><p>Создайте первый сегмент для группировки учеников.</p></div> : null}
+      </div>
+    </article>
   );
 }
 
@@ -205,6 +286,13 @@ export function TrainerCRMDashboard() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  async function selectCustomer(customerId: string) {
+    setSelectedId(customerId);
+    setDetail(await trainerCrmApi.getCustomer(customerId));
+    setNote('');
+    setSelectedSegment('');
+  }
+
   async function load(selectedDays = days, selectedSearch = search) {
     try {
       setLoading(true);
@@ -215,17 +303,10 @@ export function TrainerCRMDashboard() {
         await selectCustomer(data.items[0].customer_id);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить CRM');
+      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить учеников');
     } finally {
       setLoading(false);
     }
-  }
-
-  async function selectCustomer(customerId: string) {
-    setSelectedId(customerId);
-    setDetail(await trainerCrmApi.getCustomer(customerId));
-    setNote('');
-    setSelectedSegment('');
   }
 
   async function createNote() {
@@ -272,85 +353,69 @@ export function TrainerCRMDashboard() {
   const rows = useMemo(() => snapshot?.items || [], [snapshot?.items]);
 
   return (
-    <section className="trainer-crm-page stack" style={{ gap: 24 }}>
-      <DSSection
-        title="Клиенты тренера"
-        description="Карточка клиента, история покупок и доступов, заметки тренера и сегменты."
-        actions={
-          <>
-            <DSTextField label="Поиск клиента" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя или email" />
-            <DSSelect label="Период" value={days} onChange={(event) => setDays(Number(event.target.value))}>
+    <section className="trainer-operations-page trainer-crm-page">
+      <section className="trainer-operations-toolbar">
+        <div>
+          <h2>Ученики</h2>
+          <p>Сегменты, заметки, покупки и активность учеников в одном рабочем пространстве.</p>
+        </div>
+        <div className="trainer-operations-toolbar-fields">
+          <label className="trainer-operations-field">
+            <span>Поиск ученика</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя, email или сегмент" />
+          </label>
+          <label className="trainer-operations-field">
+            <span>Период</span>
+            <select value={days} onChange={(event) => setDays(Number(event.target.value))}>
               {DAY_OPTIONS.map((option) => <option key={option} value={option}>{option} дней</option>)}
-            </DSSelect>
-            <button type="button" className="button secondary" onClick={() => void load(days, search)} disabled={loading}>Обновить</button>
-          </>
-        }
-      >
-        <span className="badge secondary">CRM Core</span>
-      </DSSection>
+            </select>
+          </label>
+          <button type="button" className="premium-secondary-button" onClick={() => void load(days, search)} disabled={loading}>
+            Обновить
+          </button>
+        </div>
+      </section>
 
-      {message ? <div className="card error">{message}</div> : null}
-      {loading && !snapshot ? <div className="card"><DSSkeleton lines={5} /></div> : null}
+      {message ? <div className="trainer-operations-message"><strong>Не удалось выполнить действие</strong><p>{message}</p></div> : null}
+      {loading && !snapshot ? <div className="trainer-operations-message"><strong>Загружаем учеников</strong><p>Собираем покупки, доступы и заметки.</p></div> : null}
 
       {snapshot ? (
-        <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
-          <DSStatsGrid
-            stats={[
-              { label: 'Клиенты', value: snapshot.summary.customers_count, tone: 'primary' },
-              { label: 'Активные доступы', value: snapshot.summary.with_active_access_count, tone: 'success' },
-              { label: 'С заметками', value: snapshot.summary.with_notes_count, tone: 'primary' },
-              { label: 'Сегменты', value: snapshot.summary.segments_count, tone: 'warning' },
-            ]}
-          />
+        <>
+          <section className="trainer-operations-metrics" aria-label="Метрики учеников">
+            <div className="trainer-operations-metric"><span>Ученики</span><strong>{snapshot.summary.customers_count}</strong></div>
+            <div className="trainer-operations-metric"><span>С активным доступом</span><strong>{snapshot.summary.with_active_access_count}</strong></div>
+            <div className="trainer-operations-metric"><span>С заметками</span><strong>{snapshot.summary.with_notes_count}</strong></div>
+            <div className="trainer-operations-metric"><span>Сегменты</span><strong>{snapshot.summary.segments_count}</strong></div>
+            <div className="trainer-operations-metric"><span>Период</span><strong>{snapshot.summary.period_days} дней</strong></div>
+          </section>
 
-          <div className="grid-2">
-            <DSSection title="Сегменты клиентов" description="Рабочие сегменты для CRM-фильтрации.">
-              <div className="trainer-crm-customer-card">
-                <div className="row" style={{ gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
-                  <div>
-                    <span className="badge secondary">Сегменты</span>
-                  </div>
-                  <div className="inline" style={{ gap: 8 }}>
-                    <input className="input" value={segmentName} onChange={(event) => setSegmentName(event.target.value)} placeholder="Новый сегмент" />
-                    <button type="button" className="button secondary" onClick={() => void createSegment()} disabled={saving || !segmentName.trim()}>
-                      Добавить
-                    </button>
-                  </div>
-                </div>
-                <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
-                  {snapshot.segments.map((segment) => (
-                    <span key={segment.id} className="badge secondary">{segment.name} · {segment.customers_count || 0}</span>
-                  ))}
-                  {!snapshot.segments.length ? <DSEmptyState title="Сегментов пока нет" description="Создай первый сегмент для группировки клиентов." /> : null}
-                </div>
+          <section className="trainer-operations-rail-section">
+            <header className="trainer-operations-section-header">
+              <div>
+                <h3>Лента учеников</h3>
+                <p>Выберите ученика, чтобы открыть профиль, покупки, доступы и историю посещений.</p>
               </div>
-            </DSSection>
+            </header>
+            <CustomerRail rows={rows} selectedId={selectedId} onSelect={(id) => void selectCustomer(id)} />
+          </section>
 
-            <DSSection title="Окно CRM" description={`Сводка считает выручку за ${snapshot.summary.period_days} дней, а карточка клиента показывает расширенную историю.`}>
-              <div className="trainer-crm-detail-panel">
-                <DSStatusDot tone="primary" label={`${snapshot.summary.period_days} дней`} />
-              </div>
-            </DSSection>
-          </div>
+          <DetailPanel detail={detail} />
 
-          <DSSection title="Список клиентов" description="Выбор клиента открывает подробную CRM-карточку.">
-            <div className="trainer-crm-customer-card">
-              <CustomerTable rows={rows} selectedId={selectedId} onSelect={(id) => void selectCustomer(id)} />
-            </div>
-          </DSSection>
-
-          <DetailPanel
-            detail={detail}
-            note={note}
-            setNote={setNote}
-            onCreateNote={() => void createNote()}
-            selectedSegment={selectedSegment}
-            setSelectedSegment={setSelectedSegment}
-            onAssignSegment={() => void assignSegment()}
-            allSegments={snapshot.segments}
-            saving={saving}
-          />
-        </DSTransitionPanel>
+          <section className="trainer-operations-support-panels">
+            <NotesPanel detail={detail} note={note} setNote={setNote} onCreateNote={() => void createNote()} saving={saving} />
+            <SegmentsPanel
+              segments={snapshot.segments}
+              segmentName={segmentName}
+              setSegmentName={setSegmentName}
+              selectedSegment={selectedSegment}
+              setSelectedSegment={setSelectedSegment}
+              onCreateSegment={() => void createSegment()}
+              onAssignSegment={() => void assignSegment()}
+              saving={saving}
+              canAssign={Boolean(selectedId)}
+            />
+          </section>
+        </>
       ) : null}
     </section>
   );

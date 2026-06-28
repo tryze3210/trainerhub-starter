@@ -7,7 +7,7 @@ export default function TrainerCRMPage() {
   return (
     <TrainerDashboardShell
       title="Ученики"
-      description="Карточки клиентов, покупки, посещения, доступы, заметки тренера и сегменты."
+      description="Сегменты, заметки, история покупок и активность учеников."
     >
       <TrainerCRMDashboard />
     </TrainerDashboardShell>

@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '..', '..');
 const requiredFiles = [
   'src/app/globals.css',
   'src/app/profile-workbench.css',
+  'src/app/trainer-operations.css',
   'src/design-system/tokens.ts',
   'src/design-system/components.tsx',
   'src/design-system/feedback.tsx',
@@ -46,6 +47,8 @@ const requiredFiles = [
   '../docs/design-system/v160_2_product_video_flow_stabilization.md',
   '../docs/design-system/v160_3_product_media_picker_cleanup.md',
   '../docs/design-system/v160_4_product_media_single_source.md',
+  '../docs/design-system/v161_premium_trainer_operations.md',
+  'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
   'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx',
@@ -100,6 +103,7 @@ for (const file of requiredFiles) {
 
 const globals = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8');
 const profileWorkbenchCss = fs.readFileSync(path.join(root, 'src/app/profile-workbench.css'), 'utf8');
+const trainerOperationsCss = fs.readFileSync(path.join(root, 'src/app/trainer-operations.css'), 'utf8');
 const tokens = fs.readFileSync(path.join(root, 'src/design-system/tokens.ts'), 'utf8');
 const components = fs.readFileSync(path.join(root, 'src/design-system/components.tsx'), 'utf8');
 const feedback = fs.readFileSync(path.join(root, 'src/design-system/feedback.tsx'), 'utf8');
@@ -529,6 +533,10 @@ if (!globals.includes("@import './profile-workbench.css'")) {
   throw new Error('globals.css missing profile-workbench.css import');
 }
 
+if (!globals.includes("@import './trainer-operations.css'")) {
+  throw new Error('globals.css missing trainer-operations.css import');
+}
+
 for (const fragment of [
   '.profile-workbench',
   '.profile-workbench-content',
@@ -540,6 +548,12 @@ for (const fragment of [
 ]) {
   if (!profileWorkbenchCss.includes(fragment)) {
     throw new Error(`profile-workbench.css missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['.trainer-operations-page', '.trainer-operations-rail', '.trainer-operations-detail-panel', 'overflow-y: visible !important']) {
+  if (!trainerOperationsCss.includes(fragment)) {
+    throw new Error(`trainer-operations.css missing fragment: ${fragment}`);
   }
 }
 
@@ -681,6 +695,9 @@ const entitlementsPage = fs.readFileSync(path.join(root, 'src/app/entitlements/p
 const trainerShell = fs.readFileSync(path.join(root, 'src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx'), 'utf8');
 const trainerCabinetShell = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx'), 'utf8');
 const trainerCabinetNav = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-nav.tsx'), 'utf8');
+const trainerCrmDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-crm/components/trainer-crm-dashboard.tsx'), 'utf8');
+const trainerBookingDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-booking/components/trainer-booking-dashboard.tsx'), 'utf8');
+const trainerOperationsFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-operations/format.ts'), 'utf8');
 const profileWorkbench = fs.readFileSync(path.join(root, 'src/design-system/profile-workbench.tsx'), 'utf8');
 const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
@@ -865,7 +882,7 @@ for (const fragment of ['formatTrainerMoney', 'trainerStatusLabel', 'trainerPayo
 }
 
 for (const [fileName, source, forbiddenFragments] of [
-  ['trainer-dashboard-shell.tsx', trainerShell, ["label: 'Dashboard'", "label: 'Onboarding'", "label: 'Payouts'", 'Trainer area', 'Production trainer flow']],
+  ['trainer-dashboard-shell.tsx', trainerShell, ['DSTrainerLayout', 'DSLayoutNav', "label: 'Dashboard'", "label: 'Onboarding'", "label: 'Payouts'", 'Trainer area', 'Production trainer flow']],
   ['trainer/dashboard/page.tsx', trainerDashboardPage, ['All visible orders', 'Gross payment volume', 'Payment records', 'Draft videos', 'Published videos', 'Pending review', 'Sales count', 'slug:', 'Headline', 'Bio']],
   ['trainer/business/page.tsx', trainerBusinessPage, ['Available payout', 'Business readiness', 'Revenue trend', 'Top products', 'destination not set', 'Moderation & risk']],
   ['trainer/reviews/page.tsx', trainerReviewsPage, ['Quality</span>', '<h2>Readiness</h2>', '>ok<', '>attention<']],
@@ -874,6 +891,40 @@ for (const [fileName, source, forbiddenFragments] of [
     if (source.includes(forbiddenFragment)) {
       throw new Error(`${fileName} still contains trainer technical label: ${forbiddenFragment}`);
     }
+  }
+}
+
+if (!trainerShell.includes('TrainerCabinetShell')) {
+  throw new Error('trainer-dashboard-shell.tsx must wrap TrainerCabinetShell');
+}
+
+for (const forbiddenFragment of ['DSDataTable', 'DSSection', 'DSRichTextEditor', 'CRM Core', 'Search customer', 'Save note', 'Pinned note', 'Select segment', 'Assign segment']) {
+  if (trainerCrmDashboard.includes(forbiddenFragment)) {
+    throw new Error(`trainer CRM dashboard still contains technical fragment: ${forbiddenFragment}`);
+  }
+}
+
+for (const fragment of ['trainer-operations-page', 'Ученики', 'Заметки тренера', 'Сегменты']) {
+  if (!trainerCrmDashboard.includes(fragment)) {
+    throw new Error(`trainer CRM dashboard missing v161 fragment: ${fragment}`);
+  }
+}
+
+for (const forbiddenFragment of ['DSDataTable', 'DSCalendar', 'Booking / Schedule', 'Refresh', 'Add rule', 'Generate', 'Check-in', 'Check-out', 'No-show', 'Cancel', 'Waitlist']) {
+  if (trainerBookingDashboard.includes(forbiddenFragment)) {
+    throw new Error(`trainer booking dashboard still contains technical fragment: ${forbiddenFragment}`);
+  }
+}
+
+for (const fragment of ['trainer-operations-page', 'Расписание', 'Правила доступности', 'Создание слотов']) {
+  if (!trainerBookingDashboard.includes(fragment)) {
+    throw new Error(`trainer booking dashboard missing v161 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainerOperationStatusLabel', 'trainerOperationStatusTone']) {
+  if (!trainerOperationsFormat.includes(fragment)) {
+    throw new Error(`trainer operations format missing fragment: ${fragment}`);
   }
 }
 
@@ -1038,4 +1089,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v160.4 design system contract ok');
+console.log('v131-v161 design system contract ok');
