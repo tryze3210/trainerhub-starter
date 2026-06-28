@@ -1,39 +1,25 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-import { uploadApi } from '@/modules/upload/api';
 import { trainerContentStatusLabel } from '@/modules/upload/components/trainer-upload-format';
-import type { VideoDraft } from '@/types/api';
+import {
+  getMediaVideoPublicAddressState,
+  getMediaVideoTitle,
+  hasMediaVideoFile,
+  type TrainerProductMediaVideo,
+} from '@/modules/trainer-products/types/product-media';
 
 type TrainerSelectedMediaListProps = {
+  videos: TrainerProductMediaVideo[];
   selectedVideoIds: string[];
+  loading?: boolean;
   onRemove: (videoId: string) => void;
 };
 
-export function TrainerSelectedMediaList({ selectedVideoIds, onRemove }: TrainerSelectedMediaListProps) {
-  const [videos, setVideos] = useState<VideoDraft[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    uploadApi.listMyVideos()
-      .then((items) => {
-        if (mounted) setVideos(items);
-      })
-      .catch(() => {
-        if (mounted) setVideos([]);
-      })
-      .finally(() => {
-        if (mounted) setIsLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
+export function TrainerSelectedMediaList({ videos, selectedVideoIds, loading, onRemove }: TrainerSelectedMediaListProps) {
   const selectedVideos = useMemo(
-    () => selectedVideoIds.map((id) => videos.find((video) => video.id === id)).filter(Boolean) as VideoDraft[],
+    () => selectedVideoIds.map((id) => videos.find((video) => video.id === id)).filter(Boolean) as TrainerProductMediaVideo[],
     [selectedVideoIds, videos]
   );
 
@@ -53,22 +39,23 @@ export function TrainerSelectedMediaList({ selectedVideoIds, onRemove }: Trainer
         </div>
       ) : null}
 
-      {selectedVideoIds.length > 0 && isLoading ? (
+      {selectedVideoIds.length > 0 && loading ? (
         <div className="trainer-selected-media-row">
           <div>
-            <strong>Загружаем выбранные видео</strong>
+            <strong>Обновляем выбранные материалы</strong>
             <span>Материалы уже добавлены в продукт.</span>
           </div>
         </div>
       ) : null}
 
-      {!isLoading && selectedVideoIds.map((videoId) => {
+      {!loading && selectedVideoIds.map((videoId) => {
         const video = selectedVideos.find((item) => item.id === videoId);
         return (
           <div className="trainer-selected-media-row" key={videoId}>
             <div>
-              <strong>{video?.title || 'Выбранное видео'}</strong>
-              <span>{video ? trainerContentStatusLabel(video.status) : 'Видео уже добавлено в продукт'}</span>
+              <strong>{video ? getMediaVideoTitle(video) : 'Выбранное видео'}</strong>
+              <span>{video ? trainerContentStatusLabel(video.status ?? undefined) : 'Видео уже добавлено в продукт. Данные обновятся после перезагрузки библиотеки.'}</span>
+              {video ? <span>{hasMediaVideoFile(video) ? 'Файл добавлен' : 'Файл не добавлен'} · {getMediaVideoPublicAddressState(video)}</span> : null}
             </div>
             <button className="premium-secondary-button" type="button" onClick={() => onRemove(videoId)}>Убрать</button>
           </div>

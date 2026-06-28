@@ -1,47 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
-import { uploadApi } from '@/modules/upload/api';
 import { trainerContentPrice, trainerContentStatusLabel } from '@/modules/upload/components/trainer-upload-format';
-import type { VideoDraft } from '@/types/api';
+import {
+  getMediaVideoPrice,
+  getMediaVideoPublicAddressState,
+  getMediaVideoTitle,
+  hasMediaVideoFile,
+  type TrainerProductMediaVideo,
+} from '@/modules/trainer-products/types/product-media';
 
 type TrainerProductMediaPickerProps = {
+  videos: TrainerProductMediaVideo[];
   selectedVideoIds: string[];
-  onChange: (videoIds: string[]) => void;
+  loading?: boolean;
+  error?: string | null;
   highlighted?: boolean;
+  onChange: (videoIds: string[]) => void;
+  onRetry?: () => void;
 };
 
-function fileLabel(video: VideoDraft): string {
-  return video.video_asset_id || video.media_asset_id || video.media_asset ? 'Файл добавлен' : 'Файл не добавлен';
+function fileLabel(video: TrainerProductMediaVideo): string {
+  return hasMediaVideoFile(video) ? 'Файл добавлен' : 'Файл не добавлен';
 }
 
-function addressLabel(video: VideoDraft): string {
-  return video.slug ? 'Адрес настроен' : 'Адрес не указан';
+function addressLabel(video: TrainerProductMediaVideo): string {
+  return getMediaVideoPublicAddressState(video);
 }
 
-export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highlighted }: TrainerProductMediaPickerProps) {
-  const [videos, setVideos] = useState<VideoDraft[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  async function loadVideos() {
-    setIsLoading(true);
-    setError(null);
-    try {
-      setVideos(await uploadApi.listMyVideos());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось загрузить видео');
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadVideos();
-  }, []);
-
+export function TrainerProductMediaPicker({ videos, selectedVideoIds, loading, error, highlighted, onChange, onRetry }: TrainerProductMediaPickerProps) {
   function toggleVideo(videoId: string) {
     if (selectedVideoIds.includes(videoId)) {
       onChange(selectedVideoIds.filter((id) => id !== videoId));
@@ -60,16 +48,16 @@ export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highligh
         <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
       </header>
 
-      {isLoading ? <div className="trainer-workbench-empty-rail-card"><strong>Загружаем библиотеку видео</strong></div> : null}
+      {loading ? <div className="trainer-workbench-empty-rail-card"><strong>Загружаем библиотеку видео</strong></div> : null}
       {error ? (
         <div className="trainer-workbench-empty-rail-card">
           <strong>Не удалось загрузить видео</strong>
-          <p>Попробуйте обновить страницу или перейти в раздел “Видео и материалы”.</p>
-          <button className="premium-secondary-button" type="button" onClick={() => void loadVideos()}>Повторить</button>
+          <p>Попробуйте обновить библиотеку или перейти в раздел “Видео и материалы”.</p>
+          {onRetry ? <button className="premium-secondary-button" type="button" onClick={() => void onRetry()}>Повторить</button> : null}
         </div>
       ) : null}
 
-      {!isLoading && !error && videos.length === 0 ? (
+      {!loading && !error && videos.length === 0 ? (
         <div className="trainer-workbench-empty-rail-card">
           <strong>Видео пока нет</strong>
           <p>Загрузите первый видеоурок, чтобы добавить его в продукт.</p>
@@ -77,7 +65,7 @@ export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highligh
         </div>
       ) : null}
 
-      {!isLoading && !error && videos.length > 0 ? (
+      {!loading && !error && videos.length > 0 ? (
         <div className="trainer-media-picker-rail" aria-label="Библиотека видео для продукта">
           {videos.map((video) => {
             const active = selectedVideoIds.includes(video.id);
@@ -89,10 +77,10 @@ export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highligh
                 onClick={() => toggleVideo(video.id)}
               >
                 <span className="trainer-media-picker-card-status">
-                  <span>{trainerContentStatusLabel(video.status)}</span>
-                  <span>{trainerContentPrice(video.price_amount, video.currency)}</span>
+                  <span>{trainerContentStatusLabel(video.status ?? undefined)}</span>
+                  <span>{trainerContentPrice(String(getMediaVideoPrice(video) ?? '0'), video.currency || 'RUB')}</span>
                 </span>
-                <strong>{video.title}</strong>
+                <strong>{getMediaVideoTitle(video)}</strong>
                 <span>{fileLabel(video)}</span>
                 <small>{addressLabel(video)}</small>
                 <span>{active ? 'Выбрано' : 'Выбрать'}</span>

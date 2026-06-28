@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, '..', '..');
 
 const requiredFiles = [
   'src/app/globals.css',
+  'src/app/profile-workbench.css',
   'src/design-system/tokens.ts',
   'src/design-system/components.tsx',
   'src/design-system/feedback.tsx',
@@ -43,9 +44,11 @@ const requiredFiles = [
   '../docs/design-system/v160_media_library_picker.md',
   '../docs/design-system/v160_1_media_picker_integration.md',
   '../docs/design-system/v160_2_product_video_flow_stabilization.md',
+  '../docs/design-system/v160_3_product_media_picker_cleanup.md',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
   'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx',
+  'src/modules/trainer-products/types/product-media.ts',
   'src/modules/upload/components/trainer-content-studio.tsx',
   'src/modules/upload/components/trainer-video-upload-card.tsx',
   'src/modules/upload/components/trainer-content-card.tsx',
@@ -95,6 +98,7 @@ for (const file of requiredFiles) {
 }
 
 const globals = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8');
+const profileWorkbenchCss = fs.readFileSync(path.join(root, 'src/app/profile-workbench.css'), 'utf8');
 const tokens = fs.readFileSync(path.join(root, 'src/design-system/tokens.ts'), 'utf8');
 const components = fs.readFileSync(path.join(root, 'src/design-system/components.tsx'), 'utf8');
 const feedback = fs.readFileSync(path.join(root, 'src/design-system/feedback.tsx'), 'utf8');
@@ -520,6 +524,23 @@ for (const forbiddenFragment of [
   }
 }
 
+if (!globals.includes("@import './profile-workbench.css'")) {
+  throw new Error('globals.css missing profile-workbench.css import');
+}
+
+for (const fragment of [
+  '.profile-workbench',
+  '.profile-workbench-content',
+  '.trainer-product-media-picker',
+  '.trainer-media-picker-card',
+  '.trainer-selected-media-list',
+  'overflow-y: visible !important',
+]) {
+  if (!profileWorkbenchCss.includes(fragment)) {
+    throw new Error(`profile-workbench.css missing fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of [
   'designTokens',
   'color',
@@ -860,7 +881,7 @@ for (const fragment of ['Продукты', 'Готовность к публи�
   }
 }
 
-for (const fragment of ['TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', "/trainer/videos?tab=videos&intent=upload", "intent') === 'attach-video", 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
+for (const fragment of ['loadMediaVideos', 'mediaVideos', 'TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', "/trainer/videos?tab=videos&intent=upload", "intent') === 'attach-video", 'videos={mediaVideos}', 'onRetry={loadMediaVideos}', 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing v160 media picker fragment: ${fragment}`);
   }
@@ -870,10 +891,22 @@ if (trainerProductBuilder.includes('<span>ID видео из библиотек�
   throw new Error('trainer product builder still shows raw video ids as the main materials label');
 }
 
-for (const fragment of ['uploadApi.listMyVideos', 'Библиотека видео', 'Загрузить видео', 'trainer-media-picker-card', 'trainer-media-picker-card-status', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
+if (trainerProductMediaPicker.includes('uploadApi.listMyVideos')) {
+  throw new Error('trainer product media picker still fetches its own video library');
+}
+
+for (const fragment of ['videos:', 'onRetry', 'Библиотека видео', 'Загрузить видео', 'trainer-media-picker-card', 'trainer-media-picker-card-status', 'Видео пока нет', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
   if (!trainerProductMediaPicker.includes(fragment)) {
     throw new Error(`trainer product media picker missing fragment: ${fragment}`);
   }
+}
+
+if (trainerSelectedMediaList.includes('uploadApi.listMyVideos')) {
+  throw new Error('trainer selected media list still fetches its own video library');
+}
+
+if (trainerSelectedMediaList.includes('Видео из библиотеки')) {
+  throw new Error('trainer selected media list still contains technical fallback label');
 }
 
 for (const fragment of ['Выбранные материалы', 'Материалы ещё не выбраны', 'Выбранное видео', 'Видео уже добавлено в продукт', 'Убрать']) {
@@ -991,4 +1024,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v160.2 design system contract ok');
+console.log('v131-v160.3 design system contract ok');

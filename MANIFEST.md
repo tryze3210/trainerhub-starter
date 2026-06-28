@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v160.2
+# MANIFEST — TrainerHub v160.3
 
-This manifest describes the current repository state after v160.2 Product/Video Flow Stabilization Before CRM.
+This manifest describes the current repository state after v160.3 Product Media Picker Cleanup and CSS Layer Stabilization.
 
 ## Current Version
 
-- Current roadmap version: `v160.2`
+- Current roadmap version: `v160.3`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v160.2` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish and product/video flow stabilization
+- Current storefront block: `v151-v160.3` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish and media picker cleanup
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v160.2 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v160.3 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -440,6 +440,8 @@ Premium trainer product builder modules:
 - `frontend/src/modules/trainer-products/components/trainer-product-media-picker.tsx` — v160 product video library picker.
 - `frontend/src/modules/trainer-products/components/trainer-selected-media-list.tsx` — v160 selected product media list.
 - `frontend/src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx` — v160 advanced manual media ID field.
+- `frontend/src/modules/trainer-products/types/product-media.ts` — v160.3 shared product media video helpers.
+- `frontend/src/app/profile-workbench.css` — v160.3 extracted profile/workbench/media picker CSS layer.
 - `frontend/src/modules/upload/components/trainer-upload-panel.tsx` — v158.2 thin trainer upload wrapper.
 - `frontend/src/modules/upload/components/trainer-content-studio.tsx` — v158.2 upload-first video/material studio.
 - `frontend/src/modules/upload/components/trainer-video-upload-card.tsx` — v158.2 premium video upload card.
@@ -458,6 +460,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v160_media_library_picker.md` — v160 media library picker notes.
 - `docs/design-system/v160_1_media_picker_integration.md` — v160.1 media picker integration notes.
 - `docs/design-system/v160_2_product_video_flow_stabilization.md` — v160.2 product/video flow stabilization notes.
+- `docs/design-system/v160_3_product_media_picker_cleanup.md` — v160.3 media picker cleanup notes.
 
 ## Roadmap Status
 
@@ -520,7 +523,8 @@ Premium trainer product builder modules:
 | v159.2 | Remove nested scrollbars and polish profile workbench | Done |
 | v160 | Premium media library picker and product publishing flow | Done |
 | v160.1 | Integrate media picker into product builder | Done |
-| v160.2 | Product/video flow stabilization before CRM | Current |
+| v160.2 | Product/video flow stabilization before CRM | Done |
+| v160.3 | Product media picker cleanup and CSS layer stabilization | Current |
 
 ## Current Frontend Modules
 

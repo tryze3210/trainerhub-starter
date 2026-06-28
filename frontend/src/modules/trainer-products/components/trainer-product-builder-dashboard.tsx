@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   trainerProductsApi,
@@ -10,9 +10,11 @@ import {
   type TrainerProduct,
   type TrainerProductPayload,
 } from '@/modules/trainer-products/api';
+import { uploadApi } from '@/modules/upload/api';
 import { TrainerProductAdvancedIdField } from '@/modules/trainer-products/components/trainer-product-advanced-id-field';
 import { TrainerProductMediaPicker } from '@/modules/trainer-products/components/trainer-product-media-picker';
 import { TrainerSelectedMediaList } from '@/modules/trainer-products/components/trainer-selected-media-list';
+import type { TrainerProductMediaVideo } from '@/modules/trainer-products/types/product-media';
 import {
   TrainerEmptyState,
   TrainerErrorState,
@@ -146,6 +148,9 @@ export function TrainerProductBuilderDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [mediaVideos, setMediaVideos] = useState<TrainerProductMediaVideo[]>([]);
+  const [mediaVideosLoading, setMediaVideosLoading] = useState(false);
+  const [mediaVideosError, setMediaVideosError] = useState<string | null>(null);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedId) || null,
@@ -170,6 +175,24 @@ export function TrainerProductBuilderDashboard() {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadMediaVideos = useCallback(async () => {
+    setMediaVideosLoading(true);
+    setMediaVideosError(null);
+    try {
+      const response = await uploadApi.listMyVideos();
+      const videos = Array.isArray(response) ? response : [];
+      setMediaVideos(videos);
+    } catch {
+      setMediaVideosError('Не удалось загрузить библиотеку видео.');
+    } finally {
+      setMediaVideosLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadMediaVideos();
+  }, [loadMediaVideos]);
 
   useEffect(() => {
     if (!selectedProduct) return;
@@ -381,8 +404,21 @@ export function TrainerProductBuilderDashboard() {
 
           {isAttachVideoIntent ? <div className="trainer-product-materials-hint">Выберите загруженное видео и добавьте его в продукт.</div> : null}
 
-          <TrainerProductMediaPicker selectedVideoIds={selectedVideoIds} onChange={updateSelectedVideoIds} highlighted={isAttachVideoIntent} />
-          <TrainerSelectedMediaList selectedVideoIds={selectedVideoIds} onRemove={(videoId) => updateSelectedVideoIds(selectedVideoIds.filter((id) => id !== videoId))} />
+          <TrainerProductMediaPicker
+            videos={mediaVideos}
+            selectedVideoIds={selectedVideoIds}
+            loading={mediaVideosLoading}
+            error={mediaVideosError}
+            highlighted={isAttachVideoIntent}
+            onChange={updateSelectedVideoIds}
+            onRetry={loadMediaVideos}
+          />
+          <TrainerSelectedMediaList
+            videos={mediaVideos}
+            selectedVideoIds={selectedVideoIds}
+            loading={mediaVideosLoading}
+            onRemove={(videoId) => updateSelectedVideoIds(selectedVideoIds.filter((id) => id !== videoId))}
+          />
           <TrainerProductAdvancedIdField value={videoIdsText} onChange={setVideoIdsText} />
         </section>
 
