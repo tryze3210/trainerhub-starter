@@ -138,6 +138,23 @@ function productMaterialCount(product: TrainerProduct): number {
   return product.items_count ?? product.items?.length ?? 0;
 }
 
+function normalizeMediaVideos(payload: unknown): TrainerProductMediaVideo[] {
+  if (Array.isArray(payload)) {
+    return payload as TrainerProductMediaVideo[];
+  }
+
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'results' in payload &&
+    Array.isArray((payload as { results?: unknown }).results)
+  ) {
+    return (payload as { results: TrainerProductMediaVideo[] }).results;
+  }
+
+  return [];
+}
+
 export function TrainerProductBuilderDashboard() {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<TrainerProduct[]>([]);
@@ -180,9 +197,8 @@ export function TrainerProductBuilderDashboard() {
     setMediaVideosLoading(true);
     setMediaVideosError(null);
     try {
-      const response = await uploadApi.listMyVideos();
-      const videos = Array.isArray(response) ? response : [];
-      setMediaVideos(videos);
+      const payload = await uploadApi.listMyVideos();
+      setMediaVideos(normalizeMediaVideos(payload));
     } catch {
       setMediaVideosError('Не удалось загрузить библиотеку видео.');
     } finally {

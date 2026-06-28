@@ -45,6 +45,7 @@ const requiredFiles = [
   '../docs/design-system/v160_1_media_picker_integration.md',
   '../docs/design-system/v160_2_product_video_flow_stabilization.md',
   '../docs/design-system/v160_3_product_media_picker_cleanup.md',
+  '../docs/design-system/v160_4_product_media_single_source.md',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
   'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx',
@@ -532,6 +533,7 @@ for (const fragment of [
   '.profile-workbench',
   '.profile-workbench-content',
   '.trainer-product-media-picker',
+  '.trainer-product-media-picker-state',
   '.trainer-media-picker-card',
   '.trainer-selected-media-list',
   'overflow-y: visible !important',
@@ -881,7 +883,7 @@ for (const fragment of ['Продукты', 'Готовность к публи�
   }
 }
 
-for (const fragment of ['loadMediaVideos', 'mediaVideos', 'TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', "/trainer/videos?tab=videos&intent=upload", "intent') === 'attach-video", 'videos={mediaVideos}', 'onRetry={loadMediaVideos}', 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
+for (const fragment of ['loadMediaVideos', 'normalizeMediaVideos', 'mediaVideos', 'mediaVideosLoading', 'mediaVideosError', 'TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', "/trainer/videos?tab=videos&intent=upload", "intent') === 'attach-video", 'videos={mediaVideos}', 'onRetry={loadMediaVideos}', 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing v160 media picker fragment: ${fragment}`);
   }
@@ -895,7 +897,13 @@ if (trainerProductMediaPicker.includes('uploadApi.listMyVideos')) {
   throw new Error('trainer product media picker still fetches its own video library');
 }
 
-for (const fragment of ['videos:', 'onRetry', 'Библиотека видео', 'Загрузить видео', 'trainer-media-picker-card', 'trainer-media-picker-card-status', 'Видео пока нет', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
+for (const forbiddenFragment of ['useEffect', 'useState']) {
+  if (trainerProductMediaPicker.includes(forbiddenFragment)) {
+    throw new Error(`trainer product media picker still owns local async state: ${forbiddenFragment}`);
+  }
+}
+
+for (const fragment of ['videos:', 'onRetry', 'Библиотека видео', 'Загрузить видео', 'trainer-product-media-picker-state', 'trainer-media-picker-card', 'trainer-media-picker-card-status', 'Видео пока нет', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
   if (!trainerProductMediaPicker.includes(fragment)) {
     throw new Error(`trainer product media picker missing fragment: ${fragment}`);
   }
@@ -905,11 +913,17 @@ if (trainerSelectedMediaList.includes('uploadApi.listMyVideos')) {
   throw new Error('trainer selected media list still fetches its own video library');
 }
 
+for (const forbiddenFragment of ['useEffect', 'useState']) {
+  if (trainerSelectedMediaList.includes(forbiddenFragment)) {
+    throw new Error(`trainer selected media list still owns local async state: ${forbiddenFragment}`);
+  }
+}
+
 if (trainerSelectedMediaList.includes('Видео из библиотеки')) {
   throw new Error('trainer selected media list still contains technical fallback label');
 }
 
-for (const fragment of ['Выбранные материалы', 'Материалы ещё не выбраны', 'Выбранное видео', 'Видео уже добавлено в продукт', 'Убрать']) {
+for (const fragment of ['videoById', 'Выбранные материалы', 'Материалы ещё не выбраны', 'Выбранное видео', 'Видео уже добавлено в продукт', 'Убрать']) {
   if (!trainerSelectedMediaList.includes(fragment)) {
     throw new Error(`trainer selected media list missing fragment: ${fragment}`);
   }
@@ -1024,4 +1038,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v160.3 design system contract ok');
+console.log('v131-v160.4 design system contract ok');

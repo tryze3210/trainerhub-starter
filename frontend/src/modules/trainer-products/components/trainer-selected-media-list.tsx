@@ -18,10 +18,9 @@ type TrainerSelectedMediaListProps = {
 };
 
 export function TrainerSelectedMediaList({ videos, selectedVideoIds, loading, onRemove }: TrainerSelectedMediaListProps) {
-  const selectedVideos = useMemo(
-    () => selectedVideoIds.map((id) => videos.find((video) => video.id === id)).filter(Boolean) as TrainerProductMediaVideo[],
-    [selectedVideoIds, videos]
-  );
+  const videoById = useMemo(() => {
+    return new Map(videos.map((video) => [video.id, video]));
+  }, [videos]);
 
   return (
     <section className="trainer-selected-media-list">
@@ -49,7 +48,7 @@ export function TrainerSelectedMediaList({ videos, selectedVideoIds, loading, on
       ) : null}
 
       {!loading && selectedVideoIds.map((videoId) => {
-        const video = selectedVideos.find((item) => item.id === videoId);
+        const video = videoById.get(videoId);
         return (
           <div className="trainer-selected-media-row" key={videoId}>
             <div>

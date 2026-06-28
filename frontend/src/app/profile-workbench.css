@@ -115,6 +115,23 @@
   box-shadow: 0 0 0 1px rgba(118, 228, 210, 0.12);
 }
 
+.trainer-product-media-picker-state {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-product-media-picker-state strong,
+.trainer-product-media-picker-state p {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .trainer-media-picker-rail {
   display: flex;
   gap: 14px;

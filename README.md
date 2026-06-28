@@ -1,8 +1,8 @@
-# TrainerHub — current version v160.3
+# TrainerHub — current version v160.4
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v160.3 Product Media Picker Cleanup and CSS Layer Stabilization. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v160.3 premium storefront, customer workspace and trainer workspace block is now implemented.
+This README describes the current roadmap state after v160.4 Product Media Single Source of Truth. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v160.4 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 ## Current Roadmap State
 
@@ -78,7 +78,8 @@ Roadmap status table:
 | v160 | Premium Media Library Picker and Product Publishing Flow | Done |
 | v160.1 | Integrate Media Picker Into Product Builder | Done |
 | v160.2 | Product/Video Flow Stabilization Before CRM | Done |
-| v160.3 | Product Media Picker Cleanup and CSS Layer Stabilization | Current |
+| v160.3 | Product Media Picker Cleanup and CSS Layer Stabilization | Done |
+| v160.4 | Product Media Single Source of Truth | Current |
 
 Completed implementation line:
 
@@ -677,7 +678,7 @@ Updated trainer layer:
 
 ## Premium Trainer Product Builder
 
-v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow. v158.3 replaces narrow column layouts with horizontal product and video workbenches. v159 adds the shared premium profile workbench system and replaces customer/trainer sidebar shells with horizontal navigation. v159.1 repairs the dark profile scene, panel surfaces, horizontal nav surface, rails and dark form controls. v159.2 removes nested vertical scrollbars and polishes profile workbench scrolling. v160 adds the premium media library picker and product publishing flow. v160.1 completes the product builder integration. v160.2 stabilizes the product/video flow before CRM and schedule work. v160.3 centralizes product media loading and starts the profile CSS layer split.
+v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow. v158.3 replaces narrow column layouts with horizontal product and video workbenches. v159 adds the shared premium profile workbench system and replaces customer/trainer sidebar shells with horizontal navigation. v159.1 repairs the dark profile scene, panel surfaces, horizontal nav surface, rails and dark form controls. v159.2 removes nested vertical scrollbars and polishes profile workbench scrolling. v160 adds the premium media library picker and product publishing flow. v160.1 completes the product builder integration. v160.2 stabilizes the product/video flow before CRM and schedule work. v160.3 centralizes product media loading and starts the profile CSS layer split. v160.4 finishes the product media single source of truth so the product builder owns video library loading, retry, loading and error state.
 
 Updated product layer:
 
@@ -701,6 +702,7 @@ Updated product layer:
 - `docs/design-system/v160_1_media_picker_integration.md`
 - `docs/design-system/v160_2_product_video_flow_stabilization.md`
 - `docs/design-system/v160_3_product_media_picker_cleanup.md`
+- `docs/design-system/v160_4_product_media_single_source.md`
 
 ## Demo Data / Seed Scenarios
 
