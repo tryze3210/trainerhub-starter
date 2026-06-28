@@ -35,6 +35,7 @@ const requiredFiles = [
   '../docs/design-system/v158_premium_trainer_product_builder.md',
   '../docs/design-system/v158_1_product_builder_video_studio_repair.md',
   '../docs/design-system/v158_2_product_video_usability_repair.md',
+  '../docs/design-system/v158_3_horizontal_workbench_rescue.md',
   'src/modules/upload/components/trainer-content-studio.tsx',
   'src/modules/upload/components/trainer-video-upload-card.tsx',
   'src/modules/upload/components/trainer-content-card.tsx',
@@ -356,7 +357,6 @@ for (const fragment of [
   '.trainer-product-builder',
   '.trainer-product-builder-hero',
   '.trainer-product-builder-metrics',
-  '.trainer-product-builder-grid',
   '.trainer-product-list',
   '.trainer-product-list-card',
   '.trainer-product-list-card-active',
@@ -385,7 +385,6 @@ for (const fragment of [
   '.trainer-content-studio-tabs',
   '.trainer-content-studio-tab',
   '.trainer-content-studio-tab-active',
-  '.trainer-content-studio-grid',
   '.trainer-content-editor',
   '.trainer-content-list',
   '.trainer-content-card',
@@ -407,6 +406,21 @@ for (const fragment of [
   '.trainer-lesson-card',
   '.trainer-bundle-editor',
   '.trainer-bundle-item-card',
+  '.trainer-workbench',
+  '.trainer-workbench-hero',
+  '.trainer-workbench-metrics',
+  '.trainer-workbench-metric',
+  '.trainer-workbench-rail-section',
+  '.trainer-workbench-rail',
+  '.trainer-workbench-rail-card',
+  '.trainer-workbench-editor-panel',
+  '.trainer-editor-section',
+  '.trainer-editor-field-grid',
+  '.trainer-workbench-support-panels',
+  '.trainer-workbench-panel',
+  '.trainer-workbench-tabs',
+  '.trainer-workbench-tab',
+  '.trainer-video-upload-zone',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -414,6 +428,7 @@ for (const fragment of [
   'overflow-wrap: anywhere',
   'min-width: 0',
   'white-space: normal',
+  'minmax(min(100%, 280px), 1fr)',
   '.skeleton',
   '.focus-ring',
 ]) {
@@ -750,9 +765,21 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-for (const fragment of ['Продукты', 'Готовность к публикации', 'Так продукт будет выглядеть в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео', 'Библиотека видео', 'ID видео из библиотеки']) {
+for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео', 'Библиотека видео', 'ID видео из библиотеки']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-workbench', 'trainer-workbench-rail', 'trainer-workbench-editor-panel', 'trainer-workbench-support-panels']) {
+  if (!trainerProductBuilder.includes(fragment)) {
+    throw new Error(`trainer product builder missing workbench fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-workbench', 'trainer-workbench-rail', 'trainer-workbench-editor-panel', 'trainer-video-upload-zone', 'trainer-workbench-support-panels']) {
+  if (!trainerContentStudio.includes(fragment)) {
+    throw new Error(`trainer content studio missing workbench fragment: ${fragment}`);
   }
 }
 
@@ -775,8 +802,8 @@ for (const fragment of ['TrainerContentCard', 'trainerContentStatusLabel', 'trai
 }
 
 for (const [fileName, source, forbiddenFragments] of [
-  ['trainer-product-builder-dashboard.tsx', trainerProductBuilder, ['Draft, publish and archive', 'Product type', 'Single video', 'Video bundle', 'Access type', 'One-time purchase', 'Subscription access', 'Video ids', 'Save product', 'Create draft', 'Readiness checks']],
-  ['trainer-content-studio.tsx', `${trainerContentStudio}\n${trainerVideoUploadCard}`, ['Video draft editor', 'Program draft editor', 'Lessons editor', 'Bundle draft editor', 'Bundle composition editor', 'video asset', 'metadata draft', 'storefront', 'New draft', 'Edit lesson', '>Published<', '>Under review<', '>Draft<']],
+  ['trainer-product-builder-dashboard.tsx', trainerProductBuilder, ['Draft, publish and archive', 'Product type', 'Single video', 'Video bundle', 'Access type', 'One-time purchase', 'Subscription access', 'Video ids', 'Save product', 'Create draft', 'Readiness checks', 'trainer-product-builder-grid']],
+  ['trainer-content-studio.tsx', `${trainerContentStudio}\n${trainerVideoUploadCard}`, ['Video draft editor', 'Program draft editor', 'Lessons editor', 'Bundle draft editor', 'Bundle composition editor', 'video asset', 'metadata draft', 'storefront', 'New draft', 'Edit lesson', '>Published<', '>Under review<', '>Draft<', 'trainer-content-studio-grid']],
   ['assignments/page.tsx', trainerAssignmentsPage, ['content id', 'lesson id, optional', 'placeholder="score"', 'Сохранить ревью', 'Published']],
 ]) {
   for (const forbiddenFragment of forbiddenFragments) {
@@ -786,4 +813,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v158.2 design system contract ok');
+console.log('v131-v158.3 design system contract ok');

@@ -623,74 +623,103 @@ export function TrainerContentStudio() {
   }
 
   return (
-    <section className="trainer-content-studio">
-      <div className="trainer-content-studio-hero">
-        <div>
-          <span className="trainer-content-kicker">Видео и материалы</span>
-          <h2>Видео, программы и наборы</h2>
+    <section className="trainer-workbench trainer-video-workbench">
+      <header className="trainer-workbench-hero">
+        <div className="trainer-workbench-hero-copy">
+          <p className="premium-eyebrow">ВИДЕО И МАТЕРИАЛЫ</p>
+          <h2>Видео и материалы</h2>
           <p>Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.</p>
         </div>
-        <div className="trainer-content-studio-tabs" role="tablist" aria-label="Разделы материалов">
-          {contentTabs.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={tab === item.id ? 'trainer-content-studio-tab trainer-content-studio-tab-active' : 'trainer-content-studio-tab'}
-              onClick={() => setTab(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="trainer-workbench-hero-actions">
+          <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('videos'); startNew('videos'); }}>Новый видеоурок</button>
+          <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('programs'); startNew('programs'); }}>Новая программа</button>
+          <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('bundles'); startNew('bundles'); }}>Новый набор</button>
         </div>
-      </div>
+      </header>
 
-      <div className="trainer-product-builder-metrics">
+      <nav className="trainer-workbench-tabs" role="tablist" aria-label="Разделы материалов">
+        {contentTabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={tab === item.id ? 'trainer-workbench-tab trainer-workbench-tab-active' : 'trainer-workbench-tab'}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      <section className="trainer-workbench-metrics" aria-label="Метрики материалов">
         {metrics.map((metric) => (
-          <div className="trainer-content-metric" key={metric.label}>
+          <article className="trainer-workbench-metric" key={metric.label}>
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>
             {metric.hint ? <small>{metric.hint}</small> : null}
-          </div>
+          </article>
         ))}
-      </div>
+      </section>
 
       {message ? <div className="trainer-content-state trainer-content-state-success">{message}</div> : null}
       {error ? <div className="trainer-content-state trainer-content-state-error">Не удалось загрузить материалы. Попробуйте обновить страницу или повторить действие позже.</div> : null}
 
-      <div className="trainer-content-studio-grid">
-        <div className="trainer-content-list">
-          {tab === 'videos' && videos.length === 0 ? <div className="trainer-content-card"><h3>Видео пока нет</h3><p>Загрузите первый видеоурок, чтобы использовать его в программах и продуктах.</p></div> : null}
-          {tab === 'programs' && programs.length === 0 ? <div className="trainer-content-card"><h3>Программ пока нет</h3><p>Создайте программу и добавьте уроки из библиотеки видео.</p></div> : null}
-          {tab === 'bundles' && bundles.length === 0 ? <div className="trainer-content-card"><h3>Наборов пока нет</h3><p>Соберите несколько видео или программ в один платный набор.</p></div> : null}
+      {tab === 'videos' ? (
+        <section className="trainer-video-upload-zone">
+          <TrainerVideoUploadCard
+            title={videoForm.title}
+            slug={videoForm.slug}
+            description={videoForm.description}
+            priceAmount={videoForm.price_amount}
+            currency={videoForm.currency}
+            file={file}
+            saving={saving}
+            uploadStep={uploadStep}
+            highlighted={highlightUpload}
+            onSubmit={saveVideo}
+            onTitleChange={(value) => setVideoForm((current) => ({ ...current, title: value, slug: current.slug || makeTrainerContentSlug(value) }))}
+            onSlugChange={(value) => setVideoForm((current) => ({ ...current, slug: makeTrainerContentSlug(value) }))}
+            onDescriptionChange={(value) => setVideoForm((current) => ({ ...current, description: value }))}
+            onPriceChange={(value) => setVideoForm((current) => ({ ...current, price_amount: value }))}
+            onCurrencyChange={(value) => setVideoForm((current) => ({ ...current, currency: value }))}
+            onFileChange={setFile}
+            actions={<button className="trainer-content-button-secondary" type="button" onClick={() => startNew('videos')} disabled={saving || Boolean(actionId)}>Новый видеоурок</button>}
+          />
+        </section>
+      ) : null}
+
+      <section className="trainer-workbench-rail-section">
+        <header className="trainer-workbench-section-header">
+          <h3>{tab === 'videos' ? 'Библиотека видео' : tab === 'programs' ? 'Ваши программы' : 'Ваши наборы'}</h3>
+          <p>Выберите материал для редактирования или создайте новый.</p>
+        </header>
+        <div className="trainer-workbench-rail trainer-content-rail">
+          {tab === 'videos' && videos.length === 0 ? <div className="trainer-workbench-panel"><h3>Видео пока нет</h3><p>Загрузите первый видеоурок, чтобы использовать его в программах и продуктах.</p></div> : null}
+          {tab === 'programs' && programs.length === 0 ? <div className="trainer-workbench-panel"><h3>Программ пока нет</h3><p>Создайте программу и добавьте уроки из библиотеки видео.</p></div> : null}
+          {tab === 'bundles' && bundles.length === 0 ? <div className="trainer-workbench-panel"><h3>Наборов пока нет</h3><p>Соберите несколько видео или программ в один платный набор.</p></div> : null}
           {tab === 'videos' ? videos.map((video) => renderContentCard(video, 'videos')) : null}
           {tab === 'programs' ? programs.map((program) => renderContentCard(program, 'programs')) : null}
           {tab === 'bundles' ? bundles.map((bundle) => renderContentCard(bundle, 'bundles')) : null}
         </div>
+      </section>
 
-        <div className="trainer-content-editor">
-          {tab === 'videos' ? (
-            <TrainerVideoUploadCard
-              title={videoForm.title}
-              slug={videoForm.slug}
-              description={videoForm.description}
-              priceAmount={videoForm.price_amount}
-              currency={videoForm.currency}
-              file={file}
-              saving={saving}
-              uploadStep={uploadStep}
-              highlighted={highlightUpload}
-              onSubmit={saveVideo}
-              onTitleChange={(value) => setVideoForm((current) => ({ ...current, title: value, slug: current.slug || makeTrainerContentSlug(value) }))}
-              onSlugChange={(value) => setVideoForm((current) => ({ ...current, slug: makeTrainerContentSlug(value) }))}
-              onDescriptionChange={(value) => setVideoForm((current) => ({ ...current, description: value }))}
-              onPriceChange={(value) => setVideoForm((current) => ({ ...current, price_amount: value }))}
-              onCurrencyChange={(value) => setVideoForm((current) => ({ ...current, currency: value }))}
-              onFileChange={setFile}
-              actions={<button className="trainer-content-button-secondary" type="button" onClick={() => startNew('videos')} disabled={saving || Boolean(actionId)}>Новый видеоурок</button>}
-            />
-          ) : null}
+      <section className="trainer-workbench-editor-panel trainer-content-editor-panel">
+        {tab === 'videos' ? (
+          <section className="trainer-editor-section">
+            <h3>Публикация и статус</h3>
+            <p>Выбранный видеоурок можно отправить на проверку или опубликовать после заполнения данных.</p>
+            <div className="trainer-content-actions">
+              {selectedVideo ? <StatusBadge status={selectedVideo.status} /> : <span>Выберите видео из ленты или загрузите новый видеоурок.</span>}
+              {selectedVideo ? (
+                <>
+                  <button className="trainer-content-button-secondary" type="button" onClick={() => void submitVideoForReview(selectedVideo.id)} disabled={actionId === selectedVideo.id}>Отправить на проверку</button>
+                  <button className="trainer-content-button" type="button" onClick={() => void publishAndComplete(() => uploadApi.publishVideoDraft(selectedVideo.id), selectedVideo.id, 'videos')} disabled={actionId === selectedVideo.id}>Опубликовать</button>
+                </>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
-          {tab === 'programs' ? (
+        {tab === 'programs' ? (
             <div className="trainer-program-editor">
               <form className="trainer-content-form" onSubmit={saveProgram}>
                 <div className="trainer-content-editor-header">
@@ -738,12 +767,12 @@ export function TrainerContentStudio() {
                 </form>
                 <div className="trainer-lesson-list">
                   {sortedProgramLessons.map((lesson) => (
-                    <button className={selectedLessonId === lesson.id ? 'trainer-lesson-card trainer-content-card-active' : 'trainer-lesson-card'} key={lesson.id} type="button" onClick={() => setSelectedLessonId(lesson.id)}>
+                    <button className={selectedLessonId === lesson.id ? 'trainer-lesson-row trainer-workbench-rail-card-active' : 'trainer-lesson-row'} key={lesson.id} type="button" onClick={() => setSelectedLessonId(lesson.id)}>
                       <strong>{lesson.position}. {lesson.title}</strong>
                       <span>{lesson.is_preview ? 'Открытый урок' : 'Закрытый урок'} · {lessonTargetLabel(lesson.video_asset_id)}</span>
                     </button>
                   ))}
-                  {!sortedProgramLessons.length ? <div className="trainer-lesson-card"><strong>Уроков пока нет</strong><span>Добавьте первый урок программы.</span></div> : null}
+                  {!sortedProgramLessons.length ? <div className="trainer-lesson-row"><strong>Уроков пока нет</strong><span>Добавьте первый урок программы.</span></div> : null}
                 </div>
               </div>
             </div>
@@ -790,26 +819,33 @@ export function TrainerContentStudio() {
 
               <div className="trainer-lesson-list">
                 {sortedBundleItems.map((item) => (
-                  <button className={selectedBundleItemId === item.id ? 'trainer-bundle-item-card trainer-content-card-active' : 'trainer-bundle-item-card'} key={item.id} type="button" onClick={() => setSelectedBundleItemId(item.id)}>
+                  <button className={selectedBundleItemId === item.id ? 'trainer-bundle-row trainer-workbench-rail-card-active' : 'trainer-bundle-row'} key={item.id} type="button" onClick={() => setSelectedBundleItemId(item.id)}>
                     <strong>{bundleTargetLabel(item)}</strong>
                     <span>{item.item_type === 'program' ? 'Программа' : 'Видео'} · позиция {item.position || 0}</span>
                   </button>
                 ))}
-                {!sortedBundleItems.length ? <div className="trainer-bundle-item-card"><strong>Материалов пока нет</strong><span>Добавьте видео или программу в набор.</span></div> : null}
+                {!sortedBundleItems.length ? <div className="trainer-bundle-row"><strong>Материалов пока нет</strong><span>Добавьте видео или программу в набор.</span></div> : null}
               </div>
             </div>
           ) : null}
-        </div>
+      </section>
 
-        <aside className="trainer-content-preview">
+      <section className="trainer-workbench-support-panels">
+        <article className="trainer-workbench-panel trainer-content-preview-panel">
           <h3>Предпросмотр для каталога</h3>
           <StatusBadge status={(tab === 'videos' ? selectedVideo : tab === 'programs' ? selectedProgram : selectedBundle)?.status} />
           <strong>{preview.title}</strong>
           <p>{preview.description}</p>
           <span>{preview.typeLabel} · {preview.price} · {preview.accessLabel}</span>
           {preview.href ? <a className="trainer-content-button-secondary" href={preview.href}>Предпросмотр</a> : <span>Предпросмотр появится после сохранения публичного адреса.</span>}
-        </aside>
-      </div>
+        </article>
+        <article className="trainer-workbench-panel">
+          <h3>Публикация и статус</h3>
+          <p>Статус, цена и публичная ссылка обновляются после сохранения материала.</p>
+          <span>{preview.price}</span>
+          <span>{preview.href || 'Публичная ссылка появится после сохранения публичного адреса.'}</span>
+        </article>
+      </section>
     </section>
   );
 }

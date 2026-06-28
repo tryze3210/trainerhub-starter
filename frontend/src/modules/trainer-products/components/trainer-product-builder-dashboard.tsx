@@ -13,9 +13,7 @@ import {
   TrainerEmptyState,
   TrainerErrorState,
   TrainerLoadingState,
-  TrainerMetricCard,
   TrainerStatusBadge,
-  type TrainerMetric,
 } from '@/modules/trainer-cabinet/components';
 import { formatTrainerMoney, trainerProductTypeLabel, trainerStatusTone } from '@/modules/trainer-cabinet/components/trainer-format';
 
@@ -250,177 +248,181 @@ export function TrainerProductBuilderDashboard() {
   const readiness = selectedProduct?.readiness || null;
 
   return (
-    <div className="trainer-product-builder">
-      <section className="trainer-section-card">
-        <div className="trainer-product-builder-hero">
-          <div>
-            <h2>Продукты</h2>
-            <p>Создавайте платные видео, наборы и программы, настраивайте цену, доступ и публикацию для каталога TrainerHub.</p>
-          </div>
-          <div className="trainer-product-actions">
-            <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
-            <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
-            <Link className="premium-secondary-button" href="/catalog">Открыть каталог</Link>
-          </div>
+    <section className="trainer-workbench trainer-product-workbench">
+      <header className="trainer-workbench-hero">
+        <div className="trainer-workbench-hero-copy">
+          <p className="premium-eyebrow">ПРОДУКТЫ ТРЕНЕРА</p>
+          <h2>Продукты</h2>
+          <p>Создавайте платные видео, наборы и программы, настраивайте цену, доступ и публикацию для каталога TrainerHub.</p>
         </div>
-
-        <div className="trainer-product-builder-metrics">
-          {metrics.map((metric) => {
-            const cardMetric: TrainerMetric = { ...metric, tone: metric.label === 'Опубликовано' || metric.label === 'С подпиской' ? 'success' : metric.label === 'На проверке' ? 'warning' : 'primary' };
-            return <TrainerMetricCard key={metric.label} metric={cardMetric} />;
-          })}
+        <div className="trainer-workbench-hero-actions">
+          <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
+          <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
+          <Link className="premium-secondary-button" href="/catalog">Открыть каталог</Link>
         </div>
+      </header>
 
-        {isLoading ? <TrainerLoadingState title="Загружаем продукты" /> : null}
-        {error ? <TrainerErrorState message={error} onRetry={() => void reload()} /> : null}
-        {message ? <div className="trainer-section-card"><TrainerStatusBadge tone="success">{message}</TrainerStatusBadge></div> : null}
+      <section className="trainer-workbench-metrics" aria-label="Метрики продуктов">
+        {metrics.map((metric) => (
+          <article className="trainer-workbench-metric" key={metric.label}>
+            <span>{metric.label.replace('Всего продуктов', 'Всего')}</span>
+            <strong>{metric.value}</strong>
+          </article>
+        ))}
+      </section>
 
-        <div className="trainer-product-builder-grid">
-          <section className="trainer-product-list" aria-label="Список продуктов">
-            {!isLoading && products.length === 0 ? (
-              <TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." />
-            ) : null}
-            {products.map((product) => (
-              <button
-                className={selectedId === product.id ? 'trainer-product-list-card trainer-product-list-card-active' : 'trainer-product-list-card'}
-                key={product.id}
-                onClick={() => setSelectedId(product.id)}
-                type="button"
-              >
-                <TrainerStatusBadge tone={trainerStatusTone(product.status)}>{productStatusLabel(product.status)}</TrainerStatusBadge>
-                <strong>{product.title}</strong>
-                <span>{trainerProductTypeLabel(product.product_type)} · {formatTrainerMoney(product.price_amount, product.currency)}</span>
-                <small>{accessLabel(product.access_type)} · {productMaterialCount(product)} материалов</small>
-                <small>Готовность: {readinessLabel(product.readiness?.status)}</small>
-              </button>
-            ))}
-          </section>
+      {isLoading ? <TrainerLoadingState title="Загружаем продукты" /> : null}
+      {error ? <TrainerErrorState message={error} onRetry={() => void reload()} /> : null}
+      {message ? <div className="trainer-workbench-panel"><TrainerStatusBadge tone="success">{message}</TrainerStatusBadge></div> : null}
 
-          <section className="trainer-product-editor">
-            <div className="trainer-section-header">
-              <div>
-                <h2>{selectedProduct ? 'Редактирование продукта' : 'Новый продукт'}</h2>
-                <p>Подготовьте описание, цену, формат доступа и материалы перед публикацией.</p>
-              </div>
-            </div>
-
-            <form className="trainer-product-form" onSubmit={submit}>
-              <label className="trainer-product-field">
-                <span>Название</span>
-                <input className="input" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
-              </label>
-              <label className="trainer-product-field">
-                <span>Публичный адрес</span>
-                <input className="input" value={form.slug || ''} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="Например: power-start" />
-                <small>Публичный адрес используется в ссылке на страницу продукта.</small>
-              </label>
-              <label className="trainer-product-field">
-                <span>Описание</span>
-                <textarea className="textarea" value={form.description || ''} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} />
-                <small>Описание видно ученикам в каталоге и на странице покупки.</small>
-              </label>
-
-              <div className="trainer-product-form-grid">
-                <label className="trainer-product-field">
-                  <span>Тип продукта</span>
-                  <select className="select" value={form.product_type} onChange={(event) => setForm((current) => ({ ...current, product_type: event.target.value as 'video' | 'bundle' }))}>
-                    <option value="video">Видео</option>
-                    <option value="bundle">Набор</option>
-                  </select>
-                </label>
-                <label className="trainer-product-field">
-                  <span>Формат доступа</span>
-                  <select className="select" value={form.access_type} onChange={(event) => setForm((current) => ({ ...current, access_type: event.target.value as ProductAccessType }))}>
-                    <option value="one_time">Разовая покупка</option>
-                    <option value="subscription">Подписка</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="trainer-product-form-grid">
-                <label className="trainer-product-field">
-                  <span>Цена</span>
-                  <input className="input" value={form.price_amount || '0.00'} onChange={(event) => setForm((current) => ({ ...current, price_amount: event.target.value }))} inputMode="decimal" />
-                </label>
-                <label className="trainer-product-field">
-                  <span>Валюта</span>
-                  <select className="select" value={form.currency || 'RUB'} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))}>
-                    <option value="RUB">RUB</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="trainer-product-upload-bridge">
-                <strong>Библиотека видео</strong>
-                <p>Перед публикацией продукта добавьте материалы. Видео можно загрузить в разделе “Видео и материалы”.</p>
-                <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
-              </div>
-
-              {!videoIdsText.trim() ? (
-                <div className="trainer-product-material-empty">
-                  <strong>Материалы ещё не добавлены</strong>
-                  <p>Сначала загрузите видео в библиотеку или вставьте ID уже загруженного видео.</p>
-                  <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
-                </div>
-              ) : null}
-
-              <label className="trainer-product-field">
-                <span>Материалы продукта</span>
-                <small>Выберите видео из библиотеки или вставьте ID видео, если оно уже загружено.</small>
-                <div className="trainer-product-advanced-note">
-                  Основной сценарий — загрузить видео в библиотеку, затем добавить его в продукт. Поле ID нужно для быстрого связывания уже загруженных материалов.
-                </div>
-                <span>ID видео из библиотеки</span>
-                <textarea className="textarea" value={videoIdsText} onChange={(event) => setVideoIdsText(event.target.value)} placeholder="ID видео из библиотеки" rows={5} />
-                <small>Используйте это поле, если видео уже загружено и вы знаете его ID.</small>
-              </label>
-
-              <div className="trainer-product-actions">
-                  <button className="premium-primary-button" disabled={isSaving} type="submit">
-                  {selectedProduct ? 'Сохранить черновик' : 'Создать черновик'}
-                </button>
-                {selectedProduct ? (
-                  <>
-                    <button className="premium-secondary-button" disabled={isSaving} onClick={() => void runAction('publish')} type="button">Опубликовать</button>
-                    <button className="premium-secondary-button" disabled={isSaving} onClick={() => void runAction('archive')} type="button">Отправить в архив</button>
-                    <button className="trainer-product-danger-action" disabled={isSaving || selectedProduct.status === 'published'} onClick={() => void runAction('delete')} type="button">Удалить</button>
-                  </>
-                ) : null}
-              </div>
-            </form>
-          </section>
-
-          <aside className="trainer-product-preview">
-            <h3>Так продукт будет выглядеть в каталоге</h3>
-            <TrainerStatusBadge>{preview.typeLabel}</TrainerStatusBadge>
-            <strong>{preview.title}</strong>
-            <p>{preview.description}</p>
-            <span>{preview.price} · {preview.accessLabel}</span>
-            {preview.href ? (
-              <Link className="premium-secondary-button" href={preview.href}>Предпросмотр</Link>
-            ) : (
-              <span className="muted">Предпросмотр появится после сохранения публичного адреса.</span>
-            )}
-          </aside>
-
-          <aside className="trainer-product-readiness">
-            <h3>Готовность к публикации</h3>
-            <p>Перед публикацией TrainerHub проверяет, что у продукта есть название, цена, описание, материалы и корректные настройки доступа.</p>
-            <div className="trainer-product-readiness-list">
-              {(readiness?.checks || []).map((check) => (
-                <div className="trainer-product-readiness-item" key={check.code}>
-                  <TrainerStatusBadge tone={trainerStatusTone(check.status)}>{readinessLabel(check.status)}</TrainerStatusBadge>
-                  <strong>{checkTitle(check)}</strong>
-                  <span>{checkMessage(check)}</span>
-                </div>
-              ))}
-              {!readiness ? <TrainerEmptyState title="Проверка появится после сохранения" description="Сохраните черновик, чтобы увидеть готовность к публикации." /> : null}
-            </div>
-          </aside>
+      <section className="trainer-workbench-rail-section">
+        <header className="trainer-workbench-section-header">
+          <h3>Ваши продукты</h3>
+          <p>Выберите продукт для редактирования или создайте новый.</p>
+        </header>
+        <div className="trainer-workbench-rail trainer-product-rail" aria-label="Список продуктов">
+          {!isLoading && products.length === 0 ? (
+            <div className="trainer-workbench-panel"><TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." /></div>
+          ) : null}
+          {products.map((product) => (
+            <button
+              className={selectedId === product.id ? 'trainer-workbench-rail-card trainer-product-rail-card trainer-product-rail-card-active trainer-workbench-rail-card-active' : 'trainer-workbench-rail-card trainer-product-rail-card'}
+              key={product.id}
+              onClick={() => setSelectedId(product.id)}
+              type="button"
+            >
+              <TrainerStatusBadge tone={trainerStatusTone(product.status)}>{productStatusLabel(product.status)}</TrainerStatusBadge>
+              <strong>{product.title}</strong>
+              <span>{trainerProductTypeLabel(product.product_type)}</span>
+              <span>{formatTrainerMoney(product.price_amount, product.currency)}</span>
+              <small>{productMaterialCount(product)} материалов</small>
+            </button>
+          ))}
         </div>
       </section>
-    </div>
+
+      <form className="trainer-workbench-editor-panel trainer-product-editor-panel" onSubmit={submit}>
+        <header className="trainer-workbench-section-header">
+          <h3>{selectedProduct ? 'Редактирование продукта' : 'Новый продукт'}</h3>
+          <p>Подготовьте описание, цену, формат доступа и материалы перед публикацией.</p>
+        </header>
+
+        <section className="trainer-editor-section">
+          <h3>Основное</h3>
+          <div className="trainer-editor-field-grid">
+            <label className="trainer-editor-field">
+              <span>Название</span>
+              <input className="trainer-content-input" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
+            </label>
+            <label className="trainer-editor-field">
+              <span>Публичный адрес</span>
+              <input className="trainer-content-input" value={form.slug || ''} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="Например: power-start" />
+              <small>Публичный адрес используется в ссылке на страницу продукта.</small>
+            </label>
+          </div>
+          <label className="trainer-editor-field">
+            <span>Описание</span>
+            <textarea className="trainer-content-textarea" value={form.description || ''} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} />
+            <small>Описание видно ученикам в каталоге и на странице покупки.</small>
+          </label>
+        </section>
+
+        <section className="trainer-editor-section">
+          <h3>Цена и доступ</h3>
+          <div className="trainer-editor-field-grid">
+            <label className="trainer-editor-field">
+              <span>Тип продукта</span>
+              <select className="trainer-content-select" value={form.product_type} onChange={(event) => setForm((current) => ({ ...current, product_type: event.target.value as 'video' | 'bundle' }))}>
+                <option value="video">Видео</option>
+                <option value="bundle">Набор</option>
+              </select>
+            </label>
+            <label className="trainer-editor-field">
+              <span>Формат доступа</span>
+              <select className="trainer-content-select" value={form.access_type} onChange={(event) => setForm((current) => ({ ...current, access_type: event.target.value as ProductAccessType }))}>
+                <option value="one_time">Разовая покупка</option>
+                <option value="subscription">Подписка</option>
+              </select>
+            </label>
+            <label className="trainer-editor-field">
+              <span>Цена</span>
+              <input className="trainer-content-input" value={form.price_amount || '0.00'} onChange={(event) => setForm((current) => ({ ...current, price_amount: event.target.value }))} inputMode="decimal" />
+            </label>
+            <label className="trainer-editor-field">
+              <span>Валюта</span>
+              <select className="trainer-content-select" value={form.currency || 'RUB'} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))}>
+                <option value="RUB">RUB</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="trainer-editor-section">
+          <h3>Материалы продукта</h3>
+          <div className="trainer-product-upload-bridge">
+            <strong>Библиотека видео</strong>
+            <p>Основной сценарий — загрузить видео в библиотеку, затем добавить его в продукт. Поле ниже нужно для быстрого связывания уже загруженных материалов.</p>
+            <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
+          </div>
+          {!videoIdsText.trim() ? (
+            <div className="trainer-product-material-empty">
+              <strong>Материалы ещё не добавлены</strong>
+              <p>Сначала загрузите видео в библиотеку или вставьте ID уже загруженного видео.</p>
+            </div>
+          ) : null}
+          <label className="trainer-editor-field">
+            <span>ID видео из библиотеки</span>
+            <textarea className="trainer-content-textarea" value={videoIdsText} onChange={(event) => setVideoIdsText(event.target.value)} placeholder="ID видео из библиотеки" rows={6} />
+            <small>Вставляйте по одному ID на строку. Позже это поле можно заменить выбором из библиотеки.</small>
+          </label>
+        </section>
+
+        <section className="trainer-editor-section">
+          <h3>Публикация</h3>
+          <div className="trainer-workbench-actions trainer-product-actions">
+            <button className="premium-primary-button" disabled={isSaving} type="submit">{selectedProduct ? 'Сохранить черновик' : 'Создать черновик'}</button>
+            {selectedProduct ? (
+              <>
+                <button className="premium-secondary-button" disabled={isSaving} onClick={() => void runAction('publish')} type="button">Опубликовать</button>
+                <button className="premium-secondary-button" disabled={isSaving} onClick={() => void runAction('archive')} type="button">Отправить в архив</button>
+                <button className="trainer-product-danger-action" disabled={isSaving || selectedProduct.status === 'published'} onClick={() => void runAction('delete')} type="button">Удалить</button>
+              </>
+            ) : null}
+          </div>
+        </section>
+      </form>
+
+      <section className="trainer-workbench-support-panels">
+        <article className="trainer-workbench-panel">
+          <h3>Предпросмотр в каталоге</h3>
+          <TrainerStatusBadge>{preview.typeLabel}</TrainerStatusBadge>
+          <strong>{preview.title}</strong>
+          <p>{preview.description}</p>
+          <span>{preview.price} · {preview.accessLabel}</span>
+          {preview.href ? (
+            <Link className="premium-secondary-button" href={preview.href}>Предпросмотр</Link>
+          ) : (
+            <span>Предпросмотр появится после сохранения публичного адреса.</span>
+          )}
+        </article>
+
+        <article className="trainer-workbench-panel">
+          <h3>Готовность к публикации</h3>
+          <p>Перед публикацией TrainerHub проверяет, что у продукта есть название, цена, описание, материалы и корректные настройки доступа.</p>
+          <div className="trainer-product-readiness-list">
+            {(readiness?.checks || []).map((check) => (
+              <div className="trainer-product-readiness-item" key={check.code}>
+                <TrainerStatusBadge tone={trainerStatusTone(check.status)}>{readinessLabel(check.status)}</TrainerStatusBadge>
+                <strong>{checkTitle(check)}</strong>
+                <span>{checkMessage(check)}</span>
+              </div>
+            ))}
+            {!readiness ? <TrainerEmptyState title="Проверка появится после сохранения" description="Сохраните черновик, чтобы увидеть готовность к публикации." /> : null}
+          </div>
+        </article>
+      </section>
+    </section>
   );
 }

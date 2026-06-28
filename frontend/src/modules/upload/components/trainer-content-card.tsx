@@ -22,7 +22,7 @@ export function TrainerContentCard({
   actions,
 }: TrainerContentCardProps) {
   return (
-    <article className={active ? 'trainer-content-card trainer-content-card-active' : 'trainer-content-card'}>
+    <article className={active ? 'trainer-workbench-rail-card trainer-content-rail-card trainer-content-rail-card-active trainer-workbench-rail-card-active' : 'trainer-workbench-rail-card trainer-content-rail-card'}>
       <div className="trainer-content-card-meta">
         {status}
         <span>{price}</span>
