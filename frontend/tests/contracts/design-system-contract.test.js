@@ -42,6 +42,7 @@ const requiredFiles = [
   '../docs/design-system/v159_2_nested_scrollbar_repair.md',
   '../docs/design-system/v160_media_library_picker.md',
   '../docs/design-system/v160_1_media_picker_integration.md',
+  '../docs/design-system/v160_2_product_video_flow_stabilization.md',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
   'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx',
@@ -425,6 +426,12 @@ for (const fragment of [
   '.trainer-product-materials-panel-highlighted',
   '.trainer-editor-section-header',
   '.trainer-product-materials-hint',
+  'v160.2 — Product media picker visual contract',
+  '.trainer-product-upload-bridge',
+  '.trainer-product-workbench',
+  '.trainer-video-workbench',
+  '.trainer-workbench-local-header',
+  'overflow-y: visible !important',
   '.trainer-content-textarea',
   '.trainer-content-select',
   '.trainer-content-button',
@@ -851,7 +858,7 @@ for (const fragment of ['Продукты', 'Готовность к публи�
   }
 }
 
-for (const fragment of ['TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
+for (const fragment of ['TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'useSearchParams', "/trainer/videos?tab=videos&intent=upload", "intent') === 'attach-video", 'Выберите загруженное видео', 'trainer-product-materials-panel-highlighted', 'trainer-product-materials-hint']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing v160 media picker fragment: ${fragment}`);
   }
@@ -882,6 +889,12 @@ for (const fragment of ['Расширенная настройка', 'Показ
 for (const forbiddenFragment of ['description', 'Публичный адрес:']) {
   if (trainerContentCard.includes(forbiddenFragment)) {
     throw new Error(`trainer content card still contains overloaded rail fragment: ${forbiddenFragment}`);
+  }
+}
+
+for (const fragment of ['/trainer/dashboard/products?intent=attach-video', 'Перейти к продуктам', 'Видеоурок сохранён. Теперь его можно добавить в продукт.']) {
+  if (!trainerContentStudio.includes(fragment)) {
+    throw new Error(`trainer content studio missing product return path fragment: ${fragment}`);
   }
 }
 
@@ -976,4 +989,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v160.1 design system contract ok');
+console.log('v131-v160.2 design system contract ok');
