@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CustomerCabinetNav } from '@/modules/customer-cabinet/components/customer-cabinet-nav';
+import { ProfileWorkbench, ProfileWorkbenchHero } from '@/design-system/profile-workbench';
 
 type CustomerCabinetShellProps = {
   title: string;
@@ -10,29 +11,20 @@ type CustomerCabinetShellProps = {
 
 export function CustomerCabinetShell({ title, description, children, actions }: CustomerCabinetShellProps) {
   return (
-    <section className="customer-cabinet-shell">
-      <div className="customer-cabinet-topbar">
-        <div>
-          <span className="premium-eyebrow">Личный кабинет</span>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div>
-        <div className="customer-page-actions">
+    <ProfileWorkbench tone="customer">
+      <ProfileWorkbenchHero
+        eyebrow="Личный кабинет"
+        title={title}
+        description={description}
+        actions={
+          <>
           {actions}
           <Link href="/catalog" className="premium-secondary-button">Каталог</Link>
-        </div>
-      </div>
-
-      <div className="customer-cabinet-layout">
-        <aside className="customer-cabinet-sidebar">
-          <div className="customer-cabinet-sidebar-card">
-            <strong>TrainerHub</strong>
-            <span>Программы, доступы и покупки в одном пространстве.</span>
-          </div>
-          <CustomerCabinetNav />
-        </aside>
-        <div className="customer-cabinet-content">{children}</div>
-      </div>
-    </section>
+          </>
+        }
+      />
+      <CustomerCabinetNav variant="horizontal" />
+      <div className="profile-workbench-content customer-cabinet-content">{children}</div>
+    </ProfileWorkbench>
   );
 }

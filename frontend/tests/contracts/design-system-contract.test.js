@@ -14,6 +14,7 @@ const requiredFiles = [
   'src/design-system/animated.tsx',
   'src/design-system/use-count-up.ts',
   'src/design-system/index.ts',
+  'src/design-system/profile-workbench.tsx',
   '../docs/design-system/v131_ui_design_system.md',
   '../docs/design-system/v132_layout_system.md',
   '../docs/design-system/v133_component_library.md',
@@ -36,6 +37,7 @@ const requiredFiles = [
   '../docs/design-system/v158_1_product_builder_video_studio_repair.md',
   '../docs/design-system/v158_2_product_video_usability_repair.md',
   '../docs/design-system/v158_3_horizontal_workbench_rescue.md',
+  '../docs/design-system/v159_premium_profile_workbench.md',
   'src/modules/upload/components/trainer-content-studio.tsx',
   'src/modules/upload/components/trainer-video-upload-card.tsx',
   'src/modules/upload/components/trainer-content-card.tsx',
@@ -431,6 +433,19 @@ for (const fragment of [
   'minmax(min(100%, 280px), 1fr)',
   '.skeleton',
   '.focus-ring',
+  '.profile-workbench',
+  '.profile-workbench-nav',
+  '.profile-workbench-rail',
+  '.profile-workbench-editor-panel',
+  '.profile-workbench-support-panels',
+  '.profile-workbench-panel',
+  '.profile-editor-field-grid',
+  '.customer-workbench',
+  '.customer-workbench-hero',
+  '.customer-workbench-nav',
+  '.customer-workbench-rail',
+  '.customer-workbench-editor-panel',
+  '.trainer-workbench-nav',
 ]) {
   if (!globals.includes(fragment)) {
     throw new Error(`globals.css missing design token/class: ${fragment}`);
@@ -564,6 +579,8 @@ const checkoutPage = fs.readFileSync(path.join(root, 'src/modules/checkout/compo
 const checkoutSuccess = fs.readFileSync(path.join(root, 'src/app/checkout/success/page.tsx'), 'utf8');
 const checkoutCancel = fs.readFileSync(path.join(root, 'src/app/checkout/cancel/page.tsx'), 'utf8');
 const customerCabinet = fs.readFileSync(path.join(root, 'src/app/cabinet/page.tsx'), 'utf8');
+const customerCabinetShell = fs.readFileSync(path.join(root, 'src/modules/customer-cabinet/components/customer-cabinet-shell.tsx'), 'utf8');
+const customerCabinetNav = fs.readFileSync(path.join(root, 'src/modules/customer-cabinet/components/customer-cabinet-nav.tsx'), 'utf8');
 const customerHub = fs.readFileSync(path.join(root, 'src/app/customer/hub/page.tsx'), 'utf8');
 const learningPage = fs.readFileSync(path.join(root, 'src/app/learning/page.tsx'), 'utf8');
 const messagesPage = fs.readFileSync(path.join(root, 'src/app/messages/page.tsx'), 'utf8');
@@ -573,6 +590,7 @@ const entitlementsPage = fs.readFileSync(path.join(root, 'src/app/entitlements/p
 const trainerShell = fs.readFileSync(path.join(root, 'src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx'), 'utf8');
 const trainerCabinetShell = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx'), 'utf8');
 const trainerCabinetNav = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-nav.tsx'), 'utf8');
+const profileWorkbench = fs.readFileSync(path.join(root, 'src/design-system/profile-workbench.tsx'), 'utf8');
 const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
 const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/business/page.tsx'), 'utf8');
@@ -697,13 +715,13 @@ for (const fragment of ['Личный кабинет', 'Ваши програм�
   }
 }
 
-for (const fragment of ['Моё обучение', 'customer-learning-grid', 'Продолжить', 'Открыть урок', 'Завершить урок']) {
+for (const fragment of ['Моё обучение', 'profile-workbench-support-panels', 'Продолжить', 'Открыть урок', 'Завершить урок']) {
   if (!learningPage.includes(fragment)) {
     throw new Error(`learning/page.tsx missing premium learning fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['Сообщения', 'customer-message-layout', 'Новый диалог', 'Получатель', 'Первое сообщение']) {
+for (const fragment of ['Сообщения', 'profile-workbench-rail-section', 'Новый диалог', 'Получатель', 'Первое сообщение']) {
   if (!messagesPage.includes(fragment)) {
     throw new Error(`messages/page.tsx missing premium inbox fragment: ${fragment}`);
   }
@@ -771,13 +789,13 @@ for (const fragment of ['Продукты', 'Готовность к публи�
   }
 }
 
-for (const fragment of ['trainer-workbench', 'trainer-workbench-rail', 'trainer-workbench-editor-panel', 'trainer-workbench-support-panels']) {
+for (const fragment of ['profile-workbench', 'profile-workbench-rail', 'profile-workbench-editor-panel', 'profile-workbench-support-panels']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing workbench fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['trainer-workbench', 'trainer-workbench-rail', 'trainer-workbench-editor-panel', 'trainer-video-upload-zone', 'trainer-workbench-support-panels']) {
+for (const fragment of ['profile-workbench', 'profile-workbench-rail', 'profile-workbench-editor-panel', 'trainer-video-upload-zone', 'profile-workbench-support-panels']) {
   if (!trainerContentStudio.includes(fragment)) {
     throw new Error(`trainer content studio missing workbench fragment: ${fragment}`);
   }
@@ -801,7 +819,32 @@ for (const fragment of ['TrainerContentCard', 'trainerContentStatusLabel', 'trai
   }
 }
 
+for (const fragment of ['ProfileWorkbench', 'ProfileWorkbenchHero', 'ProfileWorkbenchNav', 'ProfileWorkbenchMetrics', 'ProfileWorkbenchRail', 'ProfileWorkbenchEditorPanel', 'ProfileWorkbenchSupportPanels']) {
+  if (!profileWorkbench.includes(fragment)) {
+    throw new Error(`profile-workbench.tsx missing export fragment: ${fragment}`);
+  }
+}
+
+for (const [fileName, source, requiredFragments] of [
+  ['customer-cabinet-shell.tsx', customerCabinetShell, ['profile-workbench', 'ProfileWorkbenchHero', 'CustomerCabinetNav variant="horizontal"']],
+  ['trainer-cabinet-shell.tsx', trainerCabinetShell, ['profile-workbench', 'ProfileWorkbenchHero', 'TrainerCabinetNav variant="horizontal"']],
+  ['customer-cabinet-nav.tsx', customerCabinetNav, ['profile-workbench-nav', 'profile-workbench-nav-link']],
+  ['trainer-cabinet-nav.tsx', trainerCabinetNav, ['profile-workbench-nav', 'profile-workbench-nav-link']],
+  ['trainer-content-studio.tsx', trainerContentStudio, ['profile-workbench', 'profile-workbench-rail', 'profile-workbench-editor-panel']],
+  ['trainer-product-builder-dashboard.tsx', trainerProductBuilder, ['profile-workbench', 'profile-workbench-rail', 'profile-workbench-editor-panel']],
+]) {
+  for (const fragment of requiredFragments) {
+    if (!source.includes(fragment)) {
+      throw new Error(`${fileName} missing v159 profile workbench fragment: ${fragment}`);
+    }
+  }
+}
+
 for (const [fileName, source, forbiddenFragments] of [
+  ['customer-cabinet-shell.tsx', customerCabinetShell, ['customer-cabinet-sidebar']],
+  ['trainer-cabinet-shell.tsx', trainerCabinetShell, ['trainer-cabinet-sidebar']],
+  ['learning/page.tsx', learningPage, ['customer-learning-grid']],
+  ['messages/page.tsx', messagesPage, ['customer-message-layout']],
   ['trainer-product-builder-dashboard.tsx', trainerProductBuilder, ['Draft, publish and archive', 'Product type', 'Single video', 'Video bundle', 'Access type', 'One-time purchase', 'Subscription access', 'Video ids', 'Save product', 'Create draft', 'Readiness checks', 'trainer-product-builder-grid']],
   ['trainer-content-studio.tsx', `${trainerContentStudio}\n${trainerVideoUploadCard}`, ['Video draft editor', 'Program draft editor', 'Lessons editor', 'Bundle draft editor', 'Bundle composition editor', 'video asset', 'metadata draft', 'storefront', 'New draft', 'Edit lesson', '>Published<', '>Under review<', '>Draft<', 'trainer-content-studio-grid']],
   ['assignments/page.tsx', trainerAssignmentsPage, ['content id', 'lesson id, optional', 'placeholder="score"', 'Сохранить ревью', 'Published']],
@@ -813,4 +856,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v158.3 design system contract ok');
+console.log('v131-v159 design system contract ok');

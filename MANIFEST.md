@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v158.3
+# MANIFEST — TrainerHub v159
 
-This manifest describes the current repository state after v158.3 Horizontal Workbench Rescue.
+This manifest describes the current repository state after v159 Premium Profile Workbench System.
 
 ## Current Version
 
-- Current roadmap version: `v158.3`
+- Current roadmap version: `v159`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v158.3` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair and horizontal workbench rescue
+- Current storefront block: `v151-v159` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair and premium profile workbench system
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v158.3 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v159 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -433,6 +433,9 @@ Premium trainer cabinet modules:
 
 Premium trainer product builder modules:
 
+- `frontend/src/design-system/profile-workbench.tsx` — v159 shared premium profile workbench layer.
+- `frontend/src/modules/customer-cabinet/components/customer-cabinet-shell.tsx` — v159 horizontal customer profile shell.
+- `frontend/src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx` — v159 horizontal trainer profile shell.
 - `frontend/src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx` — v158 premium product builder.
 - `frontend/src/modules/upload/components/trainer-upload-panel.tsx` — v158.2 thin trainer upload wrapper.
 - `frontend/src/modules/upload/components/trainer-content-studio.tsx` — v158.2 upload-first video/material studio.
@@ -446,6 +449,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v158_1_product_builder_video_studio_repair.md` — v158.1 product builder and video studio repair notes.
 - `docs/design-system/v158_2_product_video_usability_repair.md` — v158.2 product/video studio usability notes.
 - `docs/design-system/v158_3_horizontal_workbench_rescue.md` — v158.3 horizontal workbench rescue notes.
+- `docs/design-system/v159_premium_profile_workbench.md` — v159 profile workbench notes.
 
 ## Roadmap Status
 
@@ -502,7 +506,8 @@ Premium trainer product builder modules:
 | v158 | Premium trainer product builder | Done |
 | v158.1 | Final product builder and video studio repair | Done |
 | v158.2 | Product/video studio usability repair | Done |
-| v158.3 | Horizontal workbench rescue | Current |
+| v158.3 | Horizontal workbench rescue | Done |
+| v159 | Premium profile workbench system | Current |
 
 ## Current Frontend Modules
 

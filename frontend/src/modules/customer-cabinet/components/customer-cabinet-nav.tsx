@@ -25,16 +25,19 @@ function isActive(pathname: string | null, href: string, label: string) {
   return pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 }
 
-export function CustomerCabinetNav() {
+type NavVariant = 'sidebar' | 'horizontal';
+
+export function CustomerCabinetNav({ variant = 'horizontal' }: { variant?: NavVariant }) {
   const pathname = usePathname();
+  const navClass = variant === 'sidebar' ? 'customer-cabinet-nav' : 'profile-workbench-nav customer-cabinet-nav-horizontal';
 
   return (
-    <nav className="customer-cabinet-nav" aria-label="Разделы личного кабинета">
+    <nav className={navClass} aria-label="Разделы личного кабинета">
       {navItems.map((item) => (
         <Link
           key={`${item.href}-${item.label}`}
           href={item.href}
-          className={isActive(pathname, item.href, item.label) ? 'customer-cabinet-nav-link customer-cabinet-nav-link-active' : 'customer-cabinet-nav-link'}
+          className={isActive(pathname, item.href, item.label) ? 'profile-workbench-nav-link profile-workbench-nav-link-active customer-cabinet-nav-link customer-cabinet-nav-link-active' : 'profile-workbench-nav-link customer-cabinet-nav-link'}
           aria-current={isActive(pathname, item.href, item.label) ? 'page' : undefined}
         >
           <strong>{item.label}</strong>

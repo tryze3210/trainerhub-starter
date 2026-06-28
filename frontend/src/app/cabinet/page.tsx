@@ -162,7 +162,7 @@ export default function CabinetPage() {
 
         {isTrainer ? (
           <CustomerDashboardCard title="Кабинет тренера">
-            <div className="customer-dashboard-grid">
+            <div className="profile-workbench-support-panels">
               <div>
                 <p>Вы вошли как тренер. Управление продуктами, учениками и продажами находится в кабинете тренера.</p>
                 <Link href="/trainer/dashboard" className="premium-primary-button">Открыть кабинет тренера</Link>
@@ -182,7 +182,7 @@ export default function CabinetPage() {
 
         <DashboardMetrics snapshot={snapshot} />
 
-        <div className="customer-dashboard-grid">
+        <div className="profile-workbench-support-panels">
           <CustomerDashboardCard title="Продолжить обучение" action={<Link href="/learning" className="premium-secondary-button">Перейти</Link>}>
             {activeAccesses[0] ? (
               <div className="customer-access-card">

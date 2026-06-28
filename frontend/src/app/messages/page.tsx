@@ -135,11 +135,11 @@ export default function MessagesPage() {
           </div>
         </section>
 
-        <div className="customer-message-layout">
-          <section className="customer-conversation-list">
+        <div className="profile-workbench-rail-section">
+          <section className="profile-workbench-rail">
             {(inbox?.results || []).map((conversation) => (
               <button
-                className={activeConversationId === conversation.id ? 'customer-conversation-card customer-conversation-card-active' : 'customer-conversation-card'}
+                className={activeConversationId === conversation.id ? 'profile-workbench-rail-card profile-workbench-rail-card customer-conversation-card profile-workbench-rail-card customer-conversation-card-active profile-workbench-rail-card-active' : 'profile-workbench-rail-card customer-conversation-card'}
                 key={conversation.id}
                 type="button"
                 onClick={() => setActiveConversationId(conversation.id)}

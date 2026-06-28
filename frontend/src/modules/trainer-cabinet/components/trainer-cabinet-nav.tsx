@@ -26,14 +26,17 @@ const navItems: TrainerNavItem[] = [
   { href: '/trainer/application-status', label: 'Статус', description: 'Проверка' },
 ];
 
-export function TrainerCabinetNav() {
+type NavVariant = 'sidebar' | 'horizontal';
+
+export function TrainerCabinetNav({ variant = 'horizontal' }: { variant?: NavVariant }) {
   const pathname = usePathname();
+  const navClass = variant === 'sidebar' ? 'trainer-cabinet-nav' : 'profile-workbench-nav trainer-cabinet-nav-horizontal';
   return (
-    <nav className="trainer-cabinet-nav" aria-label="Разделы кабинета тренера">
+    <nav className={navClass} aria-label="Разделы кабинета тренера">
       {navItems.map((item) => {
         const active = pathname === item.href || Boolean(pathname?.startsWith(`${item.href}/`));
         return (
-          <Link key={item.href} href={item.href} className={active ? 'trainer-cabinet-nav-link trainer-cabinet-nav-link-active' : 'trainer-cabinet-nav-link'} aria-current={active ? 'page' : undefined}>
+          <Link key={item.href} href={item.href} className={active ? 'profile-workbench-nav-link profile-workbench-nav-link-active trainer-cabinet-nav-link trainer-cabinet-nav-link-active' : 'profile-workbench-nav-link trainer-cabinet-nav-link'} aria-current={active ? 'page' : undefined}>
             <strong>{item.label}</strong>
             {item.description ? <span>{item.description}</span> : null}
           </Link>

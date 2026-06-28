@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { TrainerCabinetNav } from './trainer-cabinet-nav';
-import { TrainerPageHero } from './trainer-page-hero';
+import { ProfileWorkbench, ProfileWorkbenchHero } from '@/design-system/profile-workbench';
 
 export function TrainerCabinetShell({
   title,
@@ -14,21 +14,20 @@ export function TrainerCabinetShell({
   actions?: React.ReactNode;
 }) {
   return (
-    <section className="trainer-cabinet-shell">
-      <div className="trainer-cabinet-topbar">
-        <TrainerPageHero title={title} description={description} actions={actions} />
-      </div>
-      <div className="trainer-cabinet-layout">
-        <aside className="trainer-cabinet-sidebar">
-          <div className="trainer-cabinet-sidebar-card">
-            <strong>Кабинет тренера</strong>
-            <span>Продукты, ученики, продажи, расписание и выплаты собраны в одном рабочем пространстве.</span>
+    <ProfileWorkbench tone="trainer">
+      <ProfileWorkbenchHero
+        eyebrow="Кабинет тренера"
+        title={title}
+        description={description}
+        actions={
+          <>
+            {actions}
             <Link href="/catalog" className="premium-secondary-button">Открыть каталог</Link>
-          </div>
-          <TrainerCabinetNav />
-        </aside>
-        <div className="trainer-cabinet-content">{children}</div>
-      </div>
-    </section>
+          </>
+        }
+      />
+      <TrainerCabinetNav variant="horizontal" />
+      <div className="profile-workbench-content trainer-cabinet-content">{children}</div>
+    </ProfileWorkbench>
   );
 }

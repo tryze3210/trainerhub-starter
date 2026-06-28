@@ -130,7 +130,7 @@ export default function StudentLearningPage() {
 
           {lessonMessage ? <CustomerErrorState message={lessonMessage} /> : null}
 
-          <div className="customer-learning-grid">
+          <div className="profile-workbench-support-panels">
             <section className="customer-learning-list">
               <div className="customer-section-header"><h2>Программы и курсы</h2></div>
               {payload?.items.map((item) => (

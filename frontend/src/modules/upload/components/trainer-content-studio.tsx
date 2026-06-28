@@ -623,26 +623,26 @@ export function TrainerContentStudio() {
   }
 
   return (
-    <section className="trainer-workbench trainer-video-workbench">
-      <header className="trainer-workbench-hero">
-        <div className="trainer-workbench-hero-copy">
+    <section className="profile-workbench trainer-video-workbench">
+      <header className="profile-workbench-hero">
+        <div className="profile-workbench-hero-copy">
           <p className="premium-eyebrow">ВИДЕО И МАТЕРИАЛЫ</p>
           <h2>Видео и материалы</h2>
           <p>Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.</p>
         </div>
-        <div className="trainer-workbench-hero-actions">
+        <div className="profile-workbench-hero-actions">
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('videos'); startNew('videos'); }}>Новый видеоурок</button>
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('programs'); startNew('programs'); }}>Новая программа</button>
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('bundles'); startNew('bundles'); }}>Новый набор</button>
         </div>
       </header>
 
-      <nav className="trainer-workbench-tabs" role="tablist" aria-label="Разделы материалов">
+      <nav className="profile-workbench-nav" role="tablist" aria-label="Разделы материалов">
         {contentTabs.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={tab === item.id ? 'trainer-workbench-tab trainer-workbench-tab-active' : 'trainer-workbench-tab'}
+            className={tab === item.id ? 'profile-workbench-nav-link profile-workbench-nav-link-active' : 'profile-workbench-nav-link'}
             onClick={() => setTab(item.id)}
           >
             {item.label}
@@ -650,9 +650,9 @@ export function TrainerContentStudio() {
         ))}
       </nav>
 
-      <section className="trainer-workbench-metrics" aria-label="Метрики материалов">
+      <section className="profile-workbench-metrics" aria-label="Метрики материалов">
         {metrics.map((metric) => (
-          <article className="trainer-workbench-metric" key={metric.label}>
+          <article className="profile-workbench-metric" key={metric.label}>
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>
             {metric.hint ? <small>{metric.hint}</small> : null}
@@ -687,22 +687,22 @@ export function TrainerContentStudio() {
         </section>
       ) : null}
 
-      <section className="trainer-workbench-rail-section">
-        <header className="trainer-workbench-section-header">
+      <section className="profile-workbench-rail-section">
+        <header className="profile-workbench-section-header">
           <h3>{tab === 'videos' ? 'Библиотека видео' : tab === 'programs' ? 'Ваши программы' : 'Ваши наборы'}</h3>
           <p>Выберите материал для редактирования или создайте новый.</p>
         </header>
-        <div className="trainer-workbench-rail trainer-content-rail">
-          {tab === 'videos' && videos.length === 0 ? <div className="trainer-workbench-panel"><h3>Видео пока нет</h3><p>Загрузите первый видеоурок, чтобы использовать его в программах и продуктах.</p></div> : null}
-          {tab === 'programs' && programs.length === 0 ? <div className="trainer-workbench-panel"><h3>Программ пока нет</h3><p>Создайте программу и добавьте уроки из библиотеки видео.</p></div> : null}
-          {tab === 'bundles' && bundles.length === 0 ? <div className="trainer-workbench-panel"><h3>Наборов пока нет</h3><p>Соберите несколько видео или программ в один платный набор.</p></div> : null}
+        <div className="profile-workbench-rail trainer-content-rail">
+          {tab === 'videos' && videos.length === 0 ? <div className="profile-workbench-panel"><h3>Видео пока нет</h3><p>Загрузите первый видеоурок, чтобы использовать его в программах и продуктах.</p></div> : null}
+          {tab === 'programs' && programs.length === 0 ? <div className="profile-workbench-panel"><h3>Программ пока нет</h3><p>Создайте программу и добавьте уроки из библиотеки видео.</p></div> : null}
+          {tab === 'bundles' && bundles.length === 0 ? <div className="profile-workbench-panel"><h3>Наборов пока нет</h3><p>Соберите несколько видео или программ в один платный набор.</p></div> : null}
           {tab === 'videos' ? videos.map((video) => renderContentCard(video, 'videos')) : null}
           {tab === 'programs' ? programs.map((program) => renderContentCard(program, 'programs')) : null}
           {tab === 'bundles' ? bundles.map((bundle) => renderContentCard(bundle, 'bundles')) : null}
         </div>
       </section>
 
-      <section className="trainer-workbench-editor-panel trainer-content-editor-panel">
+      <section className="profile-workbench-editor-panel trainer-content-editor-panel">
         {tab === 'videos' ? (
           <section className="trainer-editor-section">
             <h3>Публикация и статус</h3>
@@ -767,7 +767,7 @@ export function TrainerContentStudio() {
                 </form>
                 <div className="trainer-lesson-list">
                   {sortedProgramLessons.map((lesson) => (
-                    <button className={selectedLessonId === lesson.id ? 'trainer-lesson-row trainer-workbench-rail-card-active' : 'trainer-lesson-row'} key={lesson.id} type="button" onClick={() => setSelectedLessonId(lesson.id)}>
+                    <button className={selectedLessonId === lesson.id ? 'trainer-lesson-row profile-workbench-rail-card-active' : 'trainer-lesson-row'} key={lesson.id} type="button" onClick={() => setSelectedLessonId(lesson.id)}>
                       <strong>{lesson.position}. {lesson.title}</strong>
                       <span>{lesson.is_preview ? 'Открытый урок' : 'Закрытый урок'} · {lessonTargetLabel(lesson.video_asset_id)}</span>
                     </button>
@@ -819,7 +819,7 @@ export function TrainerContentStudio() {
 
               <div className="trainer-lesson-list">
                 {sortedBundleItems.map((item) => (
-                  <button className={selectedBundleItemId === item.id ? 'trainer-bundle-row trainer-workbench-rail-card-active' : 'trainer-bundle-row'} key={item.id} type="button" onClick={() => setSelectedBundleItemId(item.id)}>
+                  <button className={selectedBundleItemId === item.id ? 'trainer-bundle-row profile-workbench-rail-card-active' : 'trainer-bundle-row'} key={item.id} type="button" onClick={() => setSelectedBundleItemId(item.id)}>
                     <strong>{bundleTargetLabel(item)}</strong>
                     <span>{item.item_type === 'program' ? 'Программа' : 'Видео'} · позиция {item.position || 0}</span>
                   </button>
@@ -830,8 +830,8 @@ export function TrainerContentStudio() {
           ) : null}
       </section>
 
-      <section className="trainer-workbench-support-panels">
-        <article className="trainer-workbench-panel trainer-content-preview-panel">
+      <section className="profile-workbench-support-panels">
+        <article className="profile-workbench-panel trainer-content-preview-panel">
           <h3>Предпросмотр для каталога</h3>
           <StatusBadge status={(tab === 'videos' ? selectedVideo : tab === 'programs' ? selectedProgram : selectedBundle)?.status} />
           <strong>{preview.title}</strong>
@@ -839,7 +839,7 @@ export function TrainerContentStudio() {
           <span>{preview.typeLabel} · {preview.price} · {preview.accessLabel}</span>
           {preview.href ? <a className="trainer-content-button-secondary" href={preview.href}>Предпросмотр</a> : <span>Предпросмотр появится после сохранения публичного адреса.</span>}
         </article>
-        <article className="trainer-workbench-panel">
+        <article className="profile-workbench-panel">
           <h3>Публикация и статус</h3>
           <p>Статус, цена и публичная ссылка обновляются после сохранения материала.</p>
           <span>{preview.price}</span>

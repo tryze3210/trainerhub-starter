@@ -248,23 +248,23 @@ export function TrainerProductBuilderDashboard() {
   const readiness = selectedProduct?.readiness || null;
 
   return (
-    <section className="trainer-workbench trainer-product-workbench">
-      <header className="trainer-workbench-hero">
-        <div className="trainer-workbench-hero-copy">
+    <section className="profile-workbench trainer-product-workbench">
+      <header className="profile-workbench-hero">
+        <div className="profile-workbench-hero-copy">
           <p className="premium-eyebrow">ПРОДУКТЫ ТРЕНЕРА</p>
           <h2>Продукты</h2>
           <p>Создавайте платные видео, наборы и программы, настраивайте цену, доступ и публикацию для каталога TrainerHub.</p>
         </div>
-        <div className="trainer-workbench-hero-actions">
+        <div className="profile-workbench-hero-actions">
           <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
           <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
           <Link className="premium-secondary-button" href="/catalog">Открыть каталог</Link>
         </div>
       </header>
 
-      <section className="trainer-workbench-metrics" aria-label="Метрики продуктов">
+      <section className="profile-workbench-metrics" aria-label="Метрики продуктов">
         {metrics.map((metric) => (
-          <article className="trainer-workbench-metric" key={metric.label}>
+          <article className="profile-workbench-metric" key={metric.label}>
             <span>{metric.label.replace('Всего продуктов', 'Всего')}</span>
             <strong>{metric.value}</strong>
           </article>
@@ -273,20 +273,20 @@ export function TrainerProductBuilderDashboard() {
 
       {isLoading ? <TrainerLoadingState title="Загружаем продукты" /> : null}
       {error ? <TrainerErrorState message={error} onRetry={() => void reload()} /> : null}
-      {message ? <div className="trainer-workbench-panel"><TrainerStatusBadge tone="success">{message}</TrainerStatusBadge></div> : null}
+      {message ? <div className="profile-workbench-panel"><TrainerStatusBadge tone="success">{message}</TrainerStatusBadge></div> : null}
 
-      <section className="trainer-workbench-rail-section">
-        <header className="trainer-workbench-section-header">
+      <section className="profile-workbench-rail-section">
+        <header className="profile-workbench-section-header">
           <h3>Ваши продукты</h3>
           <p>Выберите продукт для редактирования или создайте новый.</p>
         </header>
-        <div className="trainer-workbench-rail trainer-product-rail" aria-label="Список продуктов">
+        <div className="profile-workbench-rail trainer-product-rail" aria-label="Список продуктов">
           {!isLoading && products.length === 0 ? (
-            <div className="trainer-workbench-panel"><TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." /></div>
+            <div className="profile-workbench-panel"><TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." /></div>
           ) : null}
           {products.map((product) => (
             <button
-              className={selectedId === product.id ? 'trainer-workbench-rail-card trainer-product-rail-card trainer-product-rail-card-active trainer-workbench-rail-card-active' : 'trainer-workbench-rail-card trainer-product-rail-card'}
+              className={selectedId === product.id ? 'profile-workbench-rail-card trainer-product-rail-card trainer-product-rail-card-active profile-workbench-rail-card-active' : 'profile-workbench-rail-card trainer-product-rail-card'}
               key={product.id}
               onClick={() => setSelectedId(product.id)}
               type="button"
@@ -301,8 +301,8 @@ export function TrainerProductBuilderDashboard() {
         </div>
       </section>
 
-      <form className="trainer-workbench-editor-panel trainer-product-editor-panel" onSubmit={submit}>
-        <header className="trainer-workbench-section-header">
+      <form className="profile-workbench-editor-panel trainer-product-editor-panel" onSubmit={submit}>
+        <header className="profile-workbench-section-header">
           <h3>{selectedProduct ? 'Редактирование продукта' : 'Новый продукт'}</h3>
           <p>Подготовьте описание, цену, формат доступа и материалы перед публикацией.</p>
         </header>
@@ -381,7 +381,7 @@ export function TrainerProductBuilderDashboard() {
 
         <section className="trainer-editor-section">
           <h3>Публикация</h3>
-          <div className="trainer-workbench-actions trainer-product-actions">
+          <div className="profile-workbench-actions trainer-product-actions">
             <button className="premium-primary-button" disabled={isSaving} type="submit">{selectedProduct ? 'Сохранить черновик' : 'Создать черновик'}</button>
             {selectedProduct ? (
               <>
@@ -394,8 +394,8 @@ export function TrainerProductBuilderDashboard() {
         </section>
       </form>
 
-      <section className="trainer-workbench-support-panels">
-        <article className="trainer-workbench-panel">
+      <section className="profile-workbench-support-panels">
+        <article className="profile-workbench-panel">
           <h3>Предпросмотр в каталоге</h3>
           <TrainerStatusBadge>{preview.typeLabel}</TrainerStatusBadge>
           <strong>{preview.title}</strong>
@@ -408,7 +408,7 @@ export function TrainerProductBuilderDashboard() {
           )}
         </article>
 
-        <article className="trainer-workbench-panel">
+        <article className="profile-workbench-panel">
           <h3>Готовность к публикации</h3>
           <p>Перед публикацией TrainerHub проверяет, что у продукта есть название, цена, описание, материалы и корректные настройки доступа.</p>
           <div className="trainer-product-readiness-list">
