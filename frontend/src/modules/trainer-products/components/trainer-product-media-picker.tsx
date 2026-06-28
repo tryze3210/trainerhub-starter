@@ -88,10 +88,12 @@ export function TrainerProductMediaPicker({ selectedVideoIds, onChange, highligh
                 type="button"
                 onClick={() => toggleVideo(video.id)}
               >
-                <span>{trainerContentStatusLabel(video.status)}</span>
+                <span className="trainer-media-picker-card-status">
+                  <span>{trainerContentStatusLabel(video.status)}</span>
+                  <span>{trainerContentPrice(video.price_amount, video.currency)}</span>
+                </span>
                 <strong>{video.title}</strong>
                 <span>{fileLabel(video)}</span>
-                <span>{trainerContentPrice(video.price_amount, video.currency)}</span>
                 <small>{addressLabel(video)}</small>
                 <span>{active ? 'Выбрано' : 'Выбрать'}</span>
               </button>

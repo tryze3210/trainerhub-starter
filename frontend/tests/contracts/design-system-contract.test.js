@@ -427,10 +427,12 @@ for (const fragment of [
   '.trainer-editor-section-header',
   '.trainer-product-materials-hint',
   'v160.2 — Product media picker visual contract',
+  'v160.2 — Product media picker visual stabilization',
   '.trainer-product-upload-bridge',
   '.trainer-product-workbench',
   '.trainer-video-workbench',
   '.trainer-workbench-local-header',
+  '.trainer-media-picker-card-status',
   'overflow-y: visible !important',
   '.trainer-content-textarea',
   '.trainer-content-select',
@@ -868,7 +870,7 @@ if (trainerProductBuilder.includes('<span>ID видео из библиотек�
   throw new Error('trainer product builder still shows raw video ids as the main materials label');
 }
 
-for (const fragment of ['uploadApi.listMyVideos', 'Библиотека видео', 'Загрузить видео', 'trainer-media-picker-card', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
+for (const fragment of ['uploadApi.listMyVideos', 'Библиотека видео', 'Загрузить видео', 'trainer-media-picker-card', 'trainer-media-picker-card-status', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
   if (!trainerProductMediaPicker.includes(fragment)) {
     throw new Error(`trainer product media picker missing fragment: ${fragment}`);
   }
