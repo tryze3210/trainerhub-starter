@@ -51,12 +51,12 @@ function CustomerTable({
   return (
     <DSDataTable
       columns={[
-        { key: 'client', label: 'Client' },
-        { key: 'revenue', label: 'Revenue' },
-        { key: 'orders', label: 'Orders' },
-        { key: 'access', label: 'Access' },
-        { key: 'segments', label: 'Segments' },
-        { key: 'lastOrder', label: 'Last order' },
+        { key: 'client', label: 'Клиент' },
+        { key: 'revenue', label: 'Выручка' },
+        { key: 'orders', label: 'Заказы' },
+        { key: 'access', label: 'Доступы' },
+        { key: 'segments', label: 'Сегменты' },
+        { key: 'lastOrder', label: 'Последний заказ' },
       ]}
       rows={rows.map((customer) => ({
         client: (
@@ -67,10 +67,10 @@ function CustomerTable({
         ),
         revenue: money(customer.total_spent),
         orders: `${customer.paid_orders_count}/${customer.orders_count}`,
-        access: <span className="badge secondary">{customer.active_entitlements_count} active</span>,
+        access: <span className="badge secondary">{customer.active_entitlements_count} активных</span>,
         segments: customer.segments.map((segment) => segment.name).join(', ') || '-',
         lastOrder: dateTime(customer.last_order_at),
-        selected: selectedId === customer.customer_id ? 'selected' : '',
+        selected: selectedId === customer.customer_id ? 'выбран' : '',
       }))}
       getRowKey={(row, index) => `${String(row.selected)}-${rows[index]?.customer_id || index}`}
     />
@@ -113,26 +113,26 @@ function DetailPanel({
         <div style={{ marginTop: 18 }}>
           <DSStatsGrid
             stats={[
-              { label: 'Total spent', value: money(detail.customer.total_spent), tone: 'success' },
-              { label: 'Orders', value: detail.customer.paid_orders_count, tone: 'primary' },
-              { label: 'Access', value: detail.customer.active_entitlements_count, tone: detail.customer.active_entitlements_count > 0 ? 'success' : 'neutral' },
-              { label: 'Notes', value: detail.customer.notes_count, tone: detail.customer.notes_count > 0 ? 'primary' : 'neutral' },
+              { label: 'Всего потрачено', value: money(detail.customer.total_spent), tone: 'success' },
+              { label: 'Заказы', value: detail.customer.paid_orders_count, tone: 'primary' },
+              { label: 'Доступы', value: detail.customer.active_entitlements_count, tone: detail.customer.active_entitlements_count > 0 ? 'success' : 'neutral' },
+              { label: 'Заметки', value: detail.customer.notes_count, tone: detail.customer.notes_count > 0 ? 'primary' : 'neutral' },
             ]}
           />
         </div>
       </div>
 
       <div className="grid-2">
-        <DSSection title="Trainer notes" description="Внутренние заметки по клиенту.">
+        <DSSection title="Заметки" description="Внутренние заметки по клиенту.">
           <div className="card compact">
-          <DSRichTextEditor label="New note" value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Заметка тренера" />
+          <DSRichTextEditor label="Заметка" value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Заметка тренера" />
           <button type="button" className="button secondary" onClick={onCreateNote} disabled={saving || !note.trim()} style={{ marginTop: 10 }}>
-            Save note
+            Сохранить заметку
           </button>
           <div className="stack" style={{ gap: 10, marginTop: 16 }}>
             {detail.notes.map((item) => (
               <div key={item.id} className="list-item">
-                <strong>{item.pinned ? 'Pinned note' : 'Note'}</strong>
+                <strong>{item.pinned ? 'Закреплённая заметка' : 'Заметка'}</strong>
                 <p className="muted">{item.body}</p>
                 <small className="muted">{dateTime(item.created_at)}</small>
               </div>
@@ -142,23 +142,23 @@ function DetailPanel({
           </div>
         </DSSection>
 
-        <DSSection title="Segments" description="Назначение клиента в рабочий сегмент.">
+        <DSSection title="Сегменты" description="Назначение клиента в рабочий сегмент.">
           <div className="card compact">
-          <DSSelect label="Segment" value={selectedSegment} onChange={(event) => setSelectedSegment(event.target.value)}>
-            <option value="">Select segment</option>
+          <DSSelect label="Сегмент" value={selectedSegment} onChange={(event) => setSelectedSegment(event.target.value)}>
+            <option value="">Выберите сегмент</option>
             {allSegments.map((segment) => (
               <option key={segment.id} value={segment.id}>{segment.name}</option>
             ))}
           </DSSelect>
           <button type="button" className="button secondary" onClick={onAssignSegment} disabled={saving || !selectedSegment} style={{ marginTop: 10 }}>
-            Assign segment
+            Назначить сегмент
           </button>
           </div>
         </DSSection>
       </div>
 
       <div className="grid-2">
-        <DSSection title="Purchase history" description="История заказов клиента.">
+        <DSSection title="История покупок" description="История заказов клиента.">
           <div className="card compact stack" style={{ gap: 10 }}>
             {detail.purchase_history.map((order) => (
               <div key={order.id} className="list-item">
@@ -170,7 +170,7 @@ function DetailPanel({
           </div>
         </DSSection>
 
-        <DSSection title="Attendance / access" description="Посещения и выданные доступы.">
+        <DSSection title="Посещения и доступы" description="Посещения и выданные доступы.">
           <div className="card compact stack" style={{ gap: 10 }}>
             {detail.attendance_history.map((item) => (
               <div key={item.id} className="list-item">
@@ -272,17 +272,17 @@ export function TrainerCRMDashboard() {
   const rows = useMemo(() => snapshot?.items || [], [snapshot?.items]);
 
   return (
-    <section className="stack" style={{ gap: 24 }}>
+    <section className="trainer-crm-page stack" style={{ gap: 24 }}>
       <DSSection
         title="Клиенты тренера"
         description="Карточка клиента, история покупок и доступов, заметки тренера и сегменты."
         actions={
           <>
-            <DSTextField label="Search customer" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search customer" />
-            <DSSelect label="Period" value={days} onChange={(event) => setDays(Number(event.target.value))}>
+            <DSTextField label="Поиск клиента" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя или email" />
+            <DSSelect label="Период" value={days} onChange={(event) => setDays(Number(event.target.value))}>
               {DAY_OPTIONS.map((option) => <option key={option} value={option}>{option} дней</option>)}
             </DSSelect>
-            <button type="button" className="button secondary" onClick={() => void load(days, search)} disabled={loading}>Refresh</button>
+            <button type="button" className="button secondary" onClick={() => void load(days, search)} disabled={loading}>Обновить</button>
           </>
         }
       >
@@ -296,24 +296,24 @@ export function TrainerCRMDashboard() {
         <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
           <DSStatsGrid
             stats={[
-              { label: 'Customers', value: snapshot.summary.customers_count, tone: 'primary' },
-              { label: 'Active access', value: snapshot.summary.with_active_access_count, tone: 'success' },
-              { label: 'With notes', value: snapshot.summary.with_notes_count, tone: 'primary' },
-              { label: 'Segments', value: snapshot.summary.segments_count, tone: 'warning' },
+              { label: 'Клиенты', value: snapshot.summary.customers_count, tone: 'primary' },
+              { label: 'Активные доступы', value: snapshot.summary.with_active_access_count, tone: 'success' },
+              { label: 'С заметками', value: snapshot.summary.with_notes_count, tone: 'primary' },
+              { label: 'Сегменты', value: snapshot.summary.segments_count, tone: 'warning' },
             ]}
           />
 
           <div className="grid-2">
-            <DSSection title="Client segments" description="Рабочие сегменты для CRM-фильтрации.">
-              <div className="card compact">
+            <DSSection title="Сегменты клиентов" description="Рабочие сегменты для CRM-фильтрации.">
+              <div className="trainer-crm-customer-card">
                 <div className="row" style={{ gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
                   <div>
-                    <span className="badge secondary">Segments</span>
+                    <span className="badge secondary">Сегменты</span>
                   </div>
                   <div className="inline" style={{ gap: 8 }}>
-                    <input className="input" value={segmentName} onChange={(event) => setSegmentName(event.target.value)} placeholder="New segment" />
+                    <input className="input" value={segmentName} onChange={(event) => setSegmentName(event.target.value)} placeholder="Новый сегмент" />
                     <button type="button" className="button secondary" onClick={() => void createSegment()} disabled={saving || !segmentName.trim()}>
-                      Add
+                      Добавить
                     </button>
                   </div>
                 </div>
@@ -326,15 +326,15 @@ export function TrainerCRMDashboard() {
               </div>
             </DSSection>
 
-            <DSSection title="CRM window" description={`Сводка считает выручку за ${snapshot.summary.period_days} дней, а карточка клиента показывает расширенную историю.`}>
-              <div className="card compact">
-                <DSStatusDot tone="primary" label={`${snapshot.summary.period_days} days`} />
+            <DSSection title="Окно CRM" description={`Сводка считает выручку за ${snapshot.summary.period_days} дней, а карточка клиента показывает расширенную историю.`}>
+              <div className="trainer-crm-detail-panel">
+                <DSStatusDot tone="primary" label={`${snapshot.summary.period_days} дней`} />
               </div>
             </DSSection>
           </div>
 
-          <DSSection title="Customer list" description="Выбор клиента открывает подробную CRM-карточку.">
-            <div className="card compact">
+          <DSSection title="Список клиентов" description="Выбор клиента открывает подробную CRM-карточку.">
+            <div className="trainer-crm-customer-card">
               <CustomerTable rows={rows} selectedId={selectedId} onSelect={(id) => void selectCustomer(id)} />
             </div>
           </DSSection>

@@ -3813,6 +3813,128 @@ small {
   background: rgba(125, 211, 252, 0.07);
 }
 
+.trainer-product-builder,
+.trainer-product-form,
+.trainer-product-readiness-list,
+.trainer-assignment-page,
+.trainer-sales-page,
+.trainer-crm-page {
+  display: grid;
+  gap: 18px;
+}
+
+.trainer-product-builder-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.42fr) minmax(0, 0.78fr) minmax(240px, 0.44fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.trainer-product-list,
+.trainer-product-editor,
+.trainer-product-preview,
+.trainer-product-readiness,
+.trainer-assignment-card,
+.trainer-submission-card,
+.trainer-sales-card,
+.trainer-sales-table-card,
+.trainer-crm-customer-card,
+.trainer-crm-detail-panel {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.68);
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.24);
+  backdrop-filter: blur(18px);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-product-list-card {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(226, 232, 240, 0.72);
+  padding: 15px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.trainer-product-list-card-active {
+  border-color: rgba(125, 211, 252, 0.40);
+  background: rgba(125, 211, 252, 0.08);
+}
+
+.trainer-product-list-card strong,
+.trainer-product-editor h2,
+.trainer-product-preview strong,
+.trainer-product-readiness h3,
+.trainer-product-readiness-item strong {
+  color: #ffffff;
+}
+
+.trainer-product-list-card span,
+.trainer-product-list-card small,
+.trainer-product-field small,
+.trainer-product-preview p,
+.trainer-product-preview span,
+.trainer-product-readiness p,
+.trainer-product-readiness-item span {
+  color: rgba(226, 232, 240, 0.64);
+  line-height: 1.55;
+}
+
+.trainer-product-form-grid,
+.trainer-assignment-grid,
+.trainer-sales-grid,
+.trainer-crm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.trainer-product-field {
+  display: grid;
+  gap: 7px;
+}
+
+.trainer-product-field > span {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.trainer-product-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.trainer-product-danger-action {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 16px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.22);
+  font-weight: 800;
+}
+
+.trainer-product-readiness-item {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
 /* Responsive */
 
 @media (max-width: 1100px) {
@@ -3957,7 +4079,8 @@ small {
   .trainer-dashboard-grid,
   .trainer-review-grid,
   .trainer-metric-grid,
-  .trainer-business-grid {
+  .trainer-business-grid,
+  .trainer-product-builder-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -4128,7 +4251,12 @@ small {
   .trainer-dashboard-grid,
   .trainer-review-grid,
   .trainer-metric-grid,
-  .trainer-business-grid {
+  .trainer-business-grid,
+  .trainer-product-builder-grid,
+  .trainer-product-form-grid,
+  .trainer-assignment-grid,
+  .trainer-sales-grid,
+  .trainer-crm-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4155,7 +4283,12 @@ small {
   .trainer-page-actions .premium-primary-button,
   .trainer-page-actions .premium-secondary-button,
   .trainer-page-actions button,
-  .trainer-page-actions a {
+  .trainer-page-actions a,
+  .trainer-product-actions,
+  .trainer-product-actions .premium-primary-button,
+  .trainer-product-actions .premium-secondary-button,
+  .trainer-product-actions button,
+  .trainer-product-actions a {
     width: 100%;
   }
 

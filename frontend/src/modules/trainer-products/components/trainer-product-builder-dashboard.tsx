@@ -1,9 +1,41 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
-import { trainerProductsApi, type TrainerProduct, type TrainerProductPayload } from '@/modules/trainer-products/api';
+import {
+  trainerProductsApi,
+  type ProductReadinessCheck,
+  type TrainerProduct,
+  type TrainerProductPayload,
+} from '@/modules/trainer-products/api';
 import { CourseProgramBuilderPanel } from '@/modules/trainer-products/components/course-program-builder-panel';
+import {
+  TrainerEmptyState,
+  TrainerErrorState,
+  TrainerLoadingState,
+  TrainerMetricCard,
+  TrainerStatusBadge,
+  type TrainerMetric,
+} from '@/modules/trainer-cabinet/components';
+import { formatTrainerMoney, trainerProductTypeLabel, trainerStatusLabel, trainerStatusTone } from '@/modules/trainer-cabinet/components/trainer-format';
+
+type ProductBuilderMetric = {
+  label: string;
+  value: string | number;
+  hint?: string;
+};
+
+type ProductAccessType = 'one_time' | 'subscription';
+
+type ProductBuilderPreview = {
+  title: string;
+  description: string;
+  price: string;
+  typeLabel: string;
+  accessLabel: string;
+  href?: string;
+};
 
 const emptyForm: TrainerProductPayload = {
   title: '',
@@ -23,10 +55,54 @@ function parseVideoIds(value: string): string[] {
     .filter(Boolean);
 }
 
-function statusBadge(status: string) {
-  if (status === 'published') return 'badge badge-success';
-  if (status === 'archived') return 'badge badge-muted';
-  return 'badge';
+function accessLabel(value?: string): string {
+  if (value === 'subscription') return 'Подписка';
+  return 'Разовая покупка';
+}
+
+function readinessLabel(value?: string): string {
+  if (value === 'ready' || value === 'pass' || value === 'passed') return 'Готово';
+  if (value === 'blocker' || value === 'failed' || value === 'blocked') return 'Требует исправления';
+  if (value === 'warning') return 'Проверьте';
+  if (value === 'pending') return 'В ожидании';
+  return 'Проверка продукта';
+}
+
+function checkTitle(check: ProductReadinessCheck): string {
+  const known: Record<string, string> = {
+    title: 'Название продукта',
+    description: 'Описание продукта',
+    price: 'Цена',
+    items: 'Материалы',
+    access: 'Настройки доступа',
+  };
+  return known[check.code] || check.title || 'Проверка продукта';
+}
+
+function previewHref(product: TrainerProduct | null, slug?: string, type?: string): string | undefined {
+  const publicSlug = slug || product?.slug;
+  const productType = type || product?.product_type;
+  if (!publicSlug) return undefined;
+  if (productType === 'video') return `/catalog/videos/${publicSlug}`;
+  if (productType === 'bundle') return `/catalog/bundles/${publicSlug}`;
+  if (productType === 'program') return `/catalog/programs/${publicSlug}`;
+  return undefined;
+}
+
+function buildPreview(form: TrainerProductPayload, selectedProduct: TrainerProduct | null): ProductBuilderPreview {
+  const typeLabel = trainerProductTypeLabel(form.product_type || selectedProduct?.product_type);
+  return {
+    title: form.title || 'Название продукта',
+    description: form.description || 'Короткое описание появится в каталоге и на странице покупки.',
+    price: formatTrainerMoney(form.price_amount || selectedProduct?.price_amount || '0', form.currency || selectedProduct?.currency || 'RUB'),
+    typeLabel,
+    accessLabel: accessLabel(form.access_type || selectedProduct?.access_type),
+    href: previewHref(selectedProduct, form.slug, form.product_type),
+  };
+}
+
+function productMaterialCount(product: TrainerProduct): number {
+  return product.items_count ?? product.items?.length ?? 0;
 }
 
 export function TrainerProductBuilderDashboard() {
@@ -41,7 +117,7 @@ export function TrainerProductBuilderDashboard() {
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedId) || null,
-    [products, selectedId],
+    [products, selectedId]
   );
 
   async function reload() {
@@ -50,9 +126,7 @@ export function TrainerProductBuilderDashboard() {
     try {
       const payload = await trainerProductsApi.list();
       setProducts(payload);
-      if (!selectedId && payload[0]) {
-        setSelectedId(payload[0].id);
-      }
+      if (!selectedId && payload[0]) setSelectedId(payload[0].id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось загрузить продукты');
     } finally {
@@ -61,12 +135,13 @@ export function TrainerProductBuilderDashboard() {
   }
 
   useEffect(() => {
-    reload();
+    void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!selectedProduct) return;
+    const itemIds = selectedProduct.items?.map((item) => item.video_id || item.video).filter(Boolean) || [];
     setForm({
       title: selectedProduct.title,
       slug: selectedProduct.slug,
@@ -75,9 +150,9 @@ export function TrainerProductBuilderDashboard() {
       access_type: selectedProduct.access_type === 'subscription' ? 'subscription' : 'one_time',
       currency: selectedProduct.currency || 'RUB',
       price_amount: selectedProduct.price_amount || '0.00',
-      item_video_ids: selectedProduct.items?.map((item) => item.video_id || item.video).filter(Boolean) || [],
+      item_video_ids: itemIds,
     });
-    setVideoIdsText(selectedProduct.items?.map((item) => item.video_id || item.video).filter(Boolean).join('\n') || '');
+    setVideoIdsText(itemIds.join('\n'));
   }, [selectedProduct]);
 
   function newProduct() {
@@ -100,7 +175,7 @@ export function TrainerProductBuilderDashboard() {
         ? await trainerProductsApi.update(selectedId, payload)
         : await trainerProductsApi.create(payload);
       setSelectedId(product.id);
-      setMessage(selectedId ? 'Продукт обновлён' : 'Продукт создан');
+      setMessage(selectedId ? 'Черновик сохранён' : 'Черновик создан');
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось сохранить продукт');
@@ -134,171 +209,168 @@ export function TrainerProductBuilderDashboard() {
     }
   }
 
+  const metrics: TrainerMetric[] = [
+    { label: 'Всего продуктов', value: products.length, tone: 'primary' },
+    { label: 'Опубликовано', value: products.filter((item) => item.status === 'published').length, tone: 'success' },
+    { label: 'Черновики', value: products.filter((item) => item.status === 'draft').length, tone: 'neutral' },
+    { label: 'На проверке', value: products.filter((item) => item.status === 'pending_review').length, tone: 'warning' },
+    { label: 'Наборы', value: products.filter((item) => item.product_type === 'bundle').length, tone: 'primary' },
+    { label: 'С подпиской', value: products.filter((item) => item.access_type === 'subscription').length, tone: 'success' },
+  ];
+  const preview = buildPreview(form, selectedProduct);
+  const readiness = selectedProduct?.readiness || null;
+
   return (
-    <div className="stack gap-4">
+    <div className="trainer-product-builder">
       <CourseProgramBuilderPanel />
 
-      <div className="grid grid-2 gap-4">
-        <section className="card">
-        <div className="card-header">
+      <section className="trainer-section-card">
+        <div className="trainer-section-header">
           <div>
-            <h2>Products</h2>
-            <p>Draft, publish and archive trainer-owned video products and bundles.</p>
+            <h2>Продукты</h2>
+            <p>Создавайте платные видео, наборы и программы, настраивайте доступы, цену и публикацию для каталога TrainerHub.</p>
           </div>
-          <button className="btn btn-secondary" onClick={newProduct} type="button">
-            New product
-          </button>
-        </div>
-
-        {isLoading ? <p>Загрузка...</p> : null}
-        {!isLoading && products.length === 0 ? <p>Продуктов пока нет.</p> : null}
-
-        <div className="stack gap-3">
-          {products.map((product) => (
-            <button
-              className={`card text-left ${selectedId === product.id ? 'is-active' : ''}`}
-              key={product.id}
-              onClick={() => setSelectedId(product.id)}
-              type="button"
-            >
-              <div className="row row-between">
-                <strong>{product.title}</strong>
-                <span className={statusBadge(product.status)}>{product.status}</span>
-              </div>
-              <p>{product.product_type} · {product.price_amount} {product.currency}</p>
-              <p>Readiness: {product.readiness?.status || 'unknown'} · items: {product.items_count || 0}</p>
-            </button>
-          ))}
-        </div>
-        </section>
-
-        <section className="card">
-        <div className="card-header">
-          <div>
-            <h2>{selectedProduct ? 'Edit product' : 'Create product'}</h2>
-            <p>Publishing is blocked until readiness checks pass.</p>
+          <div className="trainer-product-actions">
+            <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
+            <Link className="premium-secondary-button" href="/catalog">Открыть каталог</Link>
           </div>
         </div>
 
-        {error ? <div className="alert alert-error">{error}</div> : null}
-        {message ? <div className="alert alert-success">{message}</div> : null}
+        <div className="trainer-metric-grid">
+          {metrics.map((metric) => <TrainerMetricCard key={metric.label} metric={metric} />)}
+        </div>
 
-        <form className="form stack gap-3" onSubmit={submit}>
-          <label>
-            Title
-            <input
-              value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              required
-            />
-          </label>
-          <label>
-            Slug
-            <input
-              value={form.slug || ''}
-              onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
-              placeholder="generated from title when empty"
-            />
-          </label>
-          <label>
-            Description
-            <textarea
-              value={form.description || ''}
-              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              rows={4}
-            />
-          </label>
+        {isLoading ? <TrainerLoadingState title="Загружаем продукты" /> : null}
+        {error ? <TrainerErrorState message={error} onRetry={() => void reload()} /> : null}
+        {message ? <div className="trainer-section-card"><TrainerStatusBadge tone="success">{message}</TrainerStatusBadge></div> : null}
 
-          <div className="grid grid-2 gap-3">
-            <label>
-              Product type
-              <select
-                value={form.product_type}
-                onChange={(event) => setForm((current) => ({ ...current, product_type: event.target.value as 'video' | 'bundle' }))}
-              >
-                <option value="video">Single video</option>
-                <option value="bundle">Video bundle</option>
-              </select>
-            </label>
-            <label>
-              Access type
-              <select
-                value={form.access_type}
-                onChange={(event) => setForm((current) => ({ ...current, access_type: event.target.value as 'one_time' | 'subscription' }))}
-              >
-                <option value="one_time">One-time purchase</option>
-                <option value="subscription">Subscription access</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="grid grid-2 gap-3">
-            <label>
-              Price
-              <input
-                value={form.price_amount || '0.00'}
-                onChange={(event) => setForm((current) => ({ ...current, price_amount: event.target.value }))}
-                inputMode="decimal"
-              />
-            </label>
-            <label>
-              Currency
-              <select
-                value={form.currency || 'RUB'}
-                onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))}
-              >
-                <option value="RUB">RUB</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </label>
-          </div>
-
-          <label>
-            Video ids
-            <textarea
-              value={videoIdsText}
-              onChange={(event) => setVideoIdsText(event.target.value)}
-              placeholder="One video UUID per line, or comma-separated"
-              rows={5}
-            />
-          </label>
-
-          <div className="row gap-2">
-            <button className="btn" disabled={isSaving} type="submit">
-              {selectedProduct ? 'Save product' : 'Create draft'}
-            </button>
-            {selectedProduct ? (
-              <>
-                <button className="btn btn-secondary" disabled={isSaving} onClick={() => runAction('publish')} type="button">
-                  Publish
-                </button>
-                <button className="btn btn-secondary" disabled={isSaving} onClick={() => runAction('archive')} type="button">
-                  Archive
-                </button>
-                <button className="btn btn-danger" disabled={isSaving || selectedProduct.status === 'published'} onClick={() => runAction('delete')} type="button">
-                  Delete
-                </button>
-              </>
+        <div className="trainer-product-builder-grid">
+          <section className="trainer-product-list" aria-label="Список продуктов">
+            {!isLoading && products.length === 0 ? (
+              <TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." />
             ) : null}
-          </div>
-        </form>
+            {products.map((product) => (
+              <button
+                className={selectedId === product.id ? 'trainer-product-list-card trainer-product-list-card-active' : 'trainer-product-list-card'}
+                key={product.id}
+                onClick={() => setSelectedId(product.id)}
+                type="button"
+              >
+                <TrainerStatusBadge tone={trainerStatusTone(product.status)}>{trainerStatusLabel(product.status)}</TrainerStatusBadge>
+                <strong>{product.title}</strong>
+                <span>{trainerProductTypeLabel(product.product_type)} · {formatTrainerMoney(product.price_amount, product.currency)}</span>
+                <small>{accessLabel(product.access_type)} · {productMaterialCount(product)} материалов</small>
+                <small>Готовность: {readinessLabel(product.readiness?.status)}</small>
+              </button>
+            ))}
+          </section>
 
-        {selectedProduct?.readiness ? (
-          <div className="card mt-4">
-            <h3>Readiness checks</h3>
-            <p>Status: <strong>{selectedProduct.readiness.status}</strong></p>
-            <ul>
-              {selectedProduct.readiness.checks.map((check) => (
-                <li key={check.code}>
-                  <strong>{check.title}</strong>: {check.status} — {check.message}
-                </li>
+          <section className="trainer-product-editor">
+            <div className="trainer-section-header">
+              <div>
+                <h2>{selectedProduct ? 'Редактирование продукта' : 'Новый продукт'}</h2>
+                <p>Подготовьте описание, цену, формат доступа и материалы перед публикацией.</p>
+              </div>
+            </div>
+
+            <form className="trainer-product-form" onSubmit={submit}>
+              <label className="trainer-product-field">
+                <span>Название</span>
+                <input className="input" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
+              </label>
+              <label className="trainer-product-field">
+                <span>Публичный адрес</span>
+                <input className="input" value={form.slug || ''} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="Например: power-start" />
+                <small>Публичный адрес используется в ссылке на страницу продукта.</small>
+              </label>
+              <label className="trainer-product-field">
+                <span>Описание</span>
+                <textarea className="textarea" value={form.description || ''} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} />
+                <small>Описание видно ученикам в каталоге и на странице покупки.</small>
+              </label>
+
+              <div className="trainer-product-form-grid">
+                <label className="trainer-product-field">
+                  <span>Тип продукта</span>
+                  <select className="select" value={form.product_type} onChange={(event) => setForm((current) => ({ ...current, product_type: event.target.value as 'video' | 'bundle' }))}>
+                    <option value="video">Видео</option>
+                    <option value="bundle">Набор</option>
+                  </select>
+                </label>
+                <label className="trainer-product-field">
+                  <span>Формат доступа</span>
+                  <select className="select" value={form.access_type} onChange={(event) => setForm((current) => ({ ...current, access_type: event.target.value as ProductAccessType }))}>
+                    <option value="one_time">Разовая покупка</option>
+                    <option value="subscription">Подписка</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="trainer-product-form-grid">
+                <label className="trainer-product-field">
+                  <span>Цена</span>
+                  <input className="input" value={form.price_amount || '0.00'} onChange={(event) => setForm((current) => ({ ...current, price_amount: event.target.value }))} inputMode="decimal" />
+                </label>
+                <label className="trainer-product-field">
+                  <span>Валюта</span>
+                  <select className="select" value={form.currency || 'RUB'} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))}>
+                    <option value="RUB">RUB</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="trainer-product-field">
+                <span>Видео и материалы</span>
+                <textarea className="textarea" value={videoIdsText} onChange={(event) => setVideoIdsText(event.target.value)} placeholder="Добавьте ID видео из вашей библиотеки, по одному на строку." rows={5} />
+                <small>Добавьте ID видео из вашей библиотеки, по одному на строку.</small>
+              </label>
+
+              <div className="trainer-product-actions">
+                <button className="premium-primary-button" disabled={isSaving} type="submit">
+                  Сохранить черновик
+                </button>
+                {selectedProduct ? (
+                  <>
+                    <button className="premium-secondary-button" disabled={isSaving} onClick={() => void runAction('publish')} type="button">Опубликовать</button>
+                    <button className="premium-secondary-button" disabled={isSaving} onClick={() => void runAction('archive')} type="button">Отправить в архив</button>
+                    <button className="trainer-product-danger-action" disabled={isSaving || selectedProduct.status === 'published'} onClick={() => void runAction('delete')} type="button">Удалить</button>
+                  </>
+                ) : null}
+              </div>
+            </form>
+          </section>
+
+          <aside className="trainer-product-preview">
+            <h3>Так продукт будет выглядеть в каталоге</h3>
+            <TrainerStatusBadge>{preview.typeLabel}</TrainerStatusBadge>
+            <strong>{preview.title}</strong>
+            <p>{preview.description}</p>
+            <span>{preview.price} · {preview.accessLabel}</span>
+            {preview.href ? (
+              <Link className="premium-secondary-button" href={preview.href}>Предпросмотр</Link>
+            ) : (
+              <span className="muted">Предпросмотр появится после сохранения публичного адреса.</span>
+            )}
+          </aside>
+
+          <aside className="trainer-product-readiness">
+            <h3>Готовность к публикации</h3>
+            <p>Перед публикацией TrainerHub проверяет, что у продукта есть название, цена, описание, материалы и корректные настройки доступа.</p>
+            <div className="trainer-product-readiness-list">
+              {(readiness?.checks || []).map((check) => (
+                <div className="trainer-product-readiness-item" key={check.code}>
+                  <TrainerStatusBadge tone={trainerStatusTone(check.status)}>{readinessLabel(check.status)}</TrainerStatusBadge>
+                  <strong>{checkTitle(check)}</strong>
+                  <span>{check.message || 'Требуется уточнение настроек'}</span>
+                </div>
               ))}
-            </ul>
-          </div>
-        ) : null}
-        </section>
-      </div>
+              {!readiness ? <TrainerEmptyState title="Проверка появится после сохранения" description="Сохраните черновик, чтобы увидеть готовность к публикации." /> : null}
+            </div>
+          </aside>
+        </div>
+      </section>
     </div>
   );
 }

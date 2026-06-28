@@ -32,6 +32,7 @@ const requiredFiles = [
   '../docs/design-system/v155_premium_app_shell_checkout.md',
   '../docs/design-system/v156_premium_customer_cabinet.md',
   '../docs/design-system/v157_premium_trainer_cabinet.md',
+  '../docs/design-system/v158_premium_trainer_product_builder.md',
   'src/components/session-nav.tsx',
   'src/app/checkout/page.tsx',
   'src/app/checkout/success/page.tsx',
@@ -346,6 +347,32 @@ for (const fragment of [
   '.trainer-review-card',
   '.trainer-review-reply',
   '.trainer-upload-context',
+  '.trainer-product-builder',
+  '.trainer-product-builder-grid',
+  '.trainer-product-list',
+  '.trainer-product-list-card',
+  '.trainer-product-list-card-active',
+  '.trainer-product-editor',
+  '.trainer-product-form',
+  '.trainer-product-field',
+  '.trainer-product-preview',
+  '.trainer-product-readiness',
+  '.trainer-product-readiness-list',
+  '.trainer-product-readiness-item',
+  '.trainer-product-actions',
+  '.trainer-product-danger-action',
+  '.trainer-assignment-page',
+  '.trainer-assignment-grid',
+  '.trainer-assignment-card',
+  '.trainer-submission-card',
+  '.trainer-sales-page',
+  '.trainer-sales-grid',
+  '.trainer-sales-card',
+  '.trainer-sales-table-card',
+  '.trainer-crm-page',
+  '.trainer-crm-grid',
+  '.trainer-crm-customer-card',
+  '.trainer-crm-detail-panel',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -498,6 +525,8 @@ const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabin
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
 const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/business/page.tsx'), 'utf8');
 const trainerReviewsPage = fs.readFileSync(path.join(root, 'src/app/trainer/reviews/page.tsx'), 'utf8');
+const trainerProductBuilder = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx'), 'utf8');
+const trainerAssignmentsPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/assignments/page.tsx'), 'utf8');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -679,4 +708,21 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v157 design system contract ok');
+for (const fragment of ['Продукты', 'Готовность к публикации', 'Так продукт будет выглядеть в каталоге', 'Новый продукт']) {
+  if (!trainerProductBuilder.includes(fragment)) {
+    throw new Error(`trainer product builder missing fragment: ${fragment}`);
+  }
+}
+
+for (const [fileName, source, forbiddenFragments] of [
+  ['trainer-product-builder-dashboard.tsx', trainerProductBuilder, ['Draft, publish and archive', 'Product type', 'Single video', 'Video ids', 'Save product', 'Create draft', 'Readiness checks']],
+  ['assignments/page.tsx', trainerAssignmentsPage, ['content id', 'lesson id, optional', 'placeholder="score"', 'Сохранить ревью', 'Published']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains v158 technical label: ${forbiddenFragment}`);
+    }
+  }
+}
+
+console.log('v131-v158 design system contract ok');

@@ -1,8 +1,8 @@
-# TrainerHub — current version v157
+# TrainerHub — current version v158
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v157 Premium Trainer Cabinet Shell and Core Trainer Sections. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v157 premium storefront, customer workspace and trainer workspace block is now implemented.
+This README describes the current roadmap state after v158 Premium Trainer Product Builder. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v158 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 ## Current Roadmap State
 
@@ -66,7 +66,9 @@ Roadmap status table:
 | v154 | Premium Product Detail Landing Pages | Done |
 | v155 | Premium App Shell, Footer Cleanup and Checkout Page | Done |
 | v156 | Premium Customer Cabinet and All Customer Sections | Done |
-| v157 | Premium Trainer Cabinet Shell and Core Trainer Sections | Current |
+| v157 | Premium Trainer Cabinet Shell and Core Trainer Sections | Done |
+| v157.1 | Trainer Cabinet Integration Repair | Done |
+| v158 | Premium Trainer Product Builder | Current |
 
 Completed implementation line:
 
@@ -146,6 +148,8 @@ Completed implementation line:
 - v155 — Premium App Shell, Footer Cleanup and Checkout Page
 - v156 — Premium Customer Cabinet and All Customer Sections
 - v157 — Premium Trainer Cabinet Shell and Core Trainer Sections
+- v157.1 — Trainer Cabinet Integration Repair
+- v158 — Premium Trainer Product Builder
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -660,6 +664,18 @@ Updated trainer layer:
 - `frontend/src/app/trainer/onboarding/page.tsx`
 - `frontend/src/app/trainer/application-status/page.tsx`
 - `docs/design-system/v157_premium_trainer_cabinet.md`
+
+## Premium Trainer Product Builder
+
+v157.1 repairs trainer shell integration and v158 upgrades product creation into a premium commercial builder.
+
+Updated product layer:
+
+- `frontend/src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx`
+- `frontend/src/app/trainer/dashboard/assignments/page.tsx`
+- `frontend/src/modules/trainer-sales/components/trainer-sales-dashboard.tsx`
+- `frontend/src/modules/trainer-crm/components/trainer-crm-dashboard.tsx`
+- `docs/design-system/v158_premium_trainer_product_builder.md`
 
 ## Demo Data / Seed Scenarios
 

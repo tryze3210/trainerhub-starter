@@ -65,11 +65,11 @@ function ContentPerformanceTable({ rows, currency }: { rows: TrainerContentPerfo
         <thead>
           <tr>
             <th>Контент</th>
-            <th>Views</th>
-            <th>Purchases</th>
-            <th>Conversion</th>
-            <th>Net revenue</th>
-            <th>Refunds</th>
+            <th>Просмотры</th>
+            <th>Покупки</th>
+            <th>Конверсия</th>
+            <th>Чистая выручка</th>
+            <th>Возвраты</th>
           </tr>
         </thead>
         <tbody>
@@ -102,12 +102,12 @@ function SalesTable({ rows, currency }: { rows: TrainerSaleAnalyticsRow[]; curre
       <table className="table">
         <thead>
           <tr>
-            <th>Order</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
+            <th>Заказ</th>
+            <th>Продукт</th>
+            <th>Кол-во</th>
+            <th>Сумма</th>
+            <th>Статус</th>
+            <th>Дата</th>
           </tr>
         </thead>
         <tbody>
@@ -133,18 +133,18 @@ function SalesTable({ rows, currency }: { rows: TrainerSaleAnalyticsRow[]; curre
 }
 
 function RefundTable({ rows, currency }: { rows: TrainerRevenueTransaction[]; currency: string }) {
-  if (!rows.length) return <p className="muted">Refund операций за период не найдено.</p>;
+  if (!rows.length) return <p className="muted">Операций возврата за период не найдено.</p>;
 
   return (
     <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Source</th>
+            <th>Дата</th>
+            <th>Тип</th>
+            <th>Сумма</th>
+            <th>Статус</th>
+            <th>Источник</th>
           </tr>
         </thead>
         <tbody>
@@ -172,10 +172,10 @@ function StudentAccessTable({ rows, salesByContent }: { rows: TrainerContentPerf
         <thead>
           <tr>
             <th>Контент</th>
-            <th>Type</th>
-            <th>Student access</th>
-            <th>Status</th>
-            <th>Updated</th>
+            <th>Тип</th>
+            <th>Доступы учеников</th>
+            <th>Статус</th>
+            <th>Обновлено</th>
           </tr>
         </thead>
         <tbody>
@@ -186,7 +186,7 @@ function StudentAccessTable({ rows, salesByContent }: { rows: TrainerContentPerf
                 <td>{item.title}</td>
                 <td>{item.content_type}</td>
                 <td>{salesCount}</td>
-                <td><span className="badge secondary">{salesCount > 0 ? 'access issued' : 'no active buyers'}</span></td>
+                <td><span className="badge secondary">{salesCount > 0 ? 'доступ выдан' : 'нет активных покупателей'}</span></td>
                 <td>{dateTime(item.updated_at)}</td>
               </tr>
             );
@@ -209,7 +209,7 @@ export function TrainerSalesDashboard() {
       setMessage('');
       setState(await trainerSalesApi.getSnapshot(selectedDays, 50));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить sales dashboard');
+      setMessage(error instanceof Error ? error.message : 'Не удалось загрузить панель продаж');
     } finally {
       setLoading(false);
     }
@@ -225,10 +225,10 @@ export function TrainerSalesDashboard() {
     () => (state?.transactions.results || []).filter(isRefundTransaction),
     [state?.transactions.results]
   );
-  const conversionRate = useMemo(() => {
-    const views = state?.overview.performance.total_views || 0;
+  const конверсияRate = useMemo(() => {
+    const просмотров = state?.overview.performance.total_views || 0;
     const purchases = state?.overview.performance.total_purchases || 0;
-    return views ? (purchases / views) * 100 : 0;
+    return просмотров ? (purchases / просмотров) * 100 : 0;
   }, [state]);
   const salesByContent = useMemo(() => {
     return (state?.sales.results || []).reduce<Record<string, number>>((acc, sale) => {
@@ -238,73 +238,73 @@ export function TrainerSalesDashboard() {
   }, [state?.sales.results]);
 
   return (
-    <section className="stack" style={{ gap: 24 }}>
+    <section className="trainer-sales-page stack" style={{ gap: 24 }}>
       <div className="card row" style={{ gap: 16, alignItems: 'flex-end' }}>
         <div className="stack" style={{ gap: 8 }}>
-          <span className="badge secondary">Sales cockpit</span>
+          <span className="badge secondary">Продажи</span>
           <h2 className="title-md">Продажи тренера</h2>
-          <p className="muted">Продажи, выручка, refunds, conversion и выданные доступы учеников.</p>
+          <p className="muted">Продажи, выручка, возвраты, конверсия и выданные доступы учеников.</p>
         </div>
         <div className="inline" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <select value={days} onChange={(event) => setDays(Number(event.target.value))} className="input" aria-label="Sales period">
+          <select value={days} onChange={(event) => setDays(Number(event.target.value))} className="input" aria-label="Период продаж">
             {DAY_OPTIONS.map((option) => (
               <option key={option} value={option}>{option} дней</option>
             ))}
           </select>
           <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
-            {loading ? 'Loading...' : 'Refresh'}
+            {loading ? 'Загрузка...' : 'Обновить'}
           </button>
-          <Link href="/trainer/dashboard/revenue" className="button ghost">Revenue detail</Link>
+          <Link href="/trainer/dashboard/revenue" className="button ghost">Детализация выручки</Link>
         </div>
       </div>
 
       {message ? <div className="card error">{message}</div> : null}
-      {loading && !state ? <div className="card">Загрузка sales dashboard...</div> : null}
+      {loading && !state ? <div className="card">Загрузка панели продаж...</div> : null}
 
       {state ? (
         <>
           <div className="grid-4">
-            <StatCard title="Sales" value={state.sales.summary.purchased_units} hint={`${state.sales.summary.matched_sales} orders`} />
-            <StatCard title="Net revenue" value={money(state.revenue.revenue.net_revenue, currency)} hint={`${days}d period`} />
-            <StatCard title="Refunds" value={money(state.revenue.revenue.refunds, currency)} hint={`${refundTransactions.length} ledger rows`} />
-            <StatCard title="Conversion" value={percent(conversionRate)} hint={`${state.overview.performance.total_views} views`} />
+            <StatCard title="Продажи" value={state.sales.summary.purchased_units} hint={`${state.sales.summary.matched_sales} заказов`} />
+            <StatCard title="Чистая выручка" value={money(state.revenue.revenue.net_revenue, currency)} hint={`${days} дней`} />
+            <StatCard title="Возвраты" value={money(state.revenue.revenue.refunds, currency)} hint={`${refundTransactions.length} операций`} />
+            <StatCard title="Конверсия" value={percent(конверсияRate)} hint={`${state.overview.performance.total_views} просмотров`} />
           </div>
 
           <div className="grid-4">
-            <StatCard title="Gross sales" value={money(state.overview.sales.gross_order_sales, currency)} />
-            <StatCard title="Content purchases" value={state.overview.performance.total_purchases} />
-            <StatCard title="Active catalog" value={state.overview.counts.published_products + state.overview.counts.published_videos} />
-            <StatCard title="Available payout" value={money(state.revenue.revenue.available_payout, currency)} />
+            <StatCard title="Валовые продажи" value={money(state.overview.sales.gross_order_sales, currency)} />
+            <StatCard title="Покупки контента" value={state.overview.performance.total_purchases} />
+            <StatCard title="Активный каталог" value={state.overview.counts.published_products + state.overview.counts.published_videos} />
+            <StatCard title="Доступно к выплате" value={money(state.revenue.revenue.available_payout, currency)} />
           </div>
 
-          <div className="card">
+          <div className="trainer-sales-table-card">
             <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-              <span className="badge secondary">Top content</span>
+              <span className="badge secondary">Лучшие продукты</span>
               <h2 className="title-md">Выручка и конверсия</h2>
             </div>
             <ContentPerformanceTable rows={state.content.results} currency={currency} />
           </div>
 
-          <div className="card">
+          <div className="trainer-sales-table-card">
             <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-              <span className="badge secondary">Sales</span>
+              <span className="badge secondary">Продажи</span>
               <h2 className="title-md">Последние продажи</h2>
             </div>
             <SalesTable rows={state.sales.results} currency={currency} />
           </div>
 
           <div className="grid-2">
-            <div className="card">
+            <div className="trainer-sales-card">
               <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Refunds</span>
-                <h2 className="title-md">Refund ledger</h2>
+                <span className="badge secondary">Возвраты</span>
+                <h2 className="title-md">Возвраты</h2>
               </div>
               <RefundTable rows={refundTransactions} currency={currency} />
             </div>
 
-            <div className="card">
+            <div className="trainer-sales-card">
               <div className="stack" style={{ gap: 8, marginBottom: 18 }}>
-                <span className="badge secondary">Student access</span>
+                <span className="badge secondary">Доступы учеников</span>
                 <h2 className="title-md">Доступы учеников</h2>
               </div>
               <StudentAccessTable rows={state.content.results} salesByContent={salesByContent} />

@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v157
+# MANIFEST — TrainerHub v158
 
-This manifest describes the current repository state after v157 Premium Trainer Cabinet Shell and Core Trainer Sections.
+This manifest describes the current repository state after v158 Premium Trainer Product Builder.
 
 ## Current Version
 
-- Current roadmap version: `v157`
+- Current roadmap version: `v158`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v157` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet and trainer cabinet
+- Current storefront block: `v151-v158` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet and product builder
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v157 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v158 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -255,6 +255,7 @@ UI design system modules and contracts:
 - `docs/design-system/v155_premium_app_shell_checkout.md` — v155 premium shell and checkout notes.
 - `docs/design-system/v156_premium_customer_cabinet.md` — v156 premium customer cabinet notes.
 - `docs/design-system/v157_premium_trainer_cabinet.md` — v157 premium trainer cabinet notes.
+- `docs/design-system/v158_premium_trainer_product_builder.md` — v158 premium trainer product builder notes.
 
 Admin dashboard redesign modules:
 
@@ -430,6 +431,14 @@ Premium trainer cabinet modules:
 - `frontend/src/app/trainer/application-status/page.tsx` — v157 application status polish.
 - `docs/design-system/v157_premium_trainer_cabinet.md` — v157 implementation notes.
 
+Premium trainer product builder modules:
+
+- `frontend/src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx` — v158 premium product builder.
+- `frontend/src/app/trainer/dashboard/assignments/page.tsx` — v158 trainer assignments label cleanup.
+- `frontend/src/modules/trainer-sales/components/trainer-sales-dashboard.tsx` — v158 sales label cleanup.
+- `frontend/src/modules/trainer-crm/components/trainer-crm-dashboard.tsx` — v158 CRM label cleanup.
+- `docs/design-system/v158_premium_trainer_product_builder.md` — v158 implementation notes.
+
 ## Roadmap Status
 
 | Version | Area | Status |
@@ -480,7 +489,9 @@ Premium trainer cabinet modules:
 | v154 | Premium product detail landing pages | Done |
 | v155 | Premium app shell, footer cleanup and checkout page | Done |
 | v156 | Premium customer cabinet and all customer sections | Done |
-| v157 | Premium trainer cabinet shell and core trainer sections | Current |
+| v157 | Premium trainer cabinet shell and core trainer sections | Done |
+| v157.1 | Trainer cabinet integration repair | Done |
+| v158 | Premium trainer product builder | Current |
 
 ## Current Frontend Modules
 
