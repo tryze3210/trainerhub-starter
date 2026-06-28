@@ -249,13 +249,13 @@ export function TrainerProductBuilderDashboard() {
 
   return (
     <section className="profile-workbench trainer-product-workbench">
-      <header className="profile-workbench-hero">
-        <div className="profile-workbench-hero-copy">
+      <header className="trainer-workbench-local-header">
+        <div>
           <p className="premium-eyebrow">ПРОДУКТЫ ТРЕНЕРА</p>
           <h2>Продукты</h2>
           <p>Создавайте платные видео, наборы и программы, настраивайте цену, доступ и публикацию для каталога TrainerHub.</p>
         </div>
-        <div className="profile-workbench-hero-actions">
+        <div className="trainer-workbench-local-header-actions">
           <button className="premium-primary-button" onClick={newProduct} type="button">Новый продукт</button>
           <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
           <Link className="premium-secondary-button" href="/catalog">Открыть каталог</Link>
@@ -282,7 +282,7 @@ export function TrainerProductBuilderDashboard() {
         </header>
         <div className="profile-workbench-rail trainer-product-rail" aria-label="Список продуктов">
           {!isLoading && products.length === 0 ? (
-            <div className="profile-workbench-panel"><TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." /></div>
+            <div className="trainer-workbench-empty-rail-card"><TrainerEmptyState title="Продуктов пока нет" description="Создайте первый платный продукт для каталога." /></div>
           ) : null}
           {products.map((product) => (
             <button

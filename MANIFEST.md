@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v159.1
+# MANIFEST — TrainerHub v159.2
 
-This manifest describes the current repository state after v159.1 Premium Profile Background and Surface Repair.
+This manifest describes the current repository state after v159.2 Remove Nested Scrollbars and Polish Profile Workbench.
 
 ## Current Version
 
-- Current roadmap version: `v159.1`
+- Current roadmap version: `v159.2`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v159.1` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair and premium profile surface repair
+- Current storefront block: `v151-v159.2` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair and profile workbench scroll polish
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v159.1 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v159.2 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -451,6 +451,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v158_3_horizontal_workbench_rescue.md` — v158.3 horizontal workbench rescue notes.
 - `docs/design-system/v159_premium_profile_workbench.md` — v159 profile workbench notes.
 - `docs/design-system/v159_1_profile_surface_repair.md` — v159.1 profile surface repair notes.
+- `docs/design-system/v159_2_nested_scrollbar_repair.md` — v159.2 nested scrollbar repair notes.
 
 ## Roadmap Status
 
@@ -509,7 +510,8 @@ Premium trainer product builder modules:
 | v158.2 | Product/video studio usability repair | Done |
 | v158.3 | Horizontal workbench rescue | Done |
 | v159 | Premium profile workbench system | Done |
-| v159.1 | Premium profile background and surface repair | Current |
+| v159.1 | Premium profile background and surface repair | Done |
+| v159.2 | Remove nested scrollbars and polish profile workbench | Current |
 
 ## Current Frontend Modules
 

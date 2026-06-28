@@ -7860,3 +7860,184 @@ small {
     align-items: start;
   }
 }
+
+/* v159.2 — Profile nested scrollbar repair */
+.profile-workbench,
+.profile-workbench-content,
+.profile-workbench-panel,
+.profile-workbench-editor-panel,
+.profile-workbench-customer,
+.profile-workbench-trainer,
+.profile-workbench-admin,
+.trainer-workbench,
+.trainer-product-workbench,
+.trainer-video-workbench,
+.trainer-workbench-panel,
+.trainer-workbench-editor-panel,
+.trainer-product-editor-panel,
+.trainer-content-studio,
+.trainer-content-editor-panel,
+.customer-cabinet-shell,
+.trainer-cabinet-shell {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+.profile-workbench,
+.profile-workbench-content,
+.trainer-workbench,
+.trainer-content-studio {
+  overflow-x: clip;
+}
+
+.profile-workbench {
+  width: min(1320px, calc(100% - 64px));
+  margin: 32px auto 72px;
+}
+
+.profile-workbench-panel,
+.profile-workbench-editor-panel,
+.trainer-workbench-editor-panel {
+  overflow: visible;
+  min-width: 0;
+}
+
+.profile-workbench-panel > *,
+.profile-workbench-editor-panel > *,
+.trainer-workbench-editor-panel > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-workbench-nav,
+.trainer-workbench-tabs,
+.trainer-content-tabs,
+.trainer-cabinet-nav,
+.customer-cabinet-nav,
+.trainer-workbench-nav {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.profile-workbench-nav::-webkit-scrollbar,
+.trainer-workbench-tabs::-webkit-scrollbar,
+.trainer-content-tabs::-webkit-scrollbar,
+.trainer-cabinet-nav::-webkit-scrollbar,
+.customer-cabinet-nav::-webkit-scrollbar,
+.trainer-workbench-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-workbench-rail,
+.trainer-workbench-rail,
+.trainer-product-rail,
+.trainer-content-rail {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118, 228, 210, 0.28) transparent;
+}
+
+.profile-workbench-rail::-webkit-scrollbar,
+.trainer-workbench-rail::-webkit-scrollbar,
+.trainer-product-rail::-webkit-scrollbar,
+.trainer-content-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.profile-workbench-rail::-webkit-scrollbar-track,
+.trainer-workbench-rail::-webkit-scrollbar-track,
+.trainer-product-rail::-webkit-scrollbar-track,
+.trainer-content-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profile-workbench-rail::-webkit-scrollbar-thumb,
+.trainer-workbench-rail::-webkit-scrollbar-thumb,
+.trainer-product-rail::-webkit-scrollbar-thumb,
+.trainer-content-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(118, 228, 210, 0.28);
+}
+
+.trainer-product-workbench,
+.trainer-video-workbench {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.trainer-product-workbench::before,
+.trainer-video-workbench::before {
+  display: none;
+}
+
+.trainer-workbench-local-header,
+.trainer-video-workbench > .profile-workbench-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  min-width: 0;
+  padding: 0 2px 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.trainer-workbench-local-header h2,
+.trainer-video-workbench > .profile-workbench-hero h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 2.4vw, 2.4rem);
+}
+
+.trainer-workbench-local-header p,
+.trainer-video-workbench > .profile-workbench-hero p {
+  margin: 8px 0 0;
+  max-width: 760px;
+}
+
+.trainer-workbench-local-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.trainer-workbench-empty-rail-card {
+  width: 320px;
+  min-width: 320px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .profile-workbench {
+    width: min(100% - 24px, 1320px);
+    margin: 20px auto 56px;
+    padding: 14px;
+  }
+
+  .trainer-workbench-local-header,
+  .trainer-video-workbench > .profile-workbench-hero {
+    display: grid;
+  }
+
+  .trainer-workbench-local-header-actions {
+    justify-content: flex-start;
+  }
+}

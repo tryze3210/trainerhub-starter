@@ -39,6 +39,7 @@ const requiredFiles = [
   '../docs/design-system/v158_3_horizontal_workbench_rescue.md',
   '../docs/design-system/v159_premium_profile_workbench.md',
   '../docs/design-system/v159_1_profile_surface_repair.md',
+  '../docs/design-system/v159_2_nested_scrollbar_repair.md',
   'src/modules/upload/components/trainer-content-studio.tsx',
   'src/modules/upload/components/trainer-video-upload-card.tsx',
   'src/modules/upload/components/trainer-content-card.tsx',
@@ -398,6 +399,15 @@ for (const fragment of [
   '.trainer-content-preview',
   '.trainer-content-field',
   '.trainer-content-input',
+  'v159.2 — Profile nested scrollbar repair',
+  '.profile-workbench-nav::-webkit-scrollbar',
+  '.profile-workbench-rail::-webkit-scrollbar',
+  '.trainer-workbench-local-header',
+  '.trainer-product-workbench',
+  'overflow-y: visible !important',
+  'max-height: none !important',
+  'scrollbar-width: none',
+  '.trainer-workbench-empty-rail-card',
   '.trainer-content-textarea',
   '.trainer-content-select',
   '.trainer-content-button',
@@ -469,6 +479,18 @@ for (const fragment of [
 ]) {
   if (!globals.includes(fragment)) {
     throw new Error(`globals.css missing design token/class: ${fragment}`);
+  }
+}
+
+for (const forbiddenFragment of [
+  '.profile-workbench { overflow-y: auto',
+  '.trainer-workbench { overflow-y: auto',
+  '.profile-workbench-panel { overflow-y: auto',
+  '.profile-workbench-editor-panel { overflow-y: auto',
+  '.trainer-workbench-editor-panel { overflow-y: auto',
+]) {
+  if (globals.includes(forbiddenFragment)) {
+    throw new Error(`globals.css contains nested vertical scrollbar fragment: ${forbiddenFragment}`);
   }
 }
 
@@ -809,6 +831,18 @@ for (const fragment of ['Продукты', 'Готовность к публи�
   }
 }
 
+for (const fragment of ['trainer-workbench-local-header', 'trainer-workbench-local-header-actions', 'trainer-workbench-empty-rail-card']) {
+  if (!trainerProductBuilder.includes(fragment)) {
+    throw new Error(`trainer product builder missing v159.2 fragment: ${fragment}`);
+  }
+}
+
+for (const forbiddenFragment of ['trainer-workbench-hero', 'trainer-workbench-hero-actions']) {
+  if (trainerProductBuilder.includes(forbiddenFragment)) {
+    throw new Error(`trainer product builder still contains nested hero fragment: ${forbiddenFragment}`);
+  }
+}
+
 for (const fragment of ['profile-workbench', 'profile-workbench-rail', 'profile-workbench-editor-panel', 'profile-workbench-support-panels']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing workbench fragment: ${fragment}`);
@@ -882,4 +916,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v159.1 design system contract ok');
+console.log('v131-v159.2 design system contract ok');
