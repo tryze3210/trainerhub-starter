@@ -8041,3 +8041,135 @@ small {
     justify-content: flex-start;
   }
 }
+
+/* v160 — Product media picker and publishing flow */
+.trainer-product-media-picker {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-product-media-picker-highlighted {
+  border-color: rgba(118, 228, 210, 0.42);
+  box-shadow: 0 0 0 1px rgba(118, 228, 210, 0.12);
+}
+
+.trainer-media-picker-rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 4px 12px;
+  min-width: 0;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118, 228, 210, 0.28) transparent;
+}
+
+.trainer-media-picker-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.trainer-media-picker-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.trainer-media-picker-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(118, 228, 210, 0.28);
+}
+
+.trainer-media-picker-card {
+  width: 260px;
+  min-width: 260px;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  text-align: left;
+  color: inherit;
+  overflow: hidden;
+}
+
+.trainer-media-picker-card strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #f7f3ea;
+}
+
+.trainer-media-picker-card-active {
+  border-color: rgba(118, 228, 210, 0.48);
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.034));
+}
+
+.trainer-selected-media-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-selected-media-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-selected-media-row > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.trainer-selected-media-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trainer-product-advanced-field {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-product-advanced-field-toggle {
+  justify-self: end;
+}
+
+.trainer-product-materials-panel {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.trainer-content-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .trainer-selected-media-row {
+    display: grid;
+    align-items: start;
+  }
+
+  .trainer-product-advanced-field-toggle {
+    justify-self: start;
+  }
+}

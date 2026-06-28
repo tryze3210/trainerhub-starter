@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v159.2
+# BUILD REPORT — TrainerHub v160
 
 ## Summary
 
-Current version: `v159.2`
+Current version: `v160`
 
 The repository has been updated through:
 
@@ -71,8 +71,9 @@ The repository has been updated through:
 - premium profile workbench system: v159
 - premium profile background and surface repair: v159.1
 - remove nested scrollbars and polish profile workbench: v159.2
+- premium media library picker and product publishing flow: v160
 
-v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio. v158.2 adds an upload-first video workflow, product builder upload bridge, scoped content-studio components and overflow-safe layout guards. v158.3 replaces cramped columns with horizontal trainer workbenches for products and video studio. v159 adds a shared profile workbench layer and moves customer/trainer shells to horizontal premium navigation. v159.1 repairs the dark profile scene, premium surfaces, rails, nav, panels and dark profile form controls. v159.2 removes nested vertical scrollbars, hides rough nav scrollbars and makes the product workbench feel like one continuous page.
+v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio. v158.2 adds an upload-first video workflow, product builder upload bridge, scoped content-studio components and overflow-safe layout guards. v158.3 replaces cramped columns with horizontal trainer workbenches for products and video studio. v159 adds a shared profile workbench layer and moves customer/trainer shells to horizontal premium navigation. v159.1 repairs the dark profile scene, premium surfaces, rails, nav, panels and dark profile form controls. v159.2 removes nested vertical scrollbars, hides rough nav scrollbars and makes the product workbench feel like one continuous page. v160 adds the premium media picker so products can be assembled from the trainer video library without raw ID entry as the main flow.
 
 ## Verification Performed In This Workspace
 
@@ -90,11 +91,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v159.2.
+- README current version and roadmap/status table updated to v160.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v159.2 profile scrollbar repair status.
+- BUILD_REPORT updated with v160 media library picker status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v159.2.
+- Frontend design-system contract extended for v131-v160.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -117,7 +118,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v159.2 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v160 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 

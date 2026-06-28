@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v159.2
+# MANIFEST — TrainerHub v160
 
-This manifest describes the current repository state after v159.2 Remove Nested Scrollbars and Polish Profile Workbench.
+This manifest describes the current repository state after v160 Premium Media Library Picker and Product Publishing Flow.
 
 ## Current Version
 
-- Current roadmap version: `v159.2`
+- Current roadmap version: `v160`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v159.2` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair and profile workbench scroll polish
+- Current storefront block: `v151-v160` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, trainer cabinet, product builder, video studio repair, profile workbench scroll polish and media picker flow
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v159.2 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v160 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -437,6 +437,9 @@ Premium trainer product builder modules:
 - `frontend/src/modules/customer-cabinet/components/customer-cabinet-shell.tsx` — v159 horizontal customer profile shell.
 - `frontend/src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx` — v159 horizontal trainer profile shell.
 - `frontend/src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx` — v158 premium product builder.
+- `frontend/src/modules/trainer-products/components/trainer-product-media-picker.tsx` — v160 product video library picker.
+- `frontend/src/modules/trainer-products/components/trainer-selected-media-list.tsx` — v160 selected product media list.
+- `frontend/src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx` — v160 advanced manual media ID field.
 - `frontend/src/modules/upload/components/trainer-upload-panel.tsx` — v158.2 thin trainer upload wrapper.
 - `frontend/src/modules/upload/components/trainer-content-studio.tsx` — v158.2 upload-first video/material studio.
 - `frontend/src/modules/upload/components/trainer-video-upload-card.tsx` — v158.2 premium video upload card.
@@ -452,6 +455,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v159_premium_profile_workbench.md` — v159 profile workbench notes.
 - `docs/design-system/v159_1_profile_surface_repair.md` — v159.1 profile surface repair notes.
 - `docs/design-system/v159_2_nested_scrollbar_repair.md` — v159.2 nested scrollbar repair notes.
+- `docs/design-system/v160_media_library_picker.md` — v160 media library picker notes.
 
 ## Roadmap Status
 
@@ -511,7 +515,8 @@ Premium trainer product builder modules:
 | v158.3 | Horizontal workbench rescue | Done |
 | v159 | Premium profile workbench system | Done |
 | v159.1 | Premium profile background and surface repair | Done |
-| v159.2 | Remove nested scrollbars and polish profile workbench | Current |
+| v159.2 | Remove nested scrollbars and polish profile workbench | Done |
+| v160 | Premium media library picker and product publishing flow | Current |
 
 ## Current Frontend Modules
 

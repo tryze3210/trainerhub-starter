@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -9,6 +10,9 @@ import {
   type TrainerProduct,
   type TrainerProductPayload,
 } from '@/modules/trainer-products/api';
+import { TrainerProductAdvancedIdField } from '@/modules/trainer-products/components/trainer-product-advanced-id-field';
+import { TrainerProductMediaPicker } from '@/modules/trainer-products/components/trainer-product-media-picker';
+import { TrainerSelectedMediaList } from '@/modules/trainer-products/components/trainer-selected-media-list';
 import {
   TrainerEmptyState,
   TrainerErrorState,
@@ -133,6 +137,7 @@ function productMaterialCount(product: TrainerProduct): number {
 }
 
 export function TrainerProductBuilderDashboard() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<TrainerProduct[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<TrainerProductPayload>(emptyForm);
@@ -246,6 +251,12 @@ export function TrainerProductBuilderDashboard() {
   ];
   const preview = buildPreview(form, selectedProduct);
   const readiness = selectedProduct?.readiness || null;
+  const selectedVideoIds = parseVideoIds(videoIdsText);
+  const attachVideoIntent = searchParams.get('intent') === 'attach-video';
+
+  function updateSelectedVideoIds(videoIds: string[]) {
+    setVideoIdsText(Array.from(new Set(videoIds)).join('\n'));
+  }
 
   return (
     <section className="profile-workbench trainer-product-workbench">
@@ -359,24 +370,17 @@ export function TrainerProductBuilderDashboard() {
           </div>
         </section>
 
-        <section className="trainer-editor-section">
+        <section className={attachVideoIntent ? 'trainer-editor-section trainer-product-materials-panel trainer-product-media-picker-highlighted' : 'trainer-editor-section trainer-product-materials-panel'}>
           <h3>Материалы продукта</h3>
+          {attachVideoIntent ? <p>Выберите загруженное видео и добавьте его в продукт.</p> : null}
           <div className="trainer-product-upload-bridge">
             <strong>Библиотека видео</strong>
-            <p>Основной сценарий — загрузить видео в библиотеку, затем добавить его в продукт. Поле ниже нужно для быстрого связывания уже загруженных материалов.</p>
+            <p>Основной сценарий — загрузить видео в библиотеку, затем выбрать его карточкой в продукте.</p>
             <Link className="premium-secondary-button" href="/trainer/videos?tab=videos&intent=upload">Загрузить видео</Link>
           </div>
-          {!videoIdsText.trim() ? (
-            <div className="trainer-product-material-empty">
-              <strong>Материалы ещё не добавлены</strong>
-              <p>Сначала загрузите видео в библиотеку или вставьте ID уже загруженного видео.</p>
-            </div>
-          ) : null}
-          <label className="trainer-editor-field">
-            <span>ID видео из библиотеки</span>
-            <textarea className="trainer-content-textarea" value={videoIdsText} onChange={(event) => setVideoIdsText(event.target.value)} placeholder="ID видео из библиотеки" rows={6} />
-            <small>Вставляйте по одному ID на строку. Позже это поле можно заменить выбором из библиотеки.</small>
-          </label>
+          <TrainerProductMediaPicker selectedVideoIds={selectedVideoIds} onChange={updateSelectedVideoIds} highlighted={attachVideoIntent} />
+          <TrainerSelectedMediaList selectedVideoIds={selectedVideoIds} onRemove={(videoId) => updateSelectedVideoIds(selectedVideoIds.filter((id) => id !== videoId))} />
+          <TrainerProductAdvancedIdField value={videoIdsText} onChange={setVideoIdsText} />
         </section>
 
         <section className="trainer-editor-section">

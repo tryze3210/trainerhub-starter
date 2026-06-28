@@ -40,6 +40,10 @@ const requiredFiles = [
   '../docs/design-system/v159_premium_profile_workbench.md',
   '../docs/design-system/v159_1_profile_surface_repair.md',
   '../docs/design-system/v159_2_nested_scrollbar_repair.md',
+  '../docs/design-system/v160_media_library_picker.md',
+  'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
+  'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
+  'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx',
   'src/modules/upload/components/trainer-content-studio.tsx',
   'src/modules/upload/components/trainer-video-upload-card.tsx',
   'src/modules/upload/components/trainer-content-card.tsx',
@@ -408,6 +412,14 @@ for (const fragment of [
   'max-height: none !important',
   'scrollbar-width: none',
   '.trainer-workbench-empty-rail-card',
+  '.trainer-product-media-picker',
+  '.trainer-media-picker-rail',
+  '.trainer-media-picker-card',
+  '.trainer-media-picker-card-active',
+  '.trainer-selected-media-list',
+  '.trainer-selected-media-row',
+  '.trainer-product-advanced-field',
+  '.trainer-product-materials-panel',
   '.trainer-content-textarea',
   '.trainer-content-select',
   '.trainer-content-button',
@@ -638,6 +650,9 @@ const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/da
 const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/business/page.tsx'), 'utf8');
 const trainerReviewsPage = fs.readFileSync(path.join(root, 'src/app/trainer/reviews/page.tsx'), 'utf8');
 const trainerProductBuilder = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx'), 'utf8');
+const trainerProductMediaPicker = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-media-picker.tsx'), 'utf8');
+const trainerSelectedMediaList = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-selected-media-list.tsx'), 'utf8');
+const trainerProductAdvancedIdField = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-advanced-id-field.tsx'), 'utf8');
 const trainerUploadPanel = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-upload-panel.tsx'), 'utf8');
 const trainerContentStudio = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-content-studio.tsx'), 'utf8');
 const trainerVideoUploadCard = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-video-upload-card.tsx'), 'utf8');
@@ -825,9 +840,49 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео', 'Библиотека видео', 'ID видео из библиотеки']) {
+for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео', 'Библиотека видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['TrainerProductMediaPicker', 'TrainerSelectedMediaList', 'TrainerProductAdvancedIdField', 'Выберите загруженное видео', 'intent']) {
+  if (!trainerProductBuilder.includes(fragment)) {
+    throw new Error(`trainer product builder missing v160 media picker fragment: ${fragment}`);
+  }
+}
+
+if (trainerProductBuilder.includes('<span>ID видео из библиотеки</span>')) {
+  throw new Error('trainer product builder still shows raw video ids as the main materials label');
+}
+
+for (const fragment of ['uploadApi.listMyVideos', 'Библиотека видео', 'Загрузить видео', 'Выбрать', 'Выбрано', 'Файл добавлен', 'Файл не добавлен']) {
+  if (!trainerProductMediaPicker.includes(fragment)) {
+    throw new Error(`trainer product media picker missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Выбранные материалы', 'Материалы ещё не выбраны', 'Убрать']) {
+  if (!trainerSelectedMediaList.includes(fragment)) {
+    throw new Error(`trainer selected media list missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Расширенная настройка', 'Показать поле ID', 'Скрыть поле ID', 'ID видео', 'Один ID на строку']) {
+  if (!trainerProductAdvancedIdField.includes(fragment)) {
+    throw new Error(`trainer product advanced id field missing fragment: ${fragment}`);
+  }
+}
+
+for (const forbiddenFragment of ['description', 'Публичный адрес:']) {
+  if (trainerContentCard.includes(forbiddenFragment)) {
+    throw new Error(`trainer content card still contains overloaded rail fragment: ${forbiddenFragment}`);
+  }
+}
+
+for (const fragment of ['Адрес настроен', 'Адрес не указан']) {
+  if (!trainerContentCard.includes(fragment)) {
+    throw new Error(`trainer content card missing simplified address fragment: ${fragment}`);
   }
 }
 
@@ -916,4 +971,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v159.2 design system contract ok');
+console.log('v131-v160 design system contract ok');

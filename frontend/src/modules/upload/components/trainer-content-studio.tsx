@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { onboardingApi } from '@/modules/trainer-onboarding/api';
@@ -184,6 +185,7 @@ export function TrainerContentStudio() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showProductReturn, setShowProductReturn] = useState(false);
 
   const selectedVideo = useMemo(() => videos.find((video) => video.id === selectedVideoId) || null, [selectedVideoId, videos]);
   const selectedProgram = useMemo(() => programs.find((program) => program.id === selectedProgramId) || null, [selectedProgramId, programs]);
@@ -279,6 +281,7 @@ export function TrainerContentStudio() {
   function resetMessages() {
     setError('');
     setMessage('');
+    setShowProductReturn(false);
   }
 
   function startNew(tabName: TrainerContentTab) {
@@ -324,7 +327,8 @@ export function TrainerContentStudio() {
       setSelectedVideoId(saved.id);
       setFile(null);
       setHighlightUpload(false);
-      setMessage(file ? 'Видеоурок сохранён. Файл загружен и прикреплён к видео.' : 'Черновик видео сохранён. Файл можно прикрепить позже.');
+      setMessage('Видеоурок сохранён. Теперь его можно добавить в продукт.');
+      setShowProductReturn(true);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось сохранить видео.');
@@ -572,8 +576,7 @@ export function TrainerContentStudio() {
         status={<StatusBadge status={entity.status} />}
         price={formatPrice(entity.price_amount, entity.currency)}
         title={entity.title}
-        description={entity.description || 'Описание пока не заполнено.'}
-        publicAddress={entity.slug}
+        hasPublicAddress={Boolean(entity.slug)}
         materialsLabel={entityCountLabel(entityTab, count)}
         actions={
           <>
@@ -660,7 +663,12 @@ export function TrainerContentStudio() {
         ))}
       </section>
 
-      {message ? <div className="trainer-content-state trainer-content-state-success">{message}</div> : null}
+      {message ? (
+        <div className="trainer-content-state trainer-content-state-success">
+          <span>{message}</span>
+          {showProductReturn ? <Link className="premium-secondary-button" href="/trainer/dashboard/products?intent=attach-video">Перейти к продуктам</Link> : null}
+        </div>
+      ) : null}
       {error ? <div className="trainer-content-state trainer-content-state-error">Не удалось загрузить материалы. Попробуйте обновить страницу или повторить действие позже.</div> : null}
 
       {tab === 'videos' ? (

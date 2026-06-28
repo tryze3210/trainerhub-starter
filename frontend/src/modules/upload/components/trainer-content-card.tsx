@@ -5,8 +5,7 @@ type TrainerContentCardProps = {
   status: ReactNode;
   price: string;
   title: string;
-  description: string;
-  publicAddress: string;
+  hasPublicAddress: boolean;
   materialsLabel: string;
   actions: ReactNode;
 };
@@ -16,8 +15,7 @@ export function TrainerContentCard({
   status,
   price,
   title,
-  description,
-  publicAddress,
+  hasPublicAddress,
   materialsLabel,
   actions,
 }: TrainerContentCardProps) {
@@ -28,9 +26,8 @@ export function TrainerContentCard({
         <span>{price}</span>
       </div>
       <h3>{title}</h3>
-      <p>{description}</p>
       <div className="trainer-content-card-meta">
-        <span>Публичный адрес: {publicAddress || 'не указан'}</span>
+        <span>{hasPublicAddress ? 'Адрес настроен' : 'Адрес не указан'}</span>
         <span>{materialsLabel}</span>
       </div>
       <div className="trainer-content-actions">{actions}</div>
