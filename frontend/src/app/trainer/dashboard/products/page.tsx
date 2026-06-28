@@ -4,8 +4,8 @@ import { TrainerProductBuilderDashboard } from '@/modules/trainer-products/compo
 export default function TrainerProductsPage() {
   return (
     <TrainerDashboardShell
-      title="Product builder"
-      description="Create, validate, publish and archive paid trainer products and video bundles."
+      title="Продукты"
+      description="Создавайте, проверяйте и публикуйте платные продукты тренера."
     >
       <TrainerProductBuilderDashboard />
     </TrainerDashboardShell>

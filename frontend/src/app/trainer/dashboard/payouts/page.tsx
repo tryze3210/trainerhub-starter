@@ -6,8 +6,8 @@ import { TrainerPayoutRequestDashboard } from '@/modules/trainer-payouts/compone
 export default function TrainerPayoutsPage() {
   return (
     <TrainerDashboardShell
-      title="Payout requests"
-      description="Создание заявок на выплату, резервирование баланса и отслеживание payout lifecycle."
+      title="Выплаты"
+      description="Создание заявок на выплату, резервирование баланса и отслеживание статусов выплат."
     >
       <TrainerPayoutRequestDashboard />
     </TrainerDashboardShell>

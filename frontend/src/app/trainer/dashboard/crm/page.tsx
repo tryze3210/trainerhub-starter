@@ -6,7 +6,7 @@ import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/tr
 export default function TrainerCRMPage() {
   return (
     <TrainerDashboardShell
-      title="CRM core"
+      title="Ученики"
       description="Карточки клиентов, покупки, посещения, доступы, заметки тренера и сегменты."
     >
       <TrainerCRMDashboard />

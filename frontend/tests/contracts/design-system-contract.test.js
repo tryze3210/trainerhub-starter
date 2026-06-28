@@ -31,6 +31,7 @@ const requiredFiles = [
   '../docs/design-system/v154_premium_product_detail_landing_pages.md',
   '../docs/design-system/v155_premium_app_shell_checkout.md',
   '../docs/design-system/v156_premium_customer_cabinet.md',
+  '../docs/design-system/v157_premium_trainer_cabinet.md',
   'src/components/session-nav.tsx',
   'src/app/checkout/page.tsx',
   'src/app/checkout/success/page.tsx',
@@ -49,6 +50,10 @@ const requiredFiles = [
   'src/modules/customer-cabinet/components/customer-error-state.tsx',
   'src/modules/customer-cabinet/components/customer-metric-card.tsx',
   'src/modules/customer-cabinet/components/customer-section-header.tsx',
+  'src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx',
+  'src/modules/trainer-cabinet/components/trainer-cabinet-nav.tsx',
+  'src/modules/trainer-cabinet/components/trainer-format.ts',
+  'src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx',
   'src/modules/public-storefront/components/marketing-home-page.tsx',
   'src/modules/public-storefront/components/hero-business-console.tsx',
   'src/modules/public-storefront/components/platform-map-section.tsx',
@@ -307,6 +312,40 @@ for (const fragment of [
   '.customer-message-thread',
   '.customer-message-bubble',
   '.customer-message-composer',
+  '.trainer-cabinet-shell',
+  '.trainer-cabinet-layout',
+  '.trainer-cabinet-sidebar',
+  '.trainer-cabinet-sidebar-card',
+  '.trainer-cabinet-nav',
+  '.trainer-cabinet-nav-link',
+  '.trainer-cabinet-nav-link-active',
+  '.trainer-cabinet-content',
+  '.trainer-cabinet-topbar',
+  '.trainer-page-hero',
+  '.trainer-page-title',
+  '.trainer-page-subtitle',
+  '.trainer-page-actions',
+  '.trainer-metric-grid',
+  '.trainer-metric-card',
+  '.trainer-dashboard-grid',
+  '.trainer-dashboard-card',
+  '.trainer-section-card',
+  '.trainer-section-header',
+  '.trainer-status-badge',
+  '.trainer-status-success',
+  '.trainer-status-warning',
+  '.trainer-status-danger',
+  '.trainer-status-neutral',
+  '.trainer-empty-state',
+  '.trainer-loading-state',
+  '.trainer-error-state',
+  '.trainer-business-grid',
+  '.trainer-revenue-list',
+  '.trainer-product-list',
+  '.trainer-review-grid',
+  '.trainer-review-card',
+  '.trainer-review-reply',
+  '.trainer-upload-context',
   'prefers-reduced-motion',
   'max-width: 480px',
   'scroll-snap-type: x proximity',
@@ -452,6 +491,13 @@ const messagesPage = fs.readFileSync(path.join(root, 'src/app/messages/page.tsx'
 const billingPage = fs.readFileSync(path.join(root, 'src/app/billing/page.tsx'), 'utf8');
 const subscriptionsPage = fs.readFileSync(path.join(root, 'src/app/subscriptions/page.tsx'), 'utf8');
 const entitlementsPage = fs.readFileSync(path.join(root, 'src/app/entitlements/page.tsx'), 'utf8');
+const trainerShell = fs.readFileSync(path.join(root, 'src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx'), 'utf8');
+const trainerCabinetShell = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx'), 'utf8');
+const trainerCabinetNav = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-nav.tsx'), 'utf8');
+const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
+const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
+const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/business/page.tsx'), 'utf8');
+const trainerReviewsPage = fs.readFileSync(path.join(root, 'src/app/trainer/reviews/page.tsx'), 'utf8');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -602,4 +648,35 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v156 design system contract ok');
+for (const fragment of ['TrainerCabinetShell', 'Кабинет тренера']) {
+  if (!trainerShell.includes(fragment) && !trainerCabinetShell.includes(fragment)) {
+    throw new Error(`trainer shell missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Обзор', 'Бизнес', 'Продукты', 'Видео', 'Ученики', 'Выплаты', 'Отзывы']) {
+  if (!trainerCabinetNav.includes(fragment)) {
+    throw new Error(`trainer nav missing Russian label: ${fragment}`);
+  }
+}
+
+for (const fragment of ['formatTrainerMoney', 'trainerStatusLabel', 'trainerPayoutStatusLabel', 'trainerOrderStatusLabel']) {
+  if (!trainerFormat.includes(fragment)) {
+    throw new Error(`trainer-format.ts missing helper: ${fragment}`);
+  }
+}
+
+for (const [fileName, source, forbiddenFragments] of [
+  ['trainer-dashboard-shell.tsx', trainerShell, ["label: 'Dashboard'", "label: 'Onboarding'", "label: 'Payouts'", 'Trainer area', 'Production trainer flow']],
+  ['trainer/dashboard/page.tsx', trainerDashboardPage, ['All visible orders', 'Gross payment volume', 'Payment records', 'Draft videos', 'Published videos', 'Pending review', 'Sales count', 'slug:', 'Headline', 'Bio']],
+  ['trainer/business/page.tsx', trainerBusinessPage, ['Available payout', 'Business readiness', 'Revenue trend', 'Top products', 'destination not set', 'Moderation & risk']],
+  ['trainer/reviews/page.tsx', trainerReviewsPage, ['Quality</span>', '<h2>Readiness</h2>', '>ok<', '>attention<']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains trainer technical label: ${forbiddenFragment}`);
+    }
+  }
+}
+
+console.log('v131-v157 design system contract ok');

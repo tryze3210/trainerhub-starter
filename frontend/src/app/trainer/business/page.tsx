@@ -5,19 +5,25 @@ import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { trainersApi } from '@/lib/api';
 import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
+import {
+  TrainerDashboardCard,
+  TrainerEmptyState,
+  TrainerErrorState,
+  TrainerLoadingState,
+  TrainerMetricCard,
+  TrainerStatusBadge,
+  type TrainerMetric,
+} from '@/modules/trainer-cabinet/components';
+import {
+  formatTrainerMoney,
+  trainerPayoutStatusLabel,
+  trainerProductTypeLabel,
+  trainerStatusLabel,
+  trainerStatusTone,
+} from '@/modules/trainer-cabinet/components/trainer-format';
 import type { TrainerBusinessDashboard } from '@/types/api';
 
-function formatMoney(value?: string | number, currency = 'RUB') {
-  if (value === undefined || value === null || value === '') return `0.00 ${currency}`;
-  return `${value} ${currency}`;
-}
-
-function statusBadge(status?: string) {
-  if (!status) return 'badge secondary';
-  if (['ready', 'done', 'approved', 'paid', 'healthy'].includes(status)) return 'badge success';
-  if (['blocked', 'blocker', 'critical', 'rejected'].includes(status)) return 'badge error';
-  return 'badge warning';
-}
+const dayOptions = [7, 30, 90];
 
 export default function TrainerBusinessPage() {
   const [days, setDays] = useState(30);
@@ -25,186 +31,126 @@ export default function TrainerBusinessPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  async function load(selectedDays = days) {
+    try {
+      setLoading(true);
+      setError('');
+      setDashboard(await trainersApi.getTrainerBusinessDashboard(selectedDays));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const payload = await trainersApi.getTrainerBusinessDashboard(days);
-        if (!cancelled) setDashboard(payload);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Не удалось загрузить business dashboard');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void load(days);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
 
   const currency = dashboard?.payouts.balance.currency || 'RUB';
-  const latestRevenue = useMemo(() => {
-    return (dashboard?.commerce.revenue_series || []).slice(-10);
-  }, [dashboard]);
+  const latestRevenue = useMemo(() => (dashboard?.commerce.revenue_series || []).slice(-10), [dashboard]);
+  const metrics: TrainerMetric[] = [
+    { label: 'Выручка периода', value: formatTrainerMoney(dashboard?.commerce.revenue_period, currency), tone: 'success' },
+    { label: 'Заказы периода', value: dashboard?.commerce.period_orders_count || 0, tone: 'primary' },
+    { label: 'Покупатели', value: dashboard?.commerce.customers_count || 0, tone: 'neutral' },
+    { label: 'Средний чек', value: formatTrainerMoney(dashboard?.commerce.avg_order_value, currency), tone: 'primary' },
+    { label: 'Доступно к выплате', value: formatTrainerMoney(dashboard?.payouts.balance.available_amount, currency), tone: 'success' },
+    { label: 'В резерве', value: formatTrainerMoney(dashboard?.payouts.balance.reserved_amount, currency), tone: 'warning' },
+    { label: 'Всего заработано', value: formatTrainerMoney(dashboard?.payouts.balance.lifetime_earned_amount, currency), tone: 'success' },
+    { label: 'Активные заявки', value: dashboard?.payouts.active_requests_count || 0, tone: 'neutral' },
+  ];
 
   return (
-    <ProtectedPage title="Trainer business" description="Бизнес-кабинет тренера доступен только после авторизации.">
+    <ProtectedPage title="Бизнес тренера" description="Бизнес-кабинет тренера доступен только после авторизации.">
       <TrainerDashboardShell
-        title="Trainer business cockpit"
-        description="Продажи, выручка, payout readiness, контент, модерация и операционная готовность тренера в одном месте."
+        title="Бизнес тренера"
+        description="Выручка, заказы, покупатели, выплаты и риски в одном операционном обзоре."
       >
-        <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-          <div className="stack" style={{ gap: 4 }}>
-            <span className={statusBadge(dashboard?.readiness.status)}>{dashboard?.readiness.status || 'loading'}</span>
-            <p className="muted" style={{ margin: 0 }}>Период аналитики: последние {days} дней</p>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            {[7, 30, 90].map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={`button ${days === value ? 'primary' : 'secondary'}`}
-                onClick={() => setDays(value)}
-              >
-                {value}d
-              </button>
-            ))}
-          </div>
+        <div className="trainer-page-actions">
+          {dayOptions.map((value) => (
+            <button key={value} type="button" className={days === value ? 'premium-primary-button' : 'premium-secondary-button'} onClick={() => setDays(value)}>
+              {value} дней
+            </button>
+          ))}
         </div>
 
-        {loading ? <div className="card"><p className="muted">Загружаем бизнес-метрики…</p></div> : null}
-        {error ? <div className="card error">{error}</div> : null}
+        {loading ? <TrainerLoadingState title="Загружаем бизнес-метрики" /> : null}
+        {error ? <TrainerErrorState message={error} onRetry={() => void load()} /> : null}
+
+        <div className="trainer-metric-grid">
+          {metrics.map((metric) => <TrainerMetricCard key={metric.label} metric={metric} />)}
+        </div>
 
         {dashboard ? (
-          <>
-            <div className="grid-4">
-              <div className="card"><div className="kpi"><span className="muted">Выручка периода</span><strong>{formatMoney(dashboard.commerce.revenue_period, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Заказы периода</span><strong>{dashboard.commerce.period_orders_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Покупатели</span><strong>{dashboard.commerce.customers_count}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Средний чек</span><strong>{formatMoney(dashboard.commerce.avg_order_value, currency)}</strong></div></div>
-            </div>
-
-            <div className="grid-4">
-              <div className="card"><div className="kpi"><span className="muted">Available payout</span><strong>{formatMoney(dashboard.payouts.balance.available_amount, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Reserved payout</span><strong>{formatMoney(dashboard.payouts.balance.reserved_amount, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Lifetime earned</span><strong>{formatMoney(dashboard.payouts.balance.lifetime_earned_amount, currency)}</strong></div></div>
-              <div className="card"><div className="kpi"><span className="muted">Active payouts</span><strong>{dashboard.payouts.active_requests_count}</strong></div></div>
-            </div>
-
-            <div className="grid-2">
-              <div className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <h2 className="title-md" style={{ margin: 0 }}>Business readiness</h2>
-                  <span className={statusBadge(dashboard.readiness.status)}>{dashboard.readiness.status}</span>
-                </div>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {dashboard.readiness.checks.map((check) => (
-                    <div className="list-item" key={check.code}>
-                      <span>{check.title}</span>
-                      <span className={statusBadge(check.status)}>{check.status}</span>
-                    </div>
-                  ))}
-                </div>
+          <div className="trainer-dashboard-grid">
+            <TrainerDashboardCard title="Готовность бизнеса" description="Проверки, которые влияют на продажи и выплаты.">
+              <div className="trainer-revenue-list">
+                {dashboard.readiness.checks.map((check) => (
+                  <div className="trainer-section-card" key={check.code}>
+                    <strong>{check.title}</strong>
+                    <TrainerStatusBadge tone={trainerStatusTone(check.status)}>{trainerStatusLabel(check.status)}</TrainerStatusBadge>
+                  </div>
+                ))}
               </div>
+            </TrainerDashboardCard>
 
-              <div className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <h2 className="title-md" style={{ margin: 0 }}>Content inventory</h2>
-                  <Link className="button secondary" href="/trainer/videos">Content studio</Link>
-                </div>
-                <div className="grid-2" style={{ marginTop: 16 }}>
-                  <div className="card compact"><div className="kpi"><span className="muted">Drafts</span><strong>{dashboard.content.drafts.total}</strong></div></div>
-                  <div className="card compact"><div className="kpi"><span className="muted">Published</span><strong>{dashboard.content.published.total}</strong></div></div>
-                  <div className="card compact"><div className="kpi"><span className="muted">Pending review</span><strong>{dashboard.content.pending_review_count}</strong></div></div>
-                  <div className="card compact"><div className="kpi"><span className="muted">Order items</span><strong>{dashboard.commerce.order_items_count}</strong></div></div>
-                </div>
+            <TrainerDashboardCard title="Контент и продажи" description="Инвентарь продуктов и оплаченные позиции.">
+              <div className="trainer-business-grid">
+                <TrainerMetricCard metric={{ label: 'Черновики', value: dashboard.content.drafts.total, tone: 'neutral' }} />
+                <TrainerMetricCard metric={{ label: 'Опубликовано', value: dashboard.content.published.total, tone: 'success' }} />
+                <TrainerMetricCard metric={{ label: 'На проверке', value: dashboard.content.pending_review_count, tone: 'warning' }} />
+                <TrainerMetricCard metric={{ label: 'Позиции заказов', value: dashboard.commerce.order_items_count, tone: 'primary' }} />
               </div>
-            </div>
+              <Link className="premium-secondary-button" href="/trainer/videos">Видео и материалы</Link>
+            </TrainerDashboardCard>
 
-            <div className="grid-2">
-              <div className="card">
-                <h2 className="title-md">Revenue trend</h2>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {latestRevenue.length === 0 ? (
-                    <p className="muted">Пока нет оплаченных заказов за выбранный период.</p>
-                  ) : (
-                    latestRevenue.map((point) => (
-                      <div className="list-item" key={point.date}>
-                        <span className="muted">{point.date}</span>
-                        <strong>{formatMoney(point.revenue, currency)}</strong>
-                        <small>orders {point.orders_count}</small>
-                      </div>
-                    ))
-                  )}
-                </div>
+            <TrainerDashboardCard title="Динамика выручки">
+              <div className="trainer-revenue-list">
+                {latestRevenue.map((point) => (
+                  <div className="trainer-section-card" key={point.date}>
+                    <strong>{point.date}</strong>
+                    <span>{formatTrainerMoney(point.revenue, currency)}</span>
+                    <small>{point.orders_count} заказов</small>
+                  </div>
+                ))}
+                {!latestRevenue.length ? <TrainerEmptyState title="Пока нет оплаченных заказов за выбранный период." description="После первых продаж здесь появится динамика." /> : null}
               </div>
+            </TrainerDashboardCard>
 
-              <div className="card">
-                <h2 className="title-md">Top products</h2>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {dashboard.commerce.top_products.length === 0 ? (
-                    <p className="muted">Пока нет продаж по продуктам.</p>
-                  ) : (
-                    dashboard.commerce.top_products.map((item) => (
-                      <div className="list-item" key={`${item.item_type}-${item.title}`}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{item.title}</strong>
-                          <small>{item.item_type} · {item.orders_count} orders</small>
-                        </div>
-                        <strong>{formatMoney(item.revenue, currency)}</strong>
-                      </div>
-                    ))
-                  )}
-                </div>
+            <TrainerDashboardCard title="Лучшие продукты">
+              <div className="trainer-product-list">
+                {dashboard.commerce.top_products.map((item) => (
+                  <div className="trainer-section-card" key={`${item.item_type}-${item.title}`}>
+                    <strong>{item.title}</strong>
+                    <span>{trainerProductTypeLabel(item.item_type)} · {item.orders_count} заказов</span>
+                    <small>{formatTrainerMoney(item.revenue, currency)}</small>
+                  </div>
+                ))}
+                {!dashboard.commerce.top_products.length ? <TrainerEmptyState title="Пока нет продаж по продуктам." description="Рейтинг появится после первых оплаченных заказов." /> : null}
               </div>
-            </div>
+            </TrainerDashboardCard>
 
-            <div className="grid-2">
-              <div className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <h2 className="title-md" style={{ margin: 0 }}>Latest payout requests</h2>
-                  <Link className="button secondary" href="/payouts">Все выплаты</Link>
-                </div>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {dashboard.payouts.latest_requests.length === 0 ? (
-                    <p className="muted">Заявок на выплаты пока нет.</p>
-                  ) : (
-                    dashboard.payouts.latest_requests.map((payout) => (
-                      <div className="list-item" key={payout.id}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{formatMoney(payout.amount, payout.currency)}</strong>
-                          <small>{payout.destination_masked || 'destination not set'}</small>
-                        </div>
-                        <span className={statusBadge(payout.status)}>{payout.status}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
+            <TrainerDashboardCard title="Заявки на выплаты" action={<Link className="premium-secondary-button" href="/trainer/dashboard/payouts">Все выплаты</Link>}>
+              <div className="trainer-revenue-list">
+                {dashboard.payouts.latest_requests.map((payout) => (
+                  <div className="trainer-section-card" key={payout.id}>
+                    <strong>{formatTrainerMoney(payout.amount, payout.currency)}</strong>
+                    <span>{payout.destination_masked || 'способ выплаты не указан'}</span>
+                    <TrainerStatusBadge tone={trainerStatusTone(payout.status)}>{trainerPayoutStatusLabel(payout.status)}</TrainerStatusBadge>
+                  </div>
+                ))}
+                {!dashboard.payouts.latest_requests.length ? <TrainerEmptyState title="Заявок на выплаты пока нет." description="Когда баланс будет доступен, создайте заявку на выплату." actionHref="/trainer/dashboard/payouts" actionLabel="Открыть выплаты" /> : null}
               </div>
+            </TrainerDashboardCard>
 
-              <div className="card">
-                <h2 className="title-md">Moderation & risk</h2>
-                <div className="grid-2" style={{ marginTop: 16 }}>
-                  <div className="card compact"><div className="kpi"><span className="muted">Open cases</span><strong>{dashboard.moderation.open_cases_count}</strong></div></div>
-                  <div className="card compact"><div className="kpi"><span className="muted">Risk flags</span><strong>{dashboard.moderation.risk_flags_count}</strong></div></div>
-                </div>
-                <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                  {dashboard.moderation.latest_cases.length === 0 ? (
-                    <p className="muted">Нет открытых moderation cases.</p>
-                  ) : (
-                    dashboard.moderation.latest_cases.map((item) => (
-                      <div className="list-item" key={String(item.id)}>
-                        <span>{String(item.title || 'Moderation case')}</span>
-                        <span className={statusBadge(String(item.status || ''))}>{String(item.status || 'unknown')}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
+            <TrainerDashboardCard title="Модерация и риски">
+              <div className="trainer-business-grid">
+                <TrainerMetricCard metric={{ label: 'Открытые обращения', value: dashboard.moderation.open_cases_count, tone: dashboard.moderation.open_cases_count ? 'warning' : 'success' }} />
+                <TrainerMetricCard metric={{ label: 'Риск-флаги', value: dashboard.moderation.risk_flags_count, tone: dashboard.moderation.risk_flags_count ? 'danger' : 'success' }} />
               </div>
-            </div>
-          </>
+            </TrainerDashboardCard>
+          </div>
         ) : null}
       </TrainerDashboardShell>
     </ProtectedPage>

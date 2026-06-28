@@ -4,7 +4,7 @@ import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/tr
 export default function TrainerAnalyticsPage() {
   return (
     <TrainerDashboardShell
-      title="Analytics"
+      title="Аналитика"
       description="Контентная аналитика тренера: просмотры, покупки, конверсия и выручка."
     >
       <TrainerContentAnalyticsDashboard />

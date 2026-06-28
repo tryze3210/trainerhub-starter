@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v156
+# BUILD REPORT — TrainerHub v157
 
 ## Summary
 
-Current version: `v156`
+Current version: `v157`
 
 The repository has been updated through:
 
@@ -62,8 +62,9 @@ The repository has been updated through:
 - premium product detail landing pages: v154
 - premium app shell, footer cleanup and checkout page: v155
 - premium customer cabinet and all customer sections: v156
+- premium trainer cabinet shell and core trainer sections: v157
 
-v156 upgrades the post-purchase customer cabinet, learning, access, commerce, subscription, finance and messages surfaces into one premium customer workspace.
+v157 upgrades the trainer cabinet, business cockpit, video studio, reviews workspace and trainer navigation into one premium business workspace.
 
 ## Verification Performed In This Workspace
 
@@ -81,11 +82,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v156.
+- README current version and roadmap/status table updated to v157.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v156 premium customer cabinet status.
+- BUILD_REPORT updated with v157 premium trainer cabinet status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v156.
+- Frontend design-system contract extended for v131-v157.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -108,7 +109,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v156 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v157 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be unlinked by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 
@@ -196,6 +197,7 @@ Current completed roadmap block:
 - v154 — Premium Product Detail Landing Pages
 - v155 — Premium App Shell, Footer Cleanup and Checkout Page
 - v156 — Premium Customer Cabinet and All Customer Sections
+- v157 — Premium Trainer Cabinet Shell and Core Trainer Sections
 
 Previously completed production-launch block:
 
@@ -224,5 +226,5 @@ Recently closed launch block:
 
 Roadmap closure:
 
-The production launch pack remains the active backend release artifact; v156 is the current premium public storefront and customer workspace artifact.
+The production launch pack remains the active backend release artifact; v157 is the current premium public storefront, customer workspace and trainer workspace artifact.
 The premium storefront shell and checkout path are now current through v155.

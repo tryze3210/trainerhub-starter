@@ -6,8 +6,8 @@ import { TrainerRevenueDashboard } from '@/modules/trainer-revenue/components/tr
 export default function TrainerRevenuePage() {
   return (
     <TrainerDashboardShell
-      title="Revenue dashboard"
-      description="Прозрачная витрина продаж, комиссии платформы, ledger-транзакций и payout-заявок."
+      title="Доход"
+      description="Прозрачная витрина продаж, комиссии платформы, операций и payout-заявок."
     >
       <TrainerRevenueDashboard />
     </TrainerDashboardShell>

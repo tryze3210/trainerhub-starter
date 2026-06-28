@@ -1,8 +1,8 @@
-# TrainerHub — current version v156
+# TrainerHub — current version v157
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v156 Premium Customer Cabinet and All Customer Sections. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v156 premium storefront and customer workspace block is now implemented.
+This README describes the current roadmap state after v157 Premium Trainer Cabinet Shell and Core Trainer Sections. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v157 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 ## Current Roadmap State
 
@@ -65,7 +65,8 @@ Roadmap status table:
 | v154-prep | Marketplace Catalog Premium Foundation | Done |
 | v154 | Premium Product Detail Landing Pages | Done |
 | v155 | Premium App Shell, Footer Cleanup and Checkout Page | Done |
-| v156 | Premium Customer Cabinet and All Customer Sections | Current |
+| v156 | Premium Customer Cabinet and All Customer Sections | Done |
+| v157 | Premium Trainer Cabinet Shell and Core Trainer Sections | Current |
 
 Completed implementation line:
 
@@ -144,6 +145,7 @@ Completed implementation line:
 - v154 — Premium Product Detail Landing Pages
 - v155 — Premium App Shell, Footer Cleanup and Checkout Page
 - v156 — Premium Customer Cabinet and All Customer Sections
+- v157 — Premium Trainer Cabinet Shell and Core Trainer Sections
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -642,6 +644,22 @@ Covered behavior:
 - premium learning area, access cards, order/payment/subscription polish;
 - finance and documents section without customer-facing technical labels;
 - premium messages inbox with conversation list, thread and composer.
+
+## Premium Trainer Cabinet
+
+v157 turns the trainer area into a unified premium business workspace.
+
+Updated trainer layer:
+
+- `frontend/src/modules/trainer-cabinet/components/*`
+- `frontend/src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx`
+- `frontend/src/app/trainer/dashboard/page.tsx`
+- `frontend/src/app/trainer/business/page.tsx`
+- `frontend/src/app/trainer/videos/page.tsx`
+- `frontend/src/app/trainer/reviews/page.tsx`
+- `frontend/src/app/trainer/onboarding/page.tsx`
+- `frontend/src/app/trainer/application-status/page.tsx`
+- `docs/design-system/v157_premium_trainer_cabinet.md`
 
 ## Demo Data / Seed Scenarios
 

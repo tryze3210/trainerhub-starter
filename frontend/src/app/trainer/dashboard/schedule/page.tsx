@@ -6,8 +6,8 @@ import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/tr
 export default function TrainerSchedulePage() {
   return (
     <TrainerDashboardShell
-      title="Booking schedule"
-      description="Расписание, запись на занятия, лимиты мест, отмены и waitlist."
+      title="Расписание"
+      description="Расписание, запись на занятия, лимиты мест, отмены и лист ожидания."
     >
       <TrainerBookingDashboard />
     </TrainerDashboardShell>

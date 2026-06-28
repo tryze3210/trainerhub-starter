@@ -7,12 +7,12 @@ import { TrainerOnboardingChecklist } from '@/modules/trainer-onboarding/compone
 export default function TrainerOnboardingPage() {
   return (
     <ProtectedPage
-      title="Trainer onboarding"
-      description="Заявка тренера, модерация, выдача trainer role и разблокировка dashboard."
+      title="Профиль тренера"
+      description="Профиль тренера доступен только после входа."
     >
       <TrainerDashboardShell
-        title="Trainer onboarding"
-        description="Заполни заявку, отправь её на admin review и отслеживай готовность к публикации продуктов."
+        title="Профиль тренера"
+        description="Заполните публичный профиль, чтобы ученики понимали вашу специализацию и могли покупать продукты."
       >
         <TrainerOnboardingChecklist />
       </TrainerDashboardShell>

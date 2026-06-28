@@ -6,8 +6,8 @@ import { TrainerSalesDashboard } from '@/modules/trainer-sales/components/traine
 export default function TrainerSalesPage() {
   return (
     <TrainerDashboardShell
-      title="Sales dashboard"
-      description="Продажи, выручка, refunds, conversion и доступы учеников в одном операционном экране."
+      title="Продажи"
+      description="Продажи, выручка, возвраты, конверсия и доступы учеников в одном операционном экране."
     >
       <TrainerSalesDashboard />
     </TrainerDashboardShell>

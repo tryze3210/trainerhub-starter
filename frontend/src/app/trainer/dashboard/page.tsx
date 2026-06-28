@@ -1,19 +1,26 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
 import { checkoutApi, onboardingApi, paymentsApi, privateApi, trainersApi } from '@/lib/api';
-import {
-  DSBarChart,
-  DSEmptyState,
-  DSSection,
-  DSSkeleton,
-  DSStatsGrid,
-  DSStatusDot,
-  DSTransitionPanel,
-} from '@/design-system';
 import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
+import {
+  TrainerDashboardCard,
+  TrainerEmptyState,
+  TrainerErrorState,
+  TrainerLoadingState,
+  TrainerMetricCard,
+  TrainerStatusBadge,
+  type TrainerMetric,
+} from '@/modules/trainer-cabinet/components';
+import {
+  formatTrainerMoney,
+  trainerProductTypeLabel,
+  trainerStatusLabel,
+  trainerStatusTone,
+} from '@/modules/trainer-cabinet/components/trainer-format';
 import type { OnboardingStatus, Order, Payment, TrainerCmsDashboard, TrainerProfile, TrainerRevenueDashboard } from '@/types/api';
 
 type DashboardState = {
@@ -34,22 +41,14 @@ async function loadDashboardState(): Promise<DashboardState> {
     checkoutApi.listOrders().catch(() => []),
     privateApi.getTrainerRevenueDashboard().catch(() => null),
   ]);
-
-  const cms = Array.isArray(cmsPayload) ? cmsPayload[0] || null : cmsPayload;
-
   return {
     onboarding,
     profile,
-    cms,
+    cms: Array.isArray(cmsPayload) ? cmsPayload[0] || null : cmsPayload,
     payments,
     orders,
     revenue,
   };
-}
-
-function formatMoney(value?: string | number, currency = 'RUB') {
-  if (value === undefined || value === null || value === '') return `0 ${currency}`;
-  return `${value} ${currency}`;
 }
 
 export default function TrainerDashboardPage() {
@@ -58,187 +57,115 @@ export default function TrainerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  async function load() {
+    try {
+      setLoading(true);
+      setError('');
+      setState(await loadDashboardState());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    void (async () => {
-      try {
-        setLoading(true);
-        setError('');
-        setState(await loadDashboardState());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить dashboard');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void load();
   }, []);
 
-  const grossRevenue = useMemo(() => {
-    return (state?.payments || []).reduce((sum, payment) => {
-      const value = Number(payment.gross_amount || payment.amount || 0);
-      return Number.isFinite(value) ? sum + value : sum;
-    }, 0);
-  }, [state]);
-
+  const grossRevenue = useMemo(() => (state?.payments || []).reduce((sum, payment) => {
+    const value = Number(payment.gross_amount || payment.amount || 0);
+    return Number.isFinite(value) ? sum + value : sum;
+  }, 0), [state]);
   const currency = state?.revenue?.summary.currency || 'RUB';
+  const metrics: TrainerMetric[] = [
+    { label: 'Готовность профиля', value: `${state?.onboarding?.summary.completion_percent || 0}%`, hint: 'Публичная карточка', tone: (state?.onboarding?.summary.completion_percent || 0) >= 100 ? 'success' : 'warning' },
+    { label: 'Заказы', value: state?.orders.length || 0, hint: 'Все видимые заказы', tone: 'primary' },
+    { label: 'Оплаты', value: state?.payments.length || 0, hint: 'Записи оплат', tone: 'primary' },
+    { label: 'Оборот', value: formatTrainerMoney(grossRevenue, 'RUB'), hint: 'Общий оборот', tone: 'success' },
+    { label: 'Опубликовано', value: state?.cms?.published_videos_count || 0, hint: 'Видео и продукты', tone: 'success' },
+    { label: 'Черновики', value: state?.cms?.draft_videos_count || 0, hint: 'Готовятся к публикации', tone: 'neutral' },
+  ];
 
   return (
-    <ProtectedPage title="Trainer dashboard" description="Dashboard тренера доступен только после авторизации.">
+    <ProtectedPage title="Обзор тренера" description="Кабинет тренера доступен только после авторизации.">
       <TrainerDashboardShell
-        title="Trainer dashboard"
-        description="Операционный dashboard тренера: onboarding, content pipeline, revenue KPIs и payout readiness."
+        title="Обзор тренера"
+        description="Следите за продажами, продуктами, учениками и выплатами из одного рабочего пространства."
       >
-        {user?.active_role !== 'trainer' ? (
-          <div className="card warning">Текущая сессия не является trainer-аккаунтом.</div>
-        ) : null}
+        {user?.active_role !== 'trainer' ? <TrainerErrorState message="Текущая сессия не является аккаунтом тренера." /> : null}
+        {loading ? <TrainerLoadingState /> : null}
+        {error ? <TrainerErrorState message={error} onRetry={() => void load()} /> : null}
 
-        {loading ? (
-          <div className="card">
-            <DSSkeleton lines={5} />
-          </div>
-        ) : null}
-        {error ? <div className="card error">{error}</div> : null}
+        <div className="trainer-metric-grid">
+          {metrics.map((metric) => <TrainerMetricCard key={metric.label} metric={metric} />)}
+        </div>
 
         {state ? (
-          <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
-            <DSStatsGrid
-              stats={[
-                {
-                  label: 'Onboarding',
-                  value: `${state.onboarding?.summary.completion_percent || 0}%`,
-                  hint: 'Profile readiness',
-                  tone: (state.onboarding?.summary.completion_percent || 0) >= 100 ? 'success' : 'warning',
-                },
-                {
-                  label: 'Заказы',
-                  value: state.orders.length,
-                  hint: 'All visible orders',
-                  tone: 'primary',
-                },
-                {
-                  label: 'Платежи',
-                  value: state.payments.length,
-                  hint: 'Payment records',
-                  tone: 'primary',
-                },
-                {
-                  label: 'Оборот',
-                  value: `${grossRevenue.toFixed(2)} RUB`,
-                  hint: 'Gross payment volume',
-                  tone: 'success',
-                },
-              ]}
-            />
-
-            <DSStatsGrid
-              stats={[
-                {
-                  label: 'Revenue 30d',
-                  value: formatMoney(state.revenue?.summary.revenue_last_30_days, currency),
-                  hint: 'Last 30 days',
-                  tone: 'success',
-                },
-                {
-                  label: 'Available balance',
-                  value: formatMoney(state.revenue?.summary.available_amount, currency),
-                  hint: 'Ready for payout',
-                  tone: 'success',
-                },
-                {
-                  label: 'Reserved',
-                  value: formatMoney(state.revenue?.summary.reserved_amount, currency),
-                  hint: 'Held by policy',
-                  tone: 'warning',
-                },
-                {
-                  label: 'Avg order',
-                  value: formatMoney(state.revenue?.summary.avg_order_value, currency),
-                  hint: 'Average paid order',
-                  tone: 'primary',
-                },
-              ]}
-            />
-
-            <div className="grid-2">
-              <DSSection title="Профиль тренера" description="Публичная карточка и storefront readiness.">
-                <div className="card compact">
-                  <div className="stack" style={{ gap: 12 }}>
-                  <div className="row">
-                    <DSStatusDot tone={state.profile ? 'success' : 'warning'} label={state.profile ? 'Configured' : 'Missing'} />
-                  </div>
-                  {state.profile ? (
-                    <>
-                      <p><strong>{state.profile.display_name}</strong></p>
-                      <p className="muted">slug: {state.profile.slug}</p>
-                      <p>{state.profile.headline || 'Headline не заполнен.'}</p>
-                      <p>{state.profile.bio || 'Bio не заполнено.'}</p>
-                    </>
-                  ) : (
-                    <DSEmptyState title="Профиль не создан" description="Заверши onboarding, чтобы открыть публичную карточку." />
-                  )}
-                  </div>
+          <div className="trainer-dashboard-grid">
+            <TrainerDashboardCard title="Следующее действие" description="Что быстрее всего улучшит продажи и готовность кабинета.">
+              <div className="trainer-section-card">
+                <h3>{state.profile ? 'Создать продукт' : 'Заполнить профиль'}</h3>
+                <p>{state.profile ? 'Добавьте новый платный продукт или обновите существующие материалы.' : 'Профиль ещё не заполнен. Ученикам нужно видеть специализацию и описание.'}</p>
+                <div className="trainer-page-actions">
+                  <Link href={state.profile ? '/trainer/dashboard/products' : '/trainer/onboarding'} className="premium-primary-button">
+                    {state.profile ? 'Создать продукт' : 'Заполнить профиль'}
+                  </Link>
+                  <Link href="/trainer/dashboard/sales" className="premium-secondary-button">Открыть продажи</Link>
+                  <Link href="/trainer/dashboard/payouts" className="premium-secondary-button">Посмотреть выплаты</Link>
                 </div>
-              </DSSection>
+              </div>
+            </TrainerDashboardCard>
 
-              <DSSection title="CMS summary" description="Состояние content pipeline.">
-                <div className="card compact">
-                  <div className="stack" style={{ gap: 12 }}>
-                  <div className="row">
-                    <span className="badge secondary">trainer-cms</span>
-                  </div>
-                  <div className="grid-2">
-                    <div className="card compact"><div className="kpi"><span className="muted">Draft videos</span><strong>{state.cms?.draft_videos_count || 0}</strong></div></div>
-                    <div className="card compact"><div className="kpi"><span className="muted">Published videos</span><strong>{state.cms?.published_videos_count || 0}</strong></div></div>
-                    <div className="card compact"><div className="kpi"><span className="muted">Pending review</span><strong>{state.cms?.pending_review_count || 0}</strong></div></div>
-                    <div className="card compact"><div className="kpi"><span className="muted">Sales count</span><strong>{state.cms?.total_sales_count || 0}</strong></div></div>
-                  </div>
-                  </div>
+            <TrainerDashboardCard title="Публичный профиль" description="То, что видят потенциальные ученики.">
+              {state.profile ? (
+                <div className="trainer-section-card">
+                  <TrainerStatusBadge tone="success">Профиль активен</TrainerStatusBadge>
+                  <h3>{state.profile.display_name || 'Тренер'}</h3>
+                  <p><strong>Публичный адрес:</strong> {state.profile.slug || 'Не указан'}</p>
+                  <p><strong>Краткое описание:</strong> {state.profile.headline || 'Профиль ещё не заполнен'}</p>
+                  <p><strong>О тренере:</strong> {state.profile.bio || 'Профиль ещё не заполнен'}</p>
                 </div>
-              </DSSection>
-            </div>
+              ) : (
+                <TrainerEmptyState title="Профиль ещё не заполнен" description="Заполните публичный профиль, чтобы ученики понимали вашу специализацию." actionHref="/trainer/onboarding" actionLabel="Заполнить профиль" />
+              )}
+            </TrainerDashboardCard>
 
-            <div className="grid-2">
-              <DSSection title="Revenue last 30 days" description="Последние точки revenue series.">
-                <div className="card compact stack" style={{ gap: 16 }}>
-                  {(state.revenue?.revenue_series || []).length > 0 ? (
-                    <DSBarChart
-                      label="Trainer revenue chart"
-                      data={(state.revenue?.revenue_series || []).slice(-8).map((point) => ({
-                        label: point.date,
-                        value: Number(point.accrual_amount || 0),
-                        tone: 'success',
-                      }))}
-                    />
-                  ) : (
-                    <DSEmptyState title="Revenue пока нет" description="График появится после первых оплаченных заказов." />
-                  )}
-                  {(state.revenue?.revenue_series || []).slice(-8).map((point) => (
-                    <div className="list-item" key={point.date}>
-                      <span className="muted">{point.date}</span>
-                      <strong>{point.accrual_amount} {currency}</strong>
-                      <small>orders {point.orders_count}</small>
-                    </div>
-                  ))}
-                </div>
-              </DSSection>
-              <DSSection title="Top products" description="Товары с максимальной выручкой.">
-                <div className="card compact stack" style={{ gap: 10 }}>
-                  {(state.revenue?.top_products || []).length === 0 ? (
-                    <DSEmptyState title="Рейтинга пока нет" description="Пока нет оплаченных товаров для построения рейтинга." />
-                  ) : (
-                    state.revenue?.top_products.map((item) => (
-                      <div className="list-item" key={`${item.item_type}-${item.title}`}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong>{item.title}</strong>
-                          <small>{item.item_type}</small>
-                        </div>
-                        <strong>{item.revenue} {currency}</strong>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </DSSection>
-            </div>
-          </DSTransitionPanel>
+            <TrainerDashboardCard title="Контент" description="Сводка по опубликованным и готовящимся материалам.">
+              <div className="trainer-business-grid">
+                <TrainerMetricCard metric={{ label: 'Черновики', value: state.cms?.draft_videos_count || 0, tone: 'neutral' }} />
+                <TrainerMetricCard metric={{ label: 'Опубликованные видео', value: state.cms?.published_videos_count || 0, tone: 'success' }} />
+                <TrainerMetricCard metric={{ label: 'На проверке', value: state.cms?.pending_review_count || 0, tone: 'warning' }} />
+                <TrainerMetricCard metric={{ label: 'Продажи', value: state.cms?.total_sales_count || 0, tone: 'primary' }} />
+              </div>
+            </TrainerDashboardCard>
+
+            <TrainerDashboardCard title="Динамика дохода" description="Последние начисления по оплатам.">
+              <div className="trainer-revenue-list">
+                {(state.revenue?.revenue_series || []).slice(-8).map((point) => (
+                  <div className="trainer-section-card" key={point.date}>
+                    <strong>{point.date}</strong>
+                    <span>{formatTrainerMoney(point.accrual_amount, currency)}</span>
+                    <small>{point.orders_count} заказов</small>
+                  </div>
+                ))}
+                {!(state.revenue?.revenue_series || []).length ? <TrainerEmptyState title="Пока нет оплаченных заказов" description="График появится после первых продаж." /> : null}
+              </div>
+            </TrainerDashboardCard>
+
+            <TrainerDashboardCard title="Лучшие продукты" description="Материалы с максимальной выручкой.">
+              <div className="trainer-product-list">
+                {(state.revenue?.top_products || []).map((item) => (
+                  <div className="trainer-section-card" key={`${item.item_type}-${item.title}`}>
+                    <strong>{item.title}</strong>
+                    <span>{trainerProductTypeLabel(item.item_type)}</span>
+                    <small>{formatTrainerMoney(item.revenue, currency)}</small>
+                  </div>
+                ))}
+                {!(state.revenue?.top_products || []).length ? <TrainerEmptyState title="Рейтинга пока нет" description="Данные появятся после первых оплаченных продуктов." /> : null}
+              </div>
+            </TrainerDashboardCard>
+          </div>
         ) : null}
       </TrainerDashboardShell>
     </ProtectedPage>

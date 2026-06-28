@@ -34,7 +34,7 @@ export default function TrainerAssignmentsPage() {
       setAssignments(assignmentPayload);
       setSubmissions(submissionPayload);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Не удалось загрузить homework dashboard');
+      setMessage(err instanceof Error ? err.message : 'Не удалось загрузить задания');
     } finally {
       setLoading(false);
     }
@@ -92,9 +92,9 @@ export default function TrainerAssignmentsPage() {
   }
 
   return (
-    <ProtectedPage title="Trainer assignments" description="Homework dashboard доступен только тренеру.">
+    <ProtectedPage title="Trainer assignments" description="Раздел заданий доступен только тренеру.">
       <TrainerDashboardShell
-        title="Assignments / Homework"
+        title="Задания"
         description="Задания, ответы учеников, проверка тренером и статусы выполнения."
       >
         {message ? <div className="card">{message}</div> : null}

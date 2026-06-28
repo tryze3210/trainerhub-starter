@@ -2,16 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
+import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
+import { TrainerMetricCard, TrainerStatusBadge } from '@/modules/trainer-cabinet/components';
+import { trainerStatusLabel, trainerStatusTone, trainerProductTypeLabel } from '@/modules/trainer-cabinet/components/trainer-format';
 import { reviewsApi, type TrainerReviewQuality } from '@/modules/reviews/api';
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="card compact">
-      <span className="muted">{label}</span>
-      <strong style={{ display: 'block', fontSize: 24, marginTop: 6 }}>{value}</strong>
-    </div>
-  );
-}
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -49,35 +43,33 @@ export default function TrainerReviewsPage() {
   }
 
   return (
-    <ProtectedPage title="Trainer reviews" description="Кабинет качества для тренера.">
-      <section className="stack" style={{ gap: 24 }}>
-        <div className="row" style={{ alignItems: 'flex-start' }}>
-          <div className="stack" style={{ gap: 10 }}>
-            <span className="badge secondary">Quality</span>
-            <h1>Отзывы и качество контента</h1>
-            <p className="lead">Сводка по оценкам, проблемным отзывам и контенту, который требует улучшения.</p>
-          </div>
-          <button className="button secondary" onClick={() => void load()}>Обновить</button>
+    <ProtectedPage title="Отзывы и качество" description="Кабинет качества для тренера.">
+      <TrainerDashboardShell
+        title="Отзывы и качество"
+        description="Следите за оценками продуктов, отвечайте ученикам и находите материалы, которые требуют улучшения."
+      >
+        <div className="trainer-page-actions">
+          <button className="premium-secondary-button" onClick={() => void load()}>Обновить</button>
         </div>
 
         {msg ? <div className="card error">{msg}</div> : null}
 
         {payload ? (
           <>
-            <div className="grid-4">
-              <Metric label="Всего отзывов" value={payload.summary.total_reviews} />
-              <Metric label="Published" value={payload.summary.published_count} />
-              <Metric label="Pending" value={payload.summary.pending_count} />
-              <Metric label="Avg rating" value={payload.summary.average_rating} />
+            <div className="trainer-metric-grid">
+              <TrainerMetricCard metric={{ label: 'Средний рейтинг', value: payload.summary.average_rating, tone: 'success' }} />
+              <TrainerMetricCard metric={{ label: 'Отзывы', value: payload.summary.total_reviews, tone: 'primary' }} />
+              <TrainerMetricCard metric={{ label: 'Требуют ответа', value: payload.summary.pending_count, tone: payload.summary.pending_count ? 'warning' : 'neutral' }} />
+              <TrainerMetricCard metric={{ label: 'Опубликованы', value: payload.summary.published_count, tone: 'success' }} />
             </div>
 
-            <div className="grid-2">
-              <section className="card">
+            <div className="trainer-review-grid">
+              <section className="trainer-section-card">
                 <h2>Контент по рейтингу</h2>
                 <div className="stack" style={{ gap: 12, marginTop: 16 }}>
                   {payload.by_target.length ? payload.by_target.map((item) => (
                     <div className="list-item" key={`${item.target_type}-${item.target_id}`}>
-                      <span className="muted">{item.target_type}</span>
+                      <span className="muted">{trainerProductTypeLabel(item.target_type)}</span>
                       <strong>{item.target_title}</strong>
                       <span>{item.average_rating}/5 · {item.reviews_count} отзывов</span>
                     </div>
@@ -85,12 +77,12 @@ export default function TrainerReviewsPage() {
                 </div>
               </section>
 
-              <section className="card">
-                <h2>Readiness</h2>
+              <section className="trainer-section-card">
+                <h2>Показатели качества</h2>
                 <div className="stack" style={{ gap: 12, marginTop: 16 }}>
                   {payload.readiness.map((item) => (
                     <div className="list-item" key={item.code}>
-                      <span className={item.is_ok ? 'badge success' : 'badge warning'}>{item.is_ok ? 'ok' : 'attention'}</span>
+                      <TrainerStatusBadge tone={item.is_ok ? 'success' : 'warning'}>{item.is_ok ? 'Готово' : 'Требует внимания'}</TrainerStatusBadge>
                       <strong>{item.label}</strong>
                     </div>
                   ))}
@@ -98,20 +90,20 @@ export default function TrainerReviewsPage() {
               </section>
             </div>
 
-            <section className="card">
+            <section className="trainer-section-card">
               <h2>Последние отзывы</h2>
-              <div className="stack" style={{ gap: 12, marginTop: 16 }}>
+              <div className="trainer-review-grid" style={{ marginTop: 16 }}>
                 {payload.recent_reviews.length ? payload.recent_reviews.map((item) => (
-                  <article className="card compact" key={item.id}>
+                  <article className="trainer-review-card" key={item.id}>
                     <div className="row">
                       <strong>{item.title}</strong>
-                      <span className="badge secondary">{item.status}</span>
+                      <TrainerStatusBadge tone={trainerStatusTone(item.status)}>{trainerStatusLabel(item.status)}</TrainerStatusBadge>
                     </div>
                     <p className="muted">{item.target_title || item.target_id} · {formatDate(item.created_at)}</p>
                     <p>{item.body}</p>
                     {item.trainer_reply ? (
-                      <div className="card compact">
-                        <span className="badge secondary">Ответ тренера</span>
+                      <div className="trainer-review-reply">
+                        <TrainerStatusBadge>Ответ тренера</TrainerStatusBadge>
                         <p style={{ marginTop: 8 }}>{item.trainer_reply}</p>
                       </div>
                     ) : null}
@@ -123,7 +115,7 @@ export default function TrainerReviewsPage() {
                         onChange={(event) => setReplyDrafts((current) => ({ ...current, [item.id]: event.target.value }))}
                         placeholder="Ответить ученику публично"
                       />
-                      <button className="button secondary" type="button" onClick={() => void saveReply(item.id)}>
+                      <button className="premium-secondary-button" type="button" onClick={() => void saveReply(item.id)}>
                         Сохранить ответ
                       </button>
                     </div>
@@ -133,7 +125,7 @@ export default function TrainerReviewsPage() {
             </section>
           </>
         ) : null}
-      </section>
+      </TrainerDashboardShell>
     </ProtectedPage>
   );
 }

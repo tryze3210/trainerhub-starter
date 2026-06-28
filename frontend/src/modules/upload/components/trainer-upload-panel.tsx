@@ -723,18 +723,17 @@ export function TrainerUploadPanel() {
   }
 
   if (loading) {
-    return <LoadingCard text="Загружаем content studio тренера…" />;
+    return <LoadingCard text="Загружаем материалы тренера…" />;
   }
 
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div className="card trainer-content-studio-hero">
         <div className="stack" style={{ gap: 10 }}>
-          <span className="badge">Content studio</span>
-          <h2 className="title-md" style={{ margin: 0 }}>Видео, программы и bundles в одном месте</h2>
+          <span className="badge">Материалы тренера</span>
+          <h2 className="title-md" style={{ margin: 0 }}>Видео, программы и наборы в одном месте</h2>
           <p className="muted">
-            Контур теперь закрывает не только upload flow. Можно собрать lessons editor для программы,
-            composition editor для bundle и довести сущности до checkout-ready storefront.
+            Загружайте видео, собирайте уроки для программ и готовьте наборы к продаже.
           </p>
         </div>
         <div className="trainer-studio-tabs" role="tablist" aria-label="Trainer content tabs">
@@ -745,7 +744,7 @@ export function TrainerUploadPanel() {
               className={`trainer-studio-tab${tab === tabName ? ' is-active' : ''}`}
               onClick={() => setTab(tabName)}
             >
-              {tabName === 'videos' ? `Видео (${videos.length})` : tabName === 'programs' ? `Программы (${programs.length})` : `Bundles (${bundles.length})`}
+              {tabName === 'videos' ? `Видео (${videos.length})` : tabName === 'programs' ? `Программы (${programs.length})` : `Наборы (${bundles.length})`}
             </button>
           ))}
         </div>
