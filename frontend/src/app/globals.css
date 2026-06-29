@@ -8522,3 +8522,292 @@ small {
   max-width: 100%;
   resize: vertical;
 }
+
+/* v163 — Premium trainer education, reviews and payout request workbenches */
+.trainer-education-workbench,
+.trainer-review-workbench,
+.trainer-payout-workbench,
+.trainer-education-workbench *,
+.trainer-review-workbench *,
+.trainer-payout-workbench * {
+  box-sizing: border-box;
+}
+
+.trainer-education-workbench,
+.trainer-review-workbench,
+.trainer-payout-workbench {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  color: #f7f3ea;
+}
+
+.trainer-education-workbench :where(h2, h3, h4, p, span, strong, small, label, button, a),
+.trainer-review-workbench :where(h2, h3, h4, p, span, strong, small, label, button, a),
+.trainer-payout-workbench :where(h2, h3, h4, p, span, strong, small, label, button, a) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.trainer-education-hero,
+.trainer-review-hero,
+.trainer-payout-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 20px;
+  min-width: 0;
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.028));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.trainer-education-hero h2,
+.trainer-review-hero h2,
+.trainer-payout-hero h2,
+.trainer-education-hero p,
+.trainer-review-hero p,
+.trainer-payout-hero p {
+  margin: 0;
+}
+
+.trainer-education-hero p,
+.trainer-review-hero p,
+.trainer-payout-hero p,
+.trainer-education-muted {
+  color: rgba(184, 192, 204, 0.82);
+}
+
+.trainer-education-hero-total {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 260px);
+  padding: 18px;
+  border: 1px solid rgba(118, 228, 210, 0.2);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-education-hero-total span {
+  color: rgba(184, 192, 204, 0.82);
+  font-size: 0.86rem;
+}
+
+.trainer-education-hero-total strong {
+  color: #f7f3ea;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: 0;
+}
+
+.trainer-education-kpi-grid,
+.trainer-review-kpi-grid,
+.trainer-payout-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-education-kpi-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.trainer-education-kpi-card span,
+.trainer-education-kpi-card small {
+  color: rgba(184, 192, 204, 0.8);
+}
+
+.trainer-education-kpi-card strong {
+  color: #f7f3ea;
+  font-size: 1.45rem;
+  letter-spacing: 0;
+}
+
+.trainer-education-layout,
+.trainer-review-layout,
+.trainer-payout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
+  gap: 20px;
+  min-width: 0;
+  align-items: start;
+}
+
+.trainer-education-main,
+.trainer-education-sidebar {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.trainer-education-panel,
+.trainer-education-form-card,
+.trainer-review-card,
+.trainer-review-readiness-card,
+.trainer-payout-wallet-card,
+.trainer-payout-request-card,
+.trainer-payout-flow-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.055), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.026));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 20px 70px rgba(0, 0, 0, 0.16);
+}
+
+.trainer-education-assignment-card,
+.trainer-education-submission-card,
+.trainer-payout-timeline-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-education-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-education-actions,
+.trainer-payout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-education-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.trainer-education-field span {
+  color: rgba(247, 243, 234, 0.84);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.trainer-education-field input,
+.trainer-education-field select,
+.trainer-education-field textarea {
+  width: 100%;
+  min-width: 0;
+  color: #f7f3ea;
+  background: rgba(7, 10, 15, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.trainer-education-status {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(247, 243, 234, 0.86);
+  font-size: 0.82rem;
+}
+
+.trainer-education-status-success {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.trainer-education-status-warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.trainer-education-status-danger {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.trainer-payout-timeline {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainer-education-empty,
+.trainer-education-message {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-education-workbench,
+.trainer-review-workbench,
+.trainer-payout-workbench,
+.trainer-education-panel,
+.trainer-education-form-card,
+.trainer-review-card,
+.trainer-review-readiness-card,
+.trainer-payout-wallet-card,
+.trainer-payout-request-card,
+.trainer-payout-flow-card {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+@media (max-width: 980px) {
+  .trainer-education-hero,
+  .trainer-review-hero,
+  .trainer-payout-hero,
+  .trainer-education-layout,
+  .trainer-review-layout,
+  .trainer-payout-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .trainer-education-hero,
+  .trainer-review-hero,
+  .trainer-payout-hero {
+    padding: 20px;
+  }
+
+  .trainer-education-row {
+    display: grid;
+  }
+}

@@ -50,6 +50,7 @@ const requiredFiles = [
   '../docs/design-system/v160_4_product_media_single_source.md',
   '../docs/design-system/v161_premium_trainer_operations.md',
   '../docs/design-system/v162_premium_trainer_finance_analytics.md',
+  '../docs/design-system/v163_premium_trainer_education_reviews_payouts.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -714,6 +715,7 @@ const trainerOperationsFormat = fs.readFileSync(path.join(root, 'src/modules/tra
 const trainerSalesDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-sales/components/trainer-sales-dashboard.tsx'), 'utf8');
 const trainerRevenueDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-revenue/components/trainer-revenue-dashboard.tsx'), 'utf8');
 const trainerAnalyticsDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-analytics/components/trainer-content-analytics-dashboard.tsx'), 'utf8');
+const trainerPayoutRequestDashboard = fs.readFileSync(path.join(root, 'src/modules/trainer-payouts/components/trainer-payout-request-dashboard.tsx'), 'utf8');
 const profileWorkbench = fs.readFileSync(path.join(root, 'src/design-system/profile-workbench.tsx'), 'utf8');
 const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
@@ -974,6 +976,42 @@ for (const fragment of ['trainer-analytics-workbench', 'trainer-analytics-hero',
   }
 }
 
+for (const [fileName, source, forbiddenFragments] of [
+  ['trainer/dashboard/assignments/page.tsx', trainerAssignmentsPage, ['grid-4', 'list-item', 'style={{', 'ID продукта', 'ID урока', 'placeholder="оценка"', 'Сохранить ревью', 'Published']],
+  ['trainer-payout-request-dashboard.tsx', trainerPayoutRequestDashboard, ['table-wrap', '<table', 'payout flow', 'available balance', 'locked balance', 'Payout requests', '<th>Amount</th>', '<th>Status</th>', '<th>Destination</th>', '<th>Lifecycle</th>', 'Bank card', 'SBP']],
+  ['trainer/reviews/page.tsx', trainerReviewsPage, ['<h2>Quality', '<h2>Readiness', 'style={{', 'raw status']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains v163 forbidden fragment: ${forbiddenFragment}`);
+    }
+  }
+}
+
+for (const fragment of ['trainer-education-workbench', 'trainer-education-hero', 'Новое задание', 'Опубликованные задания', 'Ответы учеников', 'mapAssignmentStatusLabel', 'mapSubmissionStatusLabel', 'mapContentTypeLabel']) {
+  if (!trainerAssignmentsPage.includes(fragment)) {
+    throw new Error(`trainer assignments page missing v163 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-payout-workbench', 'trainer-payout-hero', 'Новая заявка на выплату', 'Как проходит выплата', 'История заявок', 'mapPayoutStatusLabel']) {
+  if (!trainerPayoutRequestDashboard.includes(fragment)) {
+    throw new Error(`trainer payout request dashboard missing v163 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-review-workbench', 'trainer-review-hero', 'Отзывы', 'Готовность к продажам', 'Ответ тренера', 'mapReviewStatusLabel', 'mapReadinessTone']) {
+  if (!trainerReviewsPage.includes(fragment)) {
+    throw new Error(`trainer reviews page missing v163 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['.trainer-education-workbench', '.trainer-review-workbench', '.trainer-payout-workbench', '.trainer-education-hero', '.trainer-review-hero', '.trainer-payout-hero', '.trainer-payout-timeline', 'overflow-y: visible !important']) {
+  if (!globals.includes(fragment)) {
+    throw new Error(`globals.css missing v163 fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
@@ -1135,4 +1173,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v162 design system contract ok');
+console.log('v131-v163 design system contract ok');
