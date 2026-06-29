@@ -21,16 +21,16 @@ export function TrainerContentCard({
 }: TrainerContentCardProps) {
   return (
     <article className={active ? 'profile-workbench-rail-card trainer-content-rail-card trainer-content-card trainer-content-card--active trainer-content-rail-card-active trainer-content-rail-card-premium-active profile-workbench-rail-card-active' : 'profile-workbench-rail-card trainer-content-rail-card trainer-content-card'}>
-      <div className="trainer-content-card-meta">
+      <div className="trainer-content-card-meta trainer-content-card-header">
         {status}
         <span>{price}</span>
       </div>
-      <h3>{title}</h3>
+      <h3 className="trainer-content-card-title">{title}</h3>
       <div className="trainer-content-card-meta">
         <span>{hasPublicAddress ? 'Адрес настроен' : 'Адрес не указан'}</span>
         <span>{materialsLabel}</span>
       </div>
-      <div className="trainer-content-actions">{actions}</div>
+      <div className="trainer-content-actions trainer-content-card-actions">{actions}</div>
     </article>
   );
 }

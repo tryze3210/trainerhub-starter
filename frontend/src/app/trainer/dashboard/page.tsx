@@ -168,13 +168,13 @@ export default function TrainerDashboardPage() {
               <span className="trainer-home-eyebrow">Главный пульт</span>
               <h2>Кабинет тренера</h2>
               <p>Главная сводка по продажам, ученикам, контенту и выплатам</p>
-              <div className="trainer-home-actions">
+              <div className="trainer-home-actions trainer-home-hero-actions">
                 <Link href="/trainer/dashboard/products" className="premium-primary-button">Создать продукт</Link>
                 <Link href="/trainer/videos?intent=upload" className="premium-secondary-button">Загрузить видео</Link>
                 <Link href="/trainer/business" className="premium-secondary-button">Открыть бизнес</Link>
               </div>
             </div>
-            <div className="trainer-home-hero-total">
+            <div className="trainer-home-hero-total trainer-home-hero-metric">
               <span>{state?.revenue?.summary.available_amount ? 'Доступно к выплате' : grossRevenue > 0 ? 'Оборот' : 'Готовность профиля'}</span>
               <strong>{mainValue}</strong>
               <small>
@@ -192,7 +192,7 @@ export default function TrainerDashboardPage() {
           ) : null}
 
           {loading ? (
-            <section className="trainer-home-panel">
+            <section className="trainer-home-panel trainer-home-loading">
               <h3>Загружаем кабинет тренера</h3>
               <p>Получаем профиль, продажи, материалы и выплаты.</p>
             </section>
@@ -300,23 +300,23 @@ export default function TrainerDashboardPage() {
 
                 <section className="trainer-home-panel">
                   <h3>Состояние кабинета</h3>
-                  <div className="trainer-home-timeline">
-                    <article className="trainer-home-timeline-item">
+                  <div className="trainer-home-timeline trainer-home-status-grid">
+                    <article className="trainer-home-timeline-item trainer-home-status-item">
                       <span>Заявка</span>
                       <strong>{mapApplicationStatusLabel(state.onboarding?.trainer_application_status)}</strong>
                       <small>{user?.active_role === 'trainer' ? 'роль тренера активна' : 'ожидает активации'}</small>
                     </article>
-                    <article className="trainer-home-timeline-item">
+                    <article className="trainer-home-timeline-item trainer-home-status-item">
                       <span>Профиль</span>
                       <strong>{formatPercent(profileProgress)}</strong>
                       <small>{state.profile ? 'готов к продажам' : 'нужно заполнить'}</small>
                     </article>
-                    <article className="trainer-home-timeline-item">
+                    <article className="trainer-home-timeline-item trainer-home-status-item">
                       <span>Контент</span>
                       <strong>{publishedCount} опубликовано</strong>
                       <small>{draftCount} черновиков</small>
                     </article>
-                    <article className="trainer-home-timeline-item">
+                    <article className="trainer-home-timeline-item trainer-home-status-item">
                       <span>Финансы</span>
                       <strong>{state.revenue ? formatMoney(state.revenue.summary.available_amount, currency) : 'Нет данных'}</strong>
                       <small>доступно к выплате</small>

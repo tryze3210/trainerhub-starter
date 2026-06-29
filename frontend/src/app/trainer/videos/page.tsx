@@ -10,7 +10,7 @@ export default function TrainerVideosPage() {
     >
       <section className="trainer-video-studio-workbench">
         <header className="trainer-video-studio-hero">
-          <div>
+          <div className="trainer-video-studio-hero-content">
             <span className="trainer-video-studio-eyebrow">СТУДИЯ МАТЕРИАЛОВ</span>
             <h2>Видео и материалы</h2>
             <p>Загружайте видеоуроки, собирайте программы и наборы, затем публикуйте их в каталоге.</p>

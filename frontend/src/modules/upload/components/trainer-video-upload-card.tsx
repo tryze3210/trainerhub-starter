@@ -54,7 +54,7 @@ export function TrainerVideoUploadCard({
   }
 
   return (
-    <form className={highlighted ? 'trainer-content-form trainer-video-upload-card trainer-video-upload-card-highlight' : 'trainer-content-form trainer-video-upload-card'} onSubmit={onSubmit}>
+    <form className={highlighted ? 'trainer-content-form trainer-video-upload-card trainer-content-upload-card trainer-video-upload-card-highlight' : 'trainer-content-form trainer-video-upload-card trainer-content-upload-card'} onSubmit={onSubmit}>
       <div className="trainer-content-editor-header">
         <div>
           <h2>Загрузить видеоурок</h2>

@@ -630,7 +630,7 @@ export function TrainerContentStudio({ compactHero = false }: TrainerContentStud
   }
 
   return (
-    <section className={compactHero ? 'profile-workbench trainer-video-workbench trainer-video-studio-frame trainer-content-workbench trainer-content-workbench-compact' : 'profile-workbench trainer-video-workbench trainer-video-studio-frame trainer-content-workbench'}>
+    <section className={compactHero ? 'profile-workbench trainer-video-workbench trainer-video-studio-frame trainer-content-workbench trainer-content-workbench-compact trainer-content-workbench--compact' : 'profile-workbench trainer-video-workbench trainer-video-studio-frame trainer-content-workbench'}>
       <header className="trainer-video-studio-toolbar trainer-content-toolbar">
         <div>
           {compactHero ? null : <p className="premium-eyebrow">Студия материалов</p>}
@@ -644,12 +644,12 @@ export function TrainerContentStudio({ compactHero = false }: TrainerContentStud
         </div>
       </header>
 
-      <nav className="profile-workbench-nav" role="tablist" aria-label="Разделы материалов">
+      <nav className="profile-workbench-nav trainer-content-tabs" role="tablist" aria-label="Разделы материалов">
         {contentTabs.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={tab === item.id ? 'profile-workbench-nav-link profile-workbench-nav-link-active' : 'profile-workbench-nav-link'}
+            className={tab === item.id ? 'profile-workbench-nav-link profile-workbench-nav-link-active trainer-content-tab trainer-content-tab--active' : 'profile-workbench-nav-link trainer-content-tab'}
             onClick={() => setTab(item.id)}
           >
             {item.label}
@@ -659,7 +659,7 @@ export function TrainerContentStudio({ compactHero = false }: TrainerContentStud
 
       <section className="profile-workbench-metrics trainer-content-kpi-grid" aria-label="Метрики материалов">
         {metrics.map((metric) => (
-          <article className="profile-workbench-metric" key={metric.label}>
+          <article className="profile-workbench-metric trainer-content-kpi-card" key={metric.label}>
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>
             {metric.hint ? <small>{metric.hint}</small> : null}
@@ -668,12 +668,12 @@ export function TrainerContentStudio({ compactHero = false }: TrainerContentStud
       </section>
 
       {message ? (
-        <div className="trainer-content-state trainer-content-state-success">
+        <div className="trainer-content-state trainer-content-state-success trainer-content-alert trainer-content-alert--success">
           <span>{message}</span>
           {showProductReturn ? <Link className="premium-secondary-button" href="/trainer/dashboard/products?intent=attach-video">Перейти к продуктам</Link> : null}
         </div>
       ) : null}
-      {error ? <div className="trainer-content-state trainer-content-state-error">{error}</div> : null}
+      {error ? <div className="trainer-content-state trainer-content-state-error trainer-content-alert trainer-content-alert--danger">{error}</div> : null}
 
       {tab === 'videos' ? (
         <section className="trainer-video-upload-zone">

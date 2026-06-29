@@ -9626,6 +9626,10 @@ small {
   overflow-y: visible !important;
 }
 
+.trainer-content-workbench--compact {
+  gap: 20px;
+}
+
 .trainer-content-toolbar {
   height: auto !important;
   max-height: none !important;
@@ -9714,5 +9718,129 @@ small {
   .trainer-content-toolbar,
   .trainer-content-upload-dropzone {
     padding: 18px;
+  }
+}
+
+/* v165.2 trainer dashboard/video studio scoped polish */
+.trainer-home-workbench,
+.trainer-video-studio-workbench,
+.trainer-content-workbench {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.trainer-home-hero-actions,
+.trainer-video-studio-actions,
+.trainer-content-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-home-hero-metric,
+.trainer-home-loading,
+.trainer-home-status-grid,
+.trainer-home-status-item,
+.trainer-video-studio-hero-content,
+.trainer-content-tabs,
+.trainer-content-tab,
+.trainer-content-tab--active,
+.trainer-content-kpi-card,
+.trainer-content-alert,
+.trainer-content-alert--success,
+.trainer-content-alert--danger,
+.trainer-content-card-header,
+.trainer-content-card-title,
+.trainer-content-card-meta,
+.trainer-content-upload-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trainer-home-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+}
+
+.trainer-home-status-item {
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+}
+
+.trainer-content-tabs {
+  display: flex;
+  gap: 10px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+}
+
+.trainer-content-tab {
+  scroll-snap-align: start;
+}
+
+.trainer-content-tab--active {
+  border-color: rgba(118, 228, 210, 0.45);
+  color: #f7f3ea;
+  background: rgba(118, 228, 210, 0.10);
+}
+
+.trainer-content-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-content-alert--success {
+  border-color: rgba(74, 222, 128, 0.28);
+}
+
+.trainer-content-alert--danger {
+  border-color: rgba(248, 113, 113, 0.30);
+}
+
+.trainer-content-card-header,
+.trainer-content-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.trainer-content-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.trainer-content-upload-card {
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+}
+
+@media (max-width: 1024px) {
+  .trainer-home-layout,
+  .trainer-video-studio-hero,
+  .trainer-content-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .trainer-home-hero-actions,
+  .trainer-video-studio-actions,
+  .trainer-content-card-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
