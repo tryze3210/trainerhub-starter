@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..', '..');
+const repoRoot = path.resolve(root, '..');
 
 const requiredFiles = [
   'src/app/globals.css',
@@ -737,6 +738,8 @@ const trainerVideoUploadCard = fs.readFileSync(path.join(root, 'src/modules/uplo
 const trainerContentCard = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-content-card.tsx'), 'utf8');
 const trainerUploadFormat = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-upload-format.ts'), 'utf8');
 const trainerAssignmentsPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/assignments/page.tsx'), 'utf8');
+const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
+const v165Doc = fs.readFileSync(path.join(repoRoot, 'docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md'), 'utf8');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -1102,6 +1105,60 @@ for (const fragment of ['/* v165.2 trainer dashboard/video studio scoped polish 
   }
 }
 
+for (const fragment of ['current version v165.3', 'v165.3 | Trainer Dashboard and Video Studio CSS Contract Lock | Current']) {
+  if (!readme.includes(fragment)) {
+    throw new Error(`README.md missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['v165.3', 'Why v165.3 Was Needed', 'trainer-home', 'trainer-video-studio', 'trainer-content']) {
+  if (!v165Doc.includes(fragment)) {
+    throw new Error(`v165 design-system doc missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['TrainerContentStudio', 'compactHero={compactHero}']) {
+  if (!trainerUploadPanel.includes(fragment)) {
+    throw new Error(`trainer upload panel missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-video-studio-workbench', '<TrainerUploadPanel compactHero />']) {
+  if (!trainerVideosPage.includes(fragment)) {
+    throw new Error(`trainer videos page missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-home-workbench', 'trainer-home-hero', 'trainer-home-kpi-grid', 'trainer-home-layout', 'trainer-home-main', 'trainer-home-sidebar']) {
+  if (!trainerDashboardPage.includes(fragment)) {
+    throw new Error(`trainer dashboard page missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-content-workbench', 'trainer-content-workbench--compact', 'trainer-content-toolbar', 'trainer-content-tabs', 'trainer-content-kpi-grid', 'trainer-content-layout']) {
+  if (!trainerContentStudio.includes(fragment)) {
+    throw new Error(`trainer content studio missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-content-card', 'trainer-content-card--active', 'trainer-content-card-header', 'trainer-content-card-title', 'trainer-content-card-meta', 'trainer-content-card-actions']) {
+  if (!trainerContentCard.includes(fragment)) {
+    throw new Error(`trainer content card missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-content-upload-card', 'trainer-content-upload-dropzone', 'trainer-content-upload-dropzone--highlighted', 'trainer-content-file-name', 'trainer-content-upload-step']) {
+  if (!trainerVideoUploadCard.includes(fragment)) {
+    throw new Error(`trainer video upload card missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['v165.3 trainer dashboard/video studio CSS contract lock', '.trainer-home-workbench', '.trainer-home-hero', '.trainer-home-kpi-grid', '.trainer-home-layout', '.trainer-video-studio-workbench', '.trainer-video-studio-hero', '.trainer-content-workbench', '.trainer-content-workbench--compact', '.trainer-content-card--active', '.trainer-content-upload-dropzone', '.trainer-content-file-name', '@media (max-width: 1024px)', '@media (max-width: 720px)', 'overflow-wrap: anywhere', 'scroll-snap-type: x mandatory']) {
+  if (!globals.includes(fragment)) {
+    throw new Error(`globals.css missing v165.3 fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
@@ -1263,4 +1320,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v165.2 design system contract ok');
+console.log('v131-v165.3 design system contract ok');

@@ -1,8 +1,8 @@
-# v165 / v165.1 / v165.2 — Premium Trainer Dashboard, Video Studio and Route QA Pass
+# v165 / v165.1 / v165.2 / v165.3 — Premium Trainer Dashboard, Video Studio and Route QA Pass
 
 ## 1. Scope
 
-v165 started the premium trainer dashboard and video/content studio pass. v165.1 aligned the route-level video shell and `compactHero` flow. v165.2 closes the remaining repair work by synchronizing README versioning, the scoped CSS contract, trainer upload cards and route-level QA documentation.
+v165 started the premium trainer dashboard and video/content studio pass. v165.1 aligned the route-level video shell and `compactHero` flow. v165.2 synchronized README versioning, the scoped CSS contract, trainer upload cards and route-level QA documentation. v165.3 locks that contract with explicit CSS selectors and design-system contract tests before v166 production visual hardening.
 
 Backend and API contracts are intentionally unchanged. Existing load, save, publish, upload, delete, move and retry actions remain wired to the same frontend APIs.
 
@@ -17,7 +17,11 @@ v165 and v165.1 left a few contract gaps:
 
 v165.2 fixes those gaps before the roadmap moves to v166.
 
-## 3. Updated Files
+## 3. Why v165.3 Was Needed
+
+v165.2 aligned the route code and documentation, but the CSS layer and contract tests needed a final lock. v165.3 adds the scoped trainer-home, trainer-video-studio and trainer-content CSS hooks to `frontend/src/app/globals.css` and protects them with design-system contract tests before moving to v166 production visual hardening.
+
+## 4. Updated Files
 
 - `README.md`
 - `MANIFEST.md`
@@ -32,7 +36,7 @@ v165.2 fixes those gaps before the roadmap moves to v166.
 - `frontend/src/app/globals.css`
 - `frontend/tests/contracts/design-system-contract.test.js`
 
-## 4. Trainer Dashboard Cockpit
+## 5. Trainer Dashboard Cockpit
 
 `/trainer/dashboard` uses the premium trainer home contract:
 
@@ -60,7 +64,7 @@ v165.2 fixes those gaps before the roadmap moves to v166.
 
 The page does not use the old generic `TrainerDashboardCard`, `TrainerMetricCard`, `TrainerEmptyState`, `TrainerErrorState`, `TrainerLoadingState` or `TrainerStatusBadge` UI as its final surface. Application status is mapped to Russian text before display. Loading and error states are premium panels with Russian copy and retry.
 
-## 5. Video Studio Route Shell
+## 6. Video Studio Route Shell
 
 `/trainer/videos` owns the page-level context:
 
@@ -73,7 +77,7 @@ The page does not use the old generic `TrainerDashboardCard`, `TrainerMetricCard
 
 The route renders `<TrainerUploadPanel compactHero />`, so the page has one large hero and the studio below it renders as a compact working area. `intent=upload` still routes the user to the video tab and highlighted upload block through the existing `TrainerContentStudio` search param logic.
 
-## 6. TrainerContentStudio Polish
+## 7. TrainerContentStudio Polish
 
 `TrainerUploadPanel` is a typed wrapper:
 
@@ -111,7 +115,7 @@ Upload steps use Russian ellipsis:
 
 Empty states are Russian for videos, programs, bundles, lessons and bundle items.
 
-## 7. TrainerContentCard And TrainerVideoUploadCard Polish
+## 8. TrainerContentCard And TrainerVideoUploadCard Polish
 
 `TrainerContentCard` exposes:
 
@@ -134,9 +138,9 @@ The card keeps Russian metadata: `Адрес настроен` / `Адрес н�
 
 The helper copy is `Сначала загрузите файл, затем сохраните описание и отправьте материал на проверку.` File names wrap safely and mobile actions do not overlap.
 
-## 8. Scoped CSS Contract
+## 9. Scoped CSS Contract
 
-v165.2 adds a dedicated `/* v165.2 trainer dashboard/video studio scoped polish */` CSS block. It covers:
+v165.2 adds a dedicated `/* v165.2 trainer dashboard/video studio scoped polish */` CSS block. v165.3 adds the final `/* v165.3 trainer dashboard/video studio CSS contract lock */` block and confirms the CSS exists in `frontend/src/app/globals.css`. It covers:
 
 - trainer dashboard classes: `.trainer-home-*`
 - video route classes: `.trainer-video-studio-*`
@@ -153,7 +157,9 @@ Safety rules:
 
 No Tailwind, UI library or global reset rules were added.
 
-## 9. Route QA Checklist
+Contract tests verify README, docs, route classes, upload wrapper, content studio, card/upload hooks and CSS selectors.
+
+## 10. Route QA Checklist
 
 Trainer routes covered by code/CSS contract:
 
@@ -184,11 +190,11 @@ For each route, QA checks:
 - horizontal rails do not create page overflow;
 - nav/header does not create extra right-side scroll.
 
-## 10. Backend/API Scope
+## 11. Backend/API Scope
 
 Backend was not touched. API field names, request paths and payload contracts were not changed. Existing save/publish/upload/delete/move/retry handlers remain intact.
 
-## 11. Verification
+## 12. Verification
 
 Expected local checks:
 
@@ -200,8 +206,8 @@ npm run build
 git diff --check
 ```
 
-The design-system contract includes v165.2 fragments for README/docs sync, dashboard class contract, video route shell, compact content studio, content card and upload card.
+The design-system contract includes v165.3 fragments for README/docs sync, dashboard class contract, video route shell, compact content studio, content card, upload card and CSS selectors.
 
-## 12. Known Limitation
+## 13. Known Limitation
 
 `npm run build` can fail before compilation if the existing `.next/trace` file has ownership/cache permissions from another user. In that case the expected local failure is an `EACCES` error opening `frontend/.next/trace`; typecheck, contract and diff-check results should be reported separately, and build must not be marked as passed.

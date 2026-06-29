@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v165.2
+# BUILD REPORT — TrainerHub v165.3
 
 ## Summary
 
-Current version: `v165.2`
+Current version: `v165.3`
 
 The repository has been updated through:
 
@@ -83,8 +83,9 @@ The repository has been updated through:
 - premium trainer dashboard, video studio and route QA pass: v165
 - finalize premium trainer dashboard, video studio and route QA sync: v165.1
 - CSS contract, README sync and trainer studio finalization: v165.2
+- trainer dashboard and video studio CSS contract lock: v165.3
 
-v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio. v158.2 adds an upload-first video workflow, product builder upload bridge, scoped content-studio components and overflow-safe layout guards. v158.3 replaces cramped columns with horizontal trainer workbenches for products and video studio. v159 adds a shared profile workbench layer and moves customer/trainer shells to horizontal premium navigation. v159.1 repairs the dark profile scene, premium surfaces, rails, nav, panels and dark profile form controls. v159.2 removes nested vertical scrollbars, hides rough nav scrollbars and makes the product workbench feel like one continuous page. v160 adds the premium media picker so products can be assembled from the trainer video library without raw ID entry as the main flow. v160.1 completes the product builder integration and keeps manual IDs inside advanced settings. v160.2 stabilizes the media picker CSS, profile workbench fallback and upload-to-product return path before CRM work. v160.3 centralizes product video library loading and starts the extracted profile CSS layer. v160.4 finishes the single source of truth repair: the product builder owns video library loading, retry, loading and error state. v161 replaces technical trainer CRM and schedule dashboards with premium operations workbenches. v162 upgrades trainer sales, finance and content analytics into premium workbenches. v163 upgrades trainer assignments, payout requests and reviews into premium education/reputation/payout workbenches. v164 upgrades trainer business, onboarding and application status into premium workbenches. v165 upgrades the trainer dashboard cockpit, video studio shell and route-level QA layer. v165.1 closes the final README/code/docs sync for the trainer cockpit and content studio. v165.2 finalizes the scoped CSS contract, README sync and trainer studio polish.
+v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio. v158.2 adds an upload-first video workflow, product builder upload bridge, scoped content-studio components and overflow-safe layout guards. v158.3 replaces cramped columns with horizontal trainer workbenches for products and video studio. v159 adds a shared profile workbench layer and moves customer/trainer shells to horizontal premium navigation. v159.1 repairs the dark profile scene, premium surfaces, rails, nav, panels and dark profile form controls. v159.2 removes nested vertical scrollbars, hides rough nav scrollbars and makes the product workbench feel like one continuous page. v160 adds the premium media picker so products can be assembled from the trainer video library without raw ID entry as the main flow. v160.1 completes the product builder integration and keeps manual IDs inside advanced settings. v160.2 stabilizes the media picker CSS, profile workbench fallback and upload-to-product return path before CRM work. v160.3 centralizes product video library loading and starts the extracted profile CSS layer. v160.4 finishes the single source of truth repair: the product builder owns video library loading, retry, loading and error state. v161 replaces technical trainer CRM and schedule dashboards with premium operations workbenches. v162 upgrades trainer sales, finance and content analytics into premium workbenches. v163 upgrades trainer assignments, payout requests and reviews into premium education/reputation/payout workbenches. v164 upgrades trainer business, onboarding and application status into premium workbenches. v165 upgrades the trainer dashboard cockpit, video studio shell and route-level QA layer. v165.1 closes the final README/code/docs sync for the trainer cockpit and content studio. v165.2 finalizes the scoped CSS contract, README sync and trainer studio polish. v165.3 locks the dashboard/video studio CSS contract with explicit selectors and contract tests.
 
 ## Verification Performed In This Workspace
 
@@ -102,11 +103,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v165.2.
+- README current version and roadmap/status table updated to v165.3.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v165.2 trainer dashboard, video studio and route QA sync status.
+- BUILD_REPORT updated with v165.3 trainer dashboard and video studio CSS contract lock status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v165.2.
+- Frontend design-system contract extended for v131-v165.3.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -129,7 +130,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v165.2 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be opened by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v165.3 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be opened by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 
@@ -238,6 +239,7 @@ Current completed roadmap block:
 - v165 — Premium Trainer Dashboard, Video Studio and Route QA Pass
 - v165.1 — Finalize Premium Trainer Dashboard, Video Studio and Route QA Sync
 - v165.2 — CSS Contract, README Sync and Trainer Studio Finalization
+- v165.3 — Trainer Dashboard and Video Studio CSS Contract Lock
 
 Previously completed production-launch block:
 
