@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { ErrorCard, LoadingCard } from '@/components/async-state';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   trainerOnboardingApi,
   type TrainerApplicationPayload,
@@ -40,23 +39,127 @@ function normalizeDelimitedList(value: string): string[] {
     .filter(Boolean);
 }
 
-function statusTone(status?: string): 'secondary' | 'warning' | 'success' | 'danger' {
-  if (status === 'approved') return 'success';
-  if (status === 'rejected') return 'danger';
-  if (status === 'under_review' || status === 'submitted' || status === 'changes_requested') return 'warning';
-  return 'secondary';
+function formatMoney(value?: string | number | null, currency = 'RUB') {
+  const amount = Number(value || 0);
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(amount) ? amount : 0);
 }
 
-function statusLabel(status?: string) {
+function formatDateTime(value?: string | null) {
+  if (!value) return 'Дата не указана';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function formatPercent(value?: string | number | null) {
+  const amount = Number(value || 0);
+  return `${Number.isFinite(amount) ? Math.round(amount) : 0}%`;
+}
+
+function mapTrainerApplicationStatusLabel(status?: string | null) {
   const labels: Record<string, string> = {
-    draft: 'Draft',
-    submitted: 'Submitted',
-    under_review: 'Under review',
-    approved: 'Approved',
-    changes_requested: 'Changes requested',
-    rejected: 'Rejected',
+    draft: 'Черновик',
+    submitted: 'Отправлена',
+    under_review: 'На проверке',
+    approved: 'Одобрена',
+    changes_requested: 'Нужны правки',
+    rejected: 'Отклонена',
   };
-  return labels[status || ''] || 'Draft';
+  return labels[status || ''] || 'Черновик';
+}
+
+function mapReadinessStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    ready: 'Готово',
+    done: 'Готово',
+    approved: 'Одобрено',
+    paid: 'Оплачено',
+    healthy: 'Норма',
+    blocked: 'Заблокировано',
+    blocker: 'Блокер',
+    critical: 'Критично',
+    rejected: 'Отклонено',
+    warning: 'Требует внимания',
+    pending: 'Ожидает',
+  };
+  return labels[status || ''] || 'Не проверено';
+}
+
+function mapStepStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    completed: 'Готово',
+    blocked: 'Нужно исправить',
+    open: 'Открыто',
+  };
+  return labels[status || ''] || 'Открыто';
+}
+
+function mapRoleLabel(role?: string | null) {
+  const labels: Record<string, string> = {
+    customer: 'Клиент',
+    trainer: 'Тренер',
+    admin: 'Администратор',
+  };
+  return labels[role || ''] || 'Пользователь';
+}
+
+function mapProductTypeLabel(type?: string | null) {
+  const labels: Record<string, string> = {
+    video: 'Видео',
+    course: 'Курс',
+    program: 'Программа',
+    product: 'Продукт',
+    bundle: 'Набор',
+  };
+  return labels[type || ''] || 'Материал';
+}
+
+function mapPayoutStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    pending: 'На проверке',
+    approved: 'Одобрено',
+    processing: 'В обработке',
+    paid: 'Выплачено',
+    rejected: 'Отклонено',
+    cancelled: 'Отменено',
+    failed: 'Ошибка выплаты',
+  };
+  return labels[status || ''] || 'Не проверено';
+}
+
+function mapModerationStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    open: 'Открыто',
+    pending: 'Ожидает',
+    under_review: 'На проверке',
+    approved: 'Одобрено',
+    rejected: 'Отклонено',
+    blocked: 'Заблокировано',
+    resolved: 'Решено',
+    closed: 'Закрыто',
+  };
+  return labels[status || ''] || 'Не проверено';
+}
+
+function getBadgeTone(status?: string | null) {
+  if (['ready', 'done', 'approved', 'paid', 'healthy', 'completed', 'resolved', 'closed'].includes(status || '')) return 'success';
+  if (['blocked', 'blocker', 'critical', 'rejected', 'failed'].includes(status || '')) return 'danger';
+  if (['warning', 'pending', 'under_review', 'changes_requested', 'processing', 'submitted', 'open'].includes(status || '')) return 'warning';
+  return 'neutral';
+}
+
+function shortId(value?: string | null) {
+  if (!value) return 'без номера';
+  return value.length > 10 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
 }
 
 function buildPayload(form: FormState): TrainerApplicationPayload {
@@ -106,7 +209,7 @@ export function TrainerOnboardingChecklist() {
       setState(payload);
       setForm(stateToForm(payload));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось загрузить onboarding');
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить профиль тренера');
     } finally {
       setLoading(false);
     }
@@ -121,7 +224,7 @@ export function TrainerOnboardingChecklist() {
     return Boolean((payload.brand_name || payload.legal_name) && payload.bio && payload.specialties?.length);
   }, [form]);
 
-  async function saveDraft(event: React.FormEvent<HTMLFormElement>) {
+  async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
       setSaving(true);
@@ -143,7 +246,7 @@ export function TrainerOnboardingChecklist() {
       setError('');
       setMessage('');
       await trainerOnboardingApi.submitApplication(buildPayload(form));
-      setMessage('Заявка отправлена на модерацию.');
+      setMessage('Заявка отправлена на проверку.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось отправить заявку');
@@ -152,134 +255,200 @@ export function TrainerOnboardingChecklist() {
     }
   }
 
-  if (loading) return <LoadingCard text="Загружаем trainer onboarding…" />;
-  if (error && !state) return <ErrorCard text={`Onboarding недоступен: ${error}`} />;
+  if (loading) {
+    return (
+      <div className="trainer-onboarding-workbench">
+        <section className="trainer-onboarding-form-card">
+          <h3>Загружаем профиль тренера</h3>
+          <p className="trainer-onboarding-muted">Подготавливаем заявку и шаги готовности.</p>
+        </section>
+      </div>
+    );
+  }
 
-  const tone = statusTone(state?.application.status);
+  if (error && !state) {
+    return (
+      <div className="trainer-onboarding-workbench">
+        <section className="trainer-onboarding-alert">
+          <h3>Профиль тренера недоступен</h3>
+          <p>{error}</p>
+          <button className="premium-secondary-button" type="button" onClick={() => void load()}>
+            Повторить
+          </button>
+        </section>
+      </div>
+    );
+  }
+
   const dashboardUnlocked = Boolean(state?.dashboard_unlocked);
+  const applicationStatus = state?.application.status || 'draft';
+  const nextStep = state?.summary.next_step_title || 'Заполнить заявку';
+  const submittedAt = formatDateTime(state?.application.submitted_at);
 
   return (
-    <div className="stack" style={{ gap: 24 }}>
-      <section className="grid-4">
-        <div className="card stat-card">
-          <span className="stat-label">Progress</span>
-          <strong>{state?.summary.completion_percent || 0}%</strong>
-          <small>{state?.summary.completed_steps || 0}/{state?.summary.total_steps || 0} steps</small>
+    <div className="trainer-onboarding-workbench">
+      <section className="trainer-onboarding-hero">
+        <div>
+          <span className="trainer-onboarding-eyebrow">Заявка и профиль</span>
+          <h2>Профиль тренера</h2>
+          <p>Заполните данные, чтобы пройти проверку и открыть продажи</p>
+          <div className="trainer-onboarding-actions">
+            <Link className="premium-secondary-button" href="/trainer/application-status">Смотреть статус проверки</Link>
+            {dashboardUnlocked ? <Link className="premium-primary-button" href="/trainer/dashboard/products">Открыть продукты</Link> : null}
+          </div>
         </div>
-        <div className="card stat-card">
-          <span className="stat-label">Application</span>
-          <strong>{statusLabel(state?.application.status)}</strong>
-          <small>{state?.summary.next_step_title}</small>
-        </div>
-        <div className="card stat-card">
-          <span className="stat-label">Dashboard</span>
-          <strong>{dashboardUnlocked ? 'Unlocked' : 'Locked'}</strong>
-          <small>{dashboardUnlocked ? 'Можно публиковать продукты' : 'Ждёт approve'}</small>
-        </div>
-        <div className="card stat-card">
-          <span className="stat-label">Role</span>
-          <strong>{state?.user.role || 'customer'}</strong>
-          <small>Trainer role выдаётся после approval</small>
+        <div className="trainer-onboarding-status-card">
+          <span>Прогресс заполнения</span>
+          <strong>{formatPercent(state?.summary.completion_percent)}</strong>
+          <small>
+            {mapTrainerApplicationStatusLabel(applicationStatus)} · {dashboardUnlocked ? 'Кабинет открыт' : 'Кабинет закрыт'} · {mapRoleLabel(state?.user.role)}
+          </small>
         </div>
       </section>
 
-      {message ? <div className="success-banner">{message}</div> : null}
-      {error ? <div className="error-banner">{error}</div> : null}
-
-      <section className="card stack" style={{ gap: 18 }}>
-        <div className="row">
-          <div>
-            <span className={`badge ${tone}`}>{statusLabel(state?.application.status)}</span>
-            <h2 className="title-md" style={{ marginTop: 10 }}>Trainer application</h2>
-            <p className="muted">
-              Обычный пользователь может заполнить и отправить заявку. После approval система выдаёт trainer role,
-              создаёт/sync profile и разблокирует dashboard.
-            </p>
-          </div>
-          <Link className="button secondary" href="/trainer/application-status">
-            Смотреть статус
-          </Link>
-        </div>
-
-        {state?.application.reviewer_note ? (
-          <div className="warning-banner">
-            <strong>Комментарий модерации:</strong> {state.application.reviewer_note}
-          </div>
-        ) : null}
-
-        <form className="form" onSubmit={saveDraft}>
-          <div className="grid-2">
-            <label className="form-group">
-              <span className="label">Brand name</span>
-              <input className="input" value={form.brand_name} onChange={(event) => setForm((prev) => ({ ...prev, brand_name: event.target.value }))} />
-            </label>
-            <label className="form-group">
-              <span className="label">Legal name</span>
-              <input className="input" value={form.legal_name} onChange={(event) => setForm((prev) => ({ ...prev, legal_name: event.target.value }))} />
-            </label>
-          </div>
-
-          <div className="grid-2">
-            <label className="form-group">
-              <span className="label">Phone</span>
-              <input className="input" value={form.contact_phone} onChange={(event) => setForm((prev) => ({ ...prev, contact_phone: event.target.value }))} />
-            </label>
-            <label className="form-group">
-              <span className="label">Experience years</span>
-              <input className="input" type="number" min={0} value={form.experience_years} onChange={(event) => setForm((prev) => ({ ...prev, experience_years: event.target.value }))} />
-            </label>
-          </div>
-
-          <div className="grid-2">
-            <label className="form-group">
-              <span className="label">Country</span>
-              <input className="input" value={form.country} onChange={(event) => setForm((prev) => ({ ...prev, country: event.target.value }))} />
-            </label>
-            <label className="form-group">
-              <span className="label">City</span>
-              <input className="input" value={form.city} onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))} />
-            </label>
-          </div>
-
-          <label className="form-group">
-            <span className="label">Positioning / bio</span>
-            <textarea className="textarea" rows={5} value={form.bio} onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} />
-          </label>
-
-          <label className="form-group">
-            <span className="label">Specialties</span>
-            <input className="input" placeholder="strength, mobility, fat loss" value={form.specialties_text} onChange={(event) => setForm((prev) => ({ ...prev, specialties_text: event.target.value }))} />
-          </label>
-
-          <label className="form-group">
-            <span className="label">Links</span>
-            <textarea className="textarea" rows={3} value={form.links_text} onChange={(event) => setForm((prev) => ({ ...prev, links_text: event.target.value }))} />
-          </label>
-
-          <div className="inline">
-            <button className="button secondary" type="submit" disabled={saving || !state?.can_edit_application}>
-              {saving ? 'Сохраняем…' : 'Сохранить draft'}
-            </button>
-            <button className="button" type="button" onClick={() => void submitApplication()} disabled={saving || !applicationReady || !state?.can_submit_application}>
-              {saving ? 'Отправляем…' : 'Отправить на модерацию'}
-            </button>
-          </div>
-        </form>
+      <section className="trainer-onboarding-kpi-grid">
+        <article className="trainer-onboarding-status-card">
+          <span>Прогресс</span>
+          <strong>{formatPercent(state?.summary.completion_percent)}</strong>
+          <small>{state?.summary.completed_steps || 0}/{state?.summary.total_steps || 0} шагов</small>
+        </article>
+        <article className="trainer-onboarding-status-card">
+          <span>Статус заявки</span>
+          <strong>{mapTrainerApplicationStatusLabel(applicationStatus)}</strong>
+          <small>{submittedAt}</small>
+        </article>
+        <article className="trainer-onboarding-status-card">
+          <span>Кабинет</span>
+          <strong>{dashboardUnlocked ? 'Открыт' : 'Закрыт'}</strong>
+          <small>{dashboardUnlocked ? 'Можно публиковать продукты' : 'Ожидает одобрения'}</small>
+        </article>
+        <article className="trainer-onboarding-status-card">
+          <span>Роль</span>
+          <strong>{mapRoleLabel(state?.user.role)}</strong>
+          <small>Роль тренера выдаётся после одобрения заявки</small>
+        </article>
       </section>
 
-      <section className="card stack" style={{ gap: 14 }}>
-        <h2 className="title-md">Production readiness steps</h2>
-        {(state?.steps || []).map((step) => (
-          <div key={step.code} className="row" style={{ alignItems: 'flex-start' }}>
-            <div>
-              <strong>{step.title}</strong>
-              <p className="muted">{step.description}</p>
+      {message ? <div className="trainer-onboarding-alert trainer-onboarding-alert-success">{message}</div> : null}
+      {error ? <div className="trainer-onboarding-alert">{error}</div> : null}
+
+      <section className="trainer-onboarding-layout">
+        <main className="trainer-onboarding-main">
+          <section className="trainer-onboarding-form-card">
+            <div className="trainer-onboarding-panel-head">
+              <div>
+                <span className={`trainer-onboarding-status trainer-onboarding-status-${getBadgeTone(applicationStatus)}`}>
+                  {mapTrainerApplicationStatusLabel(applicationStatus)}
+                </span>
+                <h3>Заявка тренера</h3>
+                <p>После одобрения заявки система откроет кабинет тренера, синхронизирует публичный профиль и разрешит публикацию продуктов.</p>
+              </div>
+              <Link className="premium-secondary-button" href="/trainer/application-status">Смотреть статус проверки</Link>
             </div>
-            <span className={`badge ${step.is_completed ? 'success' : step.is_blocked ? 'warning' : 'secondary'}`}>
-              {step.is_completed ? 'Completed' : step.is_blocked ? 'Blocked' : 'Open'}
-            </span>
-          </div>
-        ))}
+
+            {state?.application.reviewer_note ? (
+              <div className="trainer-onboarding-alert">
+                <strong>Комментарий модерации:</strong> {state.application.reviewer_note}
+              </div>
+            ) : null}
+
+            <form className="trainer-onboarding-form" onSubmit={saveDraft}>
+              <div className="trainer-onboarding-form-grid">
+                <label className="trainer-onboarding-field">
+                  <span>Название бренда</span>
+                  <input value={form.brand_name} onChange={(event) => setForm((prev) => ({ ...prev, brand_name: event.target.value }))} />
+                </label>
+                <label className="trainer-onboarding-field">
+                  <span>Юридическое имя</span>
+                  <input value={form.legal_name} onChange={(event) => setForm((prev) => ({ ...prev, legal_name: event.target.value }))} />
+                </label>
+              </div>
+
+              <div className="trainer-onboarding-form-grid">
+                <label className="trainer-onboarding-field">
+                  <span>Телефон</span>
+                  <input value={form.contact_phone} onChange={(event) => setForm((prev) => ({ ...prev, contact_phone: event.target.value }))} />
+                </label>
+                <label className="trainer-onboarding-field">
+                  <span>Опыт в годах</span>
+                  <input type="number" min={0} value={form.experience_years} onChange={(event) => setForm((prev) => ({ ...prev, experience_years: event.target.value }))} />
+                </label>
+              </div>
+
+              <div className="trainer-onboarding-form-grid">
+                <label className="trainer-onboarding-field">
+                  <span>Страна</span>
+                  <input value={form.country} onChange={(event) => setForm((prev) => ({ ...prev, country: event.target.value }))} />
+                </label>
+                <label className="trainer-onboarding-field">
+                  <span>Город</span>
+                  <input value={form.city} onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))} />
+                </label>
+              </div>
+
+              <label className="trainer-onboarding-field">
+                <span>Позиционирование и описание</span>
+                <textarea rows={5} value={form.bio} onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} />
+              </label>
+
+              <label className="trainer-onboarding-field">
+                <span>Специализации</span>
+                <input placeholder="силовые тренировки, мобильность, снижение веса" value={form.specialties_text} onChange={(event) => setForm((prev) => ({ ...prev, specialties_text: event.target.value }))} />
+              </label>
+
+              <label className="trainer-onboarding-field">
+                <span>Ссылки</span>
+                <textarea rows={3} value={form.links_text} onChange={(event) => setForm((prev) => ({ ...prev, links_text: event.target.value }))} />
+              </label>
+
+              <div className="trainer-onboarding-actions">
+                <button className="premium-secondary-button" type="submit" disabled={saving || !state?.can_edit_application}>
+                  {saving ? 'Сохраняем…' : 'Сохранить черновик'}
+                </button>
+                <button className="premium-primary-button" type="button" onClick={() => void submitApplication()} disabled={saving || !applicationReady || !state?.can_submit_application}>
+                  {saving ? 'Отправляем…' : 'Отправить на проверку'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+
+        <aside className="trainer-onboarding-sidebar">
+          <section className="trainer-onboarding-form-card">
+            <h3>Шаги готовности</h3>
+            <p className="trainer-onboarding-muted">{nextStep}</p>
+            <div className="trainer-onboarding-step-list">
+              {(state?.steps || []).map((step) => {
+                const stepStatus = step.is_completed ? 'completed' : step.is_blocked ? 'blocked' : 'open';
+                return (
+                  <article className="trainer-onboarding-step-card" key={step.code}>
+                    <div>
+                      <strong>{step.title}</strong>
+                      <p>{step.description}</p>
+                    </div>
+                    <span className={`trainer-onboarding-status trainer-onboarding-status-${getBadgeTone(stepStatus)}`}>
+                      {mapStepStatusLabel(stepStatus)}
+                    </span>
+                    {step.action_href ? <Link className="premium-secondary-button" href={step.action_href}>Открыть</Link> : null}
+                  </article>
+                );
+              })}
+              {!state?.steps.length ? <div className="trainer-onboarding-empty">Шаги готовности пока не сформированы.</div> : null}
+            </div>
+          </section>
+
+          <section className="trainer-onboarding-form-card">
+            <h3>Сводка профиля</h3>
+            <article className="trainer-onboarding-step-card">
+              <strong>{state?.profile?.display_name || form.brand_name || 'Публичное имя не указано'}</strong>
+              <p>{state?.profile?.headline || form.bio || 'Описание появится после заполнения заявки.'}</p>
+            </article>
+            <article className="trainer-onboarding-step-card">
+              <strong>{shortId(state?.application.id)}</strong>
+              <p>{mapReadinessStatusLabel(state?.summary.status)} · {mapModerationStatusLabel(applicationStatus)}</p>
+            </article>
+          </section>
+        </aside>
       </section>
     </div>
   );

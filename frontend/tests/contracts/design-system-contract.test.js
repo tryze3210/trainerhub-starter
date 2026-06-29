@@ -51,6 +51,7 @@ const requiredFiles = [
   '../docs/design-system/v161_premium_trainer_operations.md',
   '../docs/design-system/v162_premium_trainer_finance_analytics.md',
   '../docs/design-system/v163_premium_trainer_education_reviews_payouts.md',
+  '../docs/design-system/v164_premium_trainer_business_onboarding_status.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -720,6 +721,9 @@ const profileWorkbench = fs.readFileSync(path.join(root, 'src/design-system/prof
 const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
 const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/business/page.tsx'), 'utf8');
+const trainerOnboardingPage = fs.readFileSync(path.join(root, 'src/app/trainer/onboarding/page.tsx'), 'utf8');
+const trainerOnboardingChecklist = fs.readFileSync(path.join(root, 'src/modules/trainer-onboarding/components/trainer-onboarding-checklist.tsx'), 'utf8');
+const trainerApplicationStatusPage = fs.readFileSync(path.join(root, 'src/app/trainer/application-status/page.tsx'), 'utf8');
 const trainerReviewsPage = fs.readFileSync(path.join(root, 'src/app/trainer/reviews/page.tsx'), 'utf8');
 const trainerProductBuilder = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx'), 'utf8');
 const trainerProductMediaPicker = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-media-picker.tsx'), 'utf8');
@@ -1012,6 +1016,48 @@ for (const fragment of ['.trainer-education-workbench', '.trainer-review-workben
   }
 }
 
+for (const [fileName, source, forbiddenFragments] of [
+  ['trainer/business/page.tsx', trainerBusinessPage, ['Available payout', 'Reserved payout', 'Lifetime earned', 'Active payouts', 'Business readiness', 'Content inventory', 'Content studio', 'Drafts', 'Published', 'Pending review', 'Order items', 'Top products', 'Latest payout requests', 'destination not set', 'Moderation & risk', 'Open cases', 'Risk flags', 'className="card', 'className="stack', 'className="row', 'style={{']],
+  ['trainer-onboarding-checklist.tsx', trainerOnboardingChecklist, ['<span className="stat-label">Progress</span>', '<span className="stat-label">Application</span>', '<span className="stat-label">Dashboard</span>', '<span className="stat-label">Role</span>', 'Trainer application', 'Brand name', 'Legal name', 'Experience years', 'Positioning / bio', 'Production readiness steps', 'Сохранить draft', 'Under review', 'Changes requested', 'className="card', 'className="stack', 'className="row', 'style={{']],
+  ['trainer/application-status/page.tsx', trainerApplicationStatusPage, ['Статус заявки тренера', 'className="card', 'className="stack', 'className="row', 'style={{', 'trainerStatusLabel']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains v164 forbidden fragment: ${forbiddenFragment}`);
+    }
+  }
+}
+
+for (const fragment of ['trainer-business-workbench', 'trainer-business-hero', 'trainer-business-kpi-grid', 'trainer-business-layout', 'Готовность бизнеса', 'Контент и продукты', 'Динамика выручки', 'Лучшие продукты', 'Последние заявки на выплаты', 'Риски и модерация', 'mapReadinessStatusLabel', 'mapPayoutStatusLabel', 'mapModerationStatusLabel']) {
+  if (!trainerBusinessPage.includes(fragment)) {
+    throw new Error(`trainer business page missing v164 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Профиль тренера', 'Заявка, публичное позиционирование и готовность кабинета']) {
+  if (!trainerOnboardingPage.includes(fragment)) {
+    throw new Error(`trainer onboarding page missing v164 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-onboarding-workbench', 'trainer-onboarding-hero', 'trainer-onboarding-kpi-grid', 'trainer-onboarding-layout', 'Заявка тренера', 'Шаги готовности', 'Сохранить черновик', 'Отправить на проверку', 'Смотреть статус проверки', 'mapTrainerApplicationStatusLabel', 'mapStepStatusLabel', 'mapRoleLabel']) {
+  if (!trainerOnboardingChecklist.includes(fragment)) {
+    throw new Error(`trainer onboarding checklist missing v164 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-status-workbench', 'trainer-status-hero', 'trainer-status-kpi-grid', 'trainer-status-layout', 'Результат проверки', 'Шаги готовности', 'Редактировать заявку', 'Перейти к продуктам', 'mapTrainerApplicationStatusLabel', 'mapStepStatusLabel', 'mapRoleLabel']) {
+  if (!trainerApplicationStatusPage.includes(fragment)) {
+    throw new Error(`trainer application status page missing v164 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['.trainer-business-workbench', '.trainer-business-hero', '.trainer-business-kpi-grid', '.trainer-business-layout', '.trainer-business-main', '.trainer-business-sidebar', '.trainer-business-panel', '.trainer-business-card', '.trainer-business-timeline', '.trainer-business-timeline-item', '.trainer-business-readiness-card', '.trainer-business-risk-card', '.trainer-onboarding-workbench', '.trainer-onboarding-hero', '.trainer-onboarding-kpi-grid', '.trainer-onboarding-layout', '.trainer-onboarding-main', '.trainer-onboarding-sidebar', '.trainer-onboarding-form-card', '.trainer-onboarding-step-card', '.trainer-onboarding-status-card', '.trainer-onboarding-field', '.trainer-onboarding-actions', '.trainer-onboarding-alert', '.trainer-onboarding-empty', '.trainer-status-workbench', '.trainer-status-hero', '.trainer-status-kpi-grid', '.trainer-status-layout', '.trainer-status-panel', '.trainer-status-step-card', '.trainer-status-result-card', '.trainer-status-timeline']) {
+  if (!globals.includes(fragment)) {
+    throw new Error(`globals.css missing v164 fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
@@ -1173,4 +1219,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v163 design system contract ok');
+console.log('v131-v164 design system contract ok');

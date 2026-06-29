@@ -12,7 +12,7 @@ export default function TrainerOnboardingPage() {
     >
       <TrainerDashboardShell
         title="Профиль тренера"
-        description="Заполните публичный профиль, чтобы ученики понимали вашу специализацию и могли покупать продукты."
+        description="Заявка, публичное позиционирование и готовность кабинета"
       >
         <TrainerOnboardingChecklist />
       </TrainerDashboardShell>

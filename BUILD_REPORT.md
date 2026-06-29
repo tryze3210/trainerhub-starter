@@ -1,8 +1,8 @@
-# BUILD REPORT — TrainerHub v163
+# BUILD REPORT — TrainerHub v164
 
 ## Summary
 
-Current version: `v163`
+Current version: `v164`
 
 The repository has been updated through:
 
@@ -79,8 +79,9 @@ The repository has been updated through:
 - premium trainer CRM and schedule pages: v161
 - premium trainer finance and analytics workbenches: v162
 - premium trainer education, reviews and payout request workbenches: v163
+- premium trainer business, onboarding and application status workbenches: v164
 
-v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio. v158.2 adds an upload-first video workflow, product builder upload bridge, scoped content-studio components and overflow-safe layout guards. v158.3 replaces cramped columns with horizontal trainer workbenches for products and video studio. v159 adds a shared profile workbench layer and moves customer/trainer shells to horizontal premium navigation. v159.1 repairs the dark profile scene, premium surfaces, rails, nav, panels and dark profile form controls. v159.2 removes nested vertical scrollbars, hides rough nav scrollbars and makes the product workbench feel like one continuous page. v160 adds the premium media picker so products can be assembled from the trainer video library without raw ID entry as the main flow. v160.1 completes the product builder integration and keeps manual IDs inside advanced settings. v160.2 stabilizes the media picker CSS, profile workbench fallback and upload-to-product return path before CRM work. v160.3 centralizes product video library loading and starts the extracted profile workbench CSS layer. v160.4 finishes the single source of truth repair: the product builder owns video library loading, retry, loading and error state. v161 replaces technical trainer CRM and schedule dashboards with premium operations workbenches. v162 upgrades trainer sales, finance and content analytics into premium workbenches. v163 upgrades trainer assignments, payout requests and reviews into premium education/reputation/payout workbenches.
+v158 upgrades the trainer product builder into a premium commercial workspace. v158.1 removes the remaining technical CRUD windows from product builder and video studio. v158.2 adds an upload-first video workflow, product builder upload bridge, scoped content-studio components and overflow-safe layout guards. v158.3 replaces cramped columns with horizontal trainer workbenches for products and video studio. v159 adds a shared profile workbench layer and moves customer/trainer shells to horizontal premium navigation. v159.1 repairs the dark profile scene, premium surfaces, rails, nav, panels and dark profile form controls. v159.2 removes nested vertical scrollbars, hides rough nav scrollbars and makes the product workbench feel like one continuous page. v160 adds the premium media picker so products can be assembled from the trainer video library without raw ID entry as the main flow. v160.1 completes the product builder integration and keeps manual IDs inside advanced settings. v160.2 stabilizes the media picker CSS, profile workbench fallback and upload-to-product return path before CRM work. v160.3 centralizes product video library loading and starts the extracted profile workbench CSS layer. v160.4 finishes the single source of truth repair: the product builder owns video library loading, retry, loading and error state. v161 replaces technical trainer CRM and schedule dashboards with premium operations workbenches. v162 upgrades trainer sales, finance and content analytics into premium workbenches. v163 upgrades trainer assignments, payout requests and reviews into premium education/reputation/payout workbenches. v164 upgrades trainer business, onboarding and application status into premium workbenches.
 
 ## Verification Performed In This Workspace
 
@@ -98,11 +99,11 @@ git diff --check
 
 Documentation sync checks:
 
-- README current version and roadmap/status table updated to v163.
+- README current version and roadmap/status table updated to v164.
 - MANIFEST backend/frontend module inventory aligned with current tree.
-- BUILD_REPORT updated with v163 trainer education, reviews and payout status.
+- BUILD_REPORT updated with v164 trainer business, onboarding and application status.
 - Production readiness contracts updated for v107 permission classes, v108 tenant isolation tests, v109 global search tests, v110 support console tests, v111 chargeback tests, v112 finance document tests, v113 legal compliance tests, v114 observability runtime tests, v115 runbook tests, v116 CI/CD production gate tests, v117 demo seed tests, v118 public marketplace tests, v119 launch candidate tests and v120 production launch pack tests.
-- Frontend design-system contract extended for v131-v163.
+- Frontend design-system contract extended for v131-v164.
 
 Frontend route smoke checks from the previous launch-hardening pass covered:
 
@@ -125,7 +126,7 @@ Launch checks:
 - `python manage.py check_production_readiness --json --fail-on-degraded`
 - `bash scripts/ci/launch_gate.sh`
 
-For the current v163 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be opened by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
+For the current v164 pass, the local workspace verified frontend typecheck, design-system contract tests and patch hygiene. Production build could not start because existing generated `.next` artifacts are owned by `nobody:nogroup` and cannot be opened by the active workspace user. Full Django/DRF execution is still blocked by missing backend Python dependencies in the active interpreter.
 
 ## Known Local Limitation
 
@@ -216,6 +217,21 @@ Current completed roadmap block:
 - v157 — Premium Trainer Cabinet Shell and Core Trainer Sections
 - v157.1 — Trainer Cabinet Integration Repair
 - v158 — Premium Trainer Product Builder
+- v158.1 — Final Product Builder and Video Studio Repair
+- v158.2 — Product/Video Studio Usability Repair
+- v158.3 — Horizontal Workbench Rescue
+- v159 — Premium Profile Workbench System
+- v159.1 — Premium Profile Background and Surface Repair
+- v159.2 — Remove Nested Scrollbars and Polish Profile Workbench
+- v160 — Premium Media Library Picker and Product Publishing Flow
+- v160.1 — Integrate Media Picker Into Product Builder
+- v160.2 — Product/Video Flow Stabilization Before CRM
+- v160.3 — Product Media Picker Cleanup and CSS Layer Stabilization
+- v160.4 — Product Media Single Source of Truth
+- v161 — Premium Trainer CRM and Schedule Pages
+- v162 — Premium Trainer Finance & Analytics Workbenches
+- v163 — Premium Trainer Education, Reviews and Payout Request Workbenches
+- v164 — Premium Trainer Business, Onboarding and Application Status Workbenches
 
 Previously completed production-launch block:
 
