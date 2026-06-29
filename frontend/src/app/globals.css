@@ -9221,3 +9221,385 @@ small {
     grid-template-columns: 1fr;
   }
 }
+
+/* v165 — Premium trainer dashboard, video studio and route QA pass */
+.trainer-home-workbench,
+.trainer-video-studio-workbench,
+.trainer-video-studio-frame,
+.trainer-home-workbench *,
+.trainer-video-studio-workbench *,
+.trainer-video-studio-frame * {
+  box-sizing: border-box;
+}
+
+.trainer-home-workbench,
+.trainer-video-studio-workbench {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  color: #f7f3ea;
+}
+
+.trainer-home-workbench :where(h2, h3, p, span, strong, small, a, button),
+.trainer-video-studio-workbench :where(h2, h3, p, span, strong, small, a, button, label),
+.trainer-video-studio-frame :where(h2, h3, p, span, strong, small, a, button, label) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.trainer-home-hero,
+.trainer-video-studio-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+  align-items: end;
+  gap: 20px;
+  min-width: 0;
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.026));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.trainer-home-hero h2,
+.trainer-video-studio-hero h2,
+.trainer-video-studio-toolbar h2,
+.trainer-home-hero p,
+.trainer-video-studio-hero p,
+.trainer-video-studio-toolbar p {
+  margin: 0;
+}
+
+.trainer-home-hero h2,
+.trainer-video-studio-hero h2 {
+  margin-top: 8px;
+  color: #f7f3ea;
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  letter-spacing: 0;
+}
+
+.trainer-home-eyebrow,
+.trainer-video-studio-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgba(118, 228, 210, 0.18);
+  border-radius: 999px;
+  color: #ccfbf1;
+  background: rgba(20, 184, 166, 0.08);
+  font-size: 0.8rem;
+}
+
+.trainer-home-hero p,
+.trainer-video-studio-hero p,
+.trainer-video-studio-toolbar p,
+.trainer-home-panel p,
+.trainer-home-action-card p,
+.trainer-home-profile-card p {
+  color: rgba(184, 192, 204, 0.82);
+}
+
+.trainer-home-actions,
+.trainer-video-studio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 18px;
+}
+
+.trainer-video-studio-actions {
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.trainer-home-hero-total,
+.trainer-home-kpi-card,
+.trainer-home-action-card,
+.trainer-home-timeline-item,
+.trainer-home-product-card,
+.trainer-home-profile-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.026));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.trainer-home-hero-total {
+  border-color: rgba(118, 228, 210, 0.2);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-home-hero-total span,
+.trainer-home-kpi-card span,
+.trainer-home-kpi-card small,
+.trainer-home-timeline-item span,
+.trainer-home-timeline-item small,
+.trainer-home-product-card span,
+.trainer-home-product-card small,
+.trainer-home-profile-card span,
+.trainer-home-profile-card small {
+  color: rgba(184, 192, 204, 0.8);
+}
+
+.trainer-home-hero-total strong,
+.trainer-home-kpi-card strong,
+.trainer-home-timeline-item strong,
+.trainer-home-product-card strong,
+.trainer-home-profile-card strong {
+  color: #f7f3ea;
+  font-size: clamp(1.2rem, 2.4vw, 2rem);
+  letter-spacing: 0;
+}
+
+.trainer-home-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
+  gap: 20px;
+  min-width: 0;
+  align-items: start;
+}
+
+.trainer-home-main,
+.trainer-home-sidebar {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.trainer-home-panel,
+.trainer-home-alert,
+.trainer-video-studio-toolbar,
+.trainer-video-upload-helper {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.055), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.026));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 20px 70px rgba(0, 0, 0, 0.16);
+}
+
+.trainer-home-panel h3,
+.trainer-home-alert h3,
+.trainer-video-studio-toolbar h2 {
+  margin: 0;
+  color: #f7f3ea;
+  letter-spacing: 0;
+}
+
+.trainer-home-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainer-home-timeline {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainer-home-product-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(min(78vw, 230px), 280px);
+  gap: 12px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.trainer-home-product-card {
+  scroll-snap-align: start;
+}
+
+.trainer-home-product-card strong,
+.trainer-home-profile-card p,
+.trainer-content-rail-card h3,
+.trainer-content-preview-panel p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.trainer-home-product-card strong,
+.trainer-content-rail-card h3 {
+  -webkit-line-clamp: 2;
+}
+
+.trainer-home-profile-card p,
+.trainer-content-preview-panel p {
+  -webkit-line-clamp: 3;
+}
+
+.trainer-home-empty {
+  display: grid;
+  min-width: min(100%, 280px);
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(247, 243, 234, 0.86);
+}
+
+.trainer-video-studio-frame {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.trainer-video-studio-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.trainer-video-studio-frame > .profile-workbench-hero {
+  display: none;
+}
+
+.trainer-content-studio-loading,
+.trainer-video-studio-frame,
+.trainer-video-studio-frame .profile-workbench-editor-panel,
+.trainer-video-studio-frame .profile-workbench-panel,
+.trainer-video-studio-frame .trainer-content-editor-panel {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+.trainer-video-studio-frame .profile-workbench-nav {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+}
+
+.trainer-video-studio-frame .profile-workbench-nav-link {
+  scroll-snap-align: start;
+}
+
+.trainer-video-studio-frame .trainer-content-rail,
+.trainer-video-studio-frame .profile-workbench-rail {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+}
+
+.trainer-content-rail-card,
+.trainer-content-card-meta,
+.trainer-content-actions,
+.trainer-lesson-row,
+.trainer-bundle-row,
+.trainer-upload-dropzone {
+  min-width: 0;
+}
+
+.trainer-content-rail-card-premium-active {
+  border-color: rgba(118, 228, 210, 0.5);
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 52px rgba(0, 0, 0, 0.22);
+}
+
+.trainer-content-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trainer-content-card-meta span,
+.trainer-content-upload-step,
+.trainer-upload-dropzone span {
+  overflow-wrap: anywhere;
+}
+
+.trainer-video-upload-helper {
+  padding: 14px 16px;
+  color: rgba(247, 243, 234, 0.88);
+}
+
+.trainer-upload-dropzone input {
+  max-width: 100%;
+}
+
+.trainer-lesson-row,
+.trainer-bundle-row {
+  width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+  .trainer-home-hero,
+  .trainer-video-studio-hero,
+  .trainer-home-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-video-studio-toolbar {
+    display: grid;
+  }
+
+  .trainer-video-studio-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .trainer-home-hero,
+  .trainer-video-studio-hero,
+  .trainer-home-panel,
+  .trainer-home-alert,
+  .trainer-video-studio-toolbar {
+    padding: 20px;
+  }
+
+  .trainer-home-actions,
+  .trainer-video-studio-actions,
+  .trainer-content-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-home-actions a,
+  .trainer-video-studio-actions a,
+  .trainer-video-studio-actions button,
+  .trainer-content-actions a,
+  .trainer-content-actions button {
+    width: 100%;
+  }
+}

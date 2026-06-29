@@ -1,14 +1,14 @@
-# MANIFEST — TrainerHub v164
+# MANIFEST — TrainerHub v165
 
-This manifest describes the current repository state after v164 Premium Trainer Business, Onboarding and Application Status Workbenches.
+This manifest describes the current repository state after v165 Premium Trainer Dashboard, Video Studio and Route QA Pass.
 
 ## Current Version
 
-- Current roadmap version: `v164`
+- Current roadmap version: `v165`
 - Closed block: `v70-v95`
 - Closed launch block: `v97-v105` content, learning, progress, messaging, launch hardening
 - Closed UX block: `v131-v150` UX redesign and premium experience
-- Current storefront block: `v151-v164` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, product builder, video studio repair, profile workbench scroll polish, media picker single source of truth, trainer operations, trainer finance analytics, education/reviews/payout workbenches and trainer business/onboarding/status workbenches
+- Current storefront block: `v151-v165` premium brand foundation, marketing homepage, marketplace catalog, product detail landing pages, checkout shell, customer cabinet, product builder, video studio repair, profile workbench scroll polish, media picker single source of truth, trainer operations, trainer finance analytics, education/reviews/payout workbenches, trainer business/onboarding/status workbenches and trainer dashboard/video route QA
 - Recent local roadmap commits include content-learning, messaging and launch-hardening blocks through v105.
 
 ## Core Backend Modules
@@ -236,7 +236,7 @@ UI design system modules and contracts:
 - `frontend/src/design-system/theme.tsx` — light/dark, brand palette and white-label runtime theme engine.
 - `frontend/src/design-system/index.ts` — design-system public exports.
 - `frontend/src/app/globals.css` — semantic CSS variables, premium utilities, aliases and shared interaction states.
-- `frontend/tests/contracts/design-system-contract.test.js` — v131-v164 design-system contract test.
+- `frontend/tests/contracts/design-system-contract.test.js` — v131-v165 design-system contract test.
 - `docs/design-system/v131_ui_design_system.md` — v131 design-system notes.
 - `docs/design-system/v132_layout_system.md` — v132 layout-system notes.
 - `docs/design-system/v133_component_library.md` — v133 component-library notes.
@@ -469,6 +469,7 @@ Premium trainer product builder modules:
 - `docs/design-system/v162_premium_trainer_finance_analytics.md` — v162 premium trainer finance and analytics notes.
 - `docs/design-system/v163_premium_trainer_education_reviews_payouts.md` — v163 premium trainer education, reviews and payout notes.
 - `docs/design-system/v164_premium_trainer_business_onboarding_status.md` — v164 premium trainer business, onboarding and application status notes.
+- `docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md` — v165 premium trainer dashboard, video studio and route QA notes.
 
 ## Roadmap Status
 
@@ -537,7 +538,8 @@ Premium trainer product builder modules:
 | v161 | Premium trainer CRM and schedule pages | Done |
 | v162 | Premium trainer finance and analytics workbenches | Done |
 | v163 | Premium trainer education, reviews and payout request workbenches | Done |
-| v164 | Premium trainer business, onboarding and application status workbenches | Current |
+| v164 | Premium trainer business, onboarding and application status workbenches | Done |
+| v165 | Premium trainer dashboard, video studio and route QA pass | Current |
 
 ## Current Frontend Modules
 

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
 import { TrainerUploadPanel } from '@/modules/upload/components/trainer-upload-panel';
 
@@ -5,9 +6,23 @@ export default function TrainerVideosPage() {
   return (
     <TrainerDashboardShell
       title="Видео и материалы"
-      description="Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге."
+      description="Загрузка видео, сборка программ и подготовка материалов к продаже"
     >
-      <TrainerUploadPanel />
+      <section className="trainer-video-studio-workbench">
+        <header className="trainer-video-studio-hero">
+          <div>
+            <span className="trainer-video-studio-eyebrow">Контент-студия</span>
+            <h2>Студия материалов</h2>
+            <p>Загружайте видео, собирайте программы и наборы, затем публикуйте их в каталоге.</p>
+          </div>
+          <div className="trainer-video-studio-actions">
+            <Link className="premium-primary-button" href="/trainer/videos?intent=upload">Загрузить видео</Link>
+            <Link className="premium-secondary-button" href="/trainer/dashboard/products">Создать продукт</Link>
+            <Link className="premium-secondary-button" href="/trainer/dashboard/analytics">Посмотреть аналитику</Link>
+          </div>
+        </header>
+        <TrainerUploadPanel />
+      </section>
     </TrainerDashboardShell>
   );
 }

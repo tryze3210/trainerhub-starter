@@ -307,13 +307,13 @@ export function TrainerContentStudio() {
     event.preventDefault();
     try {
       setSaving(true);
-      setUploadStep('Подготавливаем загрузку...');
+      setUploadStep('Подготавливаем загрузку…');
       resetMessages();
       let uploadedVideoAssetId = selectedVideo?.video_asset_id || null;
       if (file) {
-        setUploadStep('Загружаем файл...');
+        setUploadStep('Загружаем файл…');
         uploadedVideoAssetId = await uploadFileDirect(file);
-        setUploadStep('Завершаем обработку...');
+        setUploadStep('Завершаем обработку…');
       }
       const payload = {
         title: videoForm.title.trim(),
@@ -616,8 +616,8 @@ export function TrainerContentStudio() {
 
   if (loading) {
     return (
-      <section className="trainer-content-studio">
-        <div className="trainer-content-editor">
+      <section className="trainer-content-studio trainer-content-studio-loading">
+        <div className="trainer-content-state">
           <h2>Загружаем материалы</h2>
           <p>Получаем видео, программы и наборы тренера.</p>
         </div>
@@ -626,14 +626,14 @@ export function TrainerContentStudio() {
   }
 
   return (
-    <section className="profile-workbench trainer-video-workbench">
-      <header className="profile-workbench-hero">
-        <div className="profile-workbench-hero-copy">
-          <p className="premium-eyebrow">ВИДЕО И МАТЕРИАЛЫ</p>
+    <section className="profile-workbench trainer-video-workbench trainer-video-studio-frame">
+      <header className="trainer-video-studio-toolbar">
+        <div>
+          <p className="premium-eyebrow">Студия материалов</p>
           <h2>Видео и материалы</h2>
           <p>Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.</p>
         </div>
-        <div className="profile-workbench-hero-actions">
+        <div className="trainer-video-studio-actions">
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('videos'); startNew('videos'); }}>Новый видеоурок</button>
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('programs'); startNew('programs'); }}>Новая программа</button>
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('bundles'); startNew('bundles'); }}>Новый набор</button>
@@ -669,10 +669,13 @@ export function TrainerContentStudio() {
           {showProductReturn ? <Link className="premium-secondary-button" href="/trainer/dashboard/products?intent=attach-video">Перейти к продуктам</Link> : null}
         </div>
       ) : null}
-      {error ? <div className="trainer-content-state trainer-content-state-error">Не удалось загрузить материалы. Попробуйте обновить страницу или повторить действие позже.</div> : null}
+      {error ? <div className="trainer-content-state trainer-content-state-error">{error}</div> : null}
 
       {tab === 'videos' ? (
         <section className="trainer-video-upload-zone">
+          <div className="trainer-video-upload-helper">
+            Сначала загрузите файл, затем сохраните описание и отправьте материал на проверку.
+          </div>
           <TrainerVideoUploadCard
             title={videoForm.title}
             slug={videoForm.slug}
@@ -760,12 +763,12 @@ export function TrainerContentStudio() {
                 </div>
                 <form className="trainer-content-form" onSubmit={saveLesson}>
                   <label className="trainer-content-field"><span>Название урока</span><input className="trainer-content-input" value={lessonForm.title} onChange={(event) => setLessonForm((current) => ({ ...current, title: event.target.value }))} required /></label>
-                  <label className="trainer-content-field"><span>Описание урока</span><textarea className="trainer-content-textarea" rows={3} value={lessonForm.description} onChange={(event) => setLessonForm((current) => ({ ...current, description: event.target.value }))} /></label>
+                  <label className="trainer-content-field"><span>Описание</span><textarea className="trainer-content-textarea" rows={3} value={lessonForm.description} onChange={(event) => setLessonForm((current) => ({ ...current, description: event.target.value }))} /></label>
                   <div className="trainer-content-form-grid">
-                    <label className="trainer-content-field"><span>Порядок</span><input className="trainer-content-input" type="number" min="1" value={lessonForm.position} onChange={(event) => setLessonForm((current) => ({ ...current, position: event.target.value }))} /></label>
-                    <label className="trainer-content-field"><span>Видеофайл</span><select className="trainer-content-select" value={lessonForm.video_asset_id} onChange={(event) => setLessonForm((current) => ({ ...current, video_asset_id: event.target.value }))}><option value="">Выберите видеофайл</option>{assetVideoOptions.map((video) => <option key={video.id} value={video.video_asset_id || ''}>{video.title}</option>)}</select></label>
+                    <label className="trainer-content-field"><span>Позиция</span><input className="trainer-content-input" type="number" min="1" value={lessonForm.position} onChange={(event) => setLessonForm((current) => ({ ...current, position: event.target.value }))} /></label>
+                    <label className="trainer-content-field"><span>Видео из библиотеки</span><select className="trainer-content-select" value={lessonForm.video_asset_id} onChange={(event) => setLessonForm((current) => ({ ...current, video_asset_id: event.target.value }))}><option value="">Выберите видео</option>{assetVideoOptions.map((video) => <option key={video.id} value={video.video_asset_id || ''}>{video.title}</option>)}</select></label>
                   </div>
-                  <label className="trainer-content-checkbox"><input type="checkbox" checked={lessonForm.is_preview} onChange={(event) => setLessonForm((current) => ({ ...current, is_preview: event.target.checked }))} /><span>Открытый урок для просмотра</span></label>
+                  <label className="trainer-content-checkbox"><input type="checkbox" checked={lessonForm.is_preview} onChange={(event) => setLessonForm((current) => ({ ...current, is_preview: event.target.checked }))} /><span>Бесплатный предпросмотр</span></label>
                   <div className="trainer-content-actions">
                     <button className="trainer-content-button" type="submit" disabled={saving || !selectedProgramId}>Сохранить урок</button>
                     <button className="trainer-content-button-secondary" type="button" onClick={() => void deleteLesson()} disabled={!selectedLessonId || actionId === selectedLessonId}>Удалить урок</button>
@@ -780,7 +783,7 @@ export function TrainerContentStudio() {
                       <span>{lesson.is_preview ? 'Открытый урок' : 'Закрытый урок'} · {lessonTargetLabel(lesson.video_asset_id)}</span>
                     </button>
                   ))}
-                  {!sortedProgramLessons.length ? <div className="trainer-lesson-row"><strong>Уроков пока нет</strong><span>Добавьте первый урок программы.</span></div> : null}
+                  {!sortedProgramLessons.length ? <div className="trainer-lesson-row"><strong>Уроков пока нет</strong><span>Сначала загрузите видеоурок, затем добавьте его в программу.</span></div> : null}
                 </div>
               </div>
             </div>
@@ -815,7 +818,7 @@ export function TrainerContentStudio() {
                 <div className="trainer-content-form-grid">
                   <label className="trainer-content-field"><span>Тип материала</span><select className="trainer-content-select" value={bundleItemForm.item_type} onChange={(event) => setBundleItemForm((current) => ({ ...current, item_type: event.target.value === 'program' ? 'program' : 'video' }))}><option value="video">Видео</option><option value="program">Программа</option></select></label>
                   <label className="trainer-content-field"><span>Материал</span><select className="trainer-content-select" value={bundleItemForm.target_id} onChange={(event) => setBundleItemForm((current) => ({ ...current, target_id: event.target.value }))}><option value="">Выберите материал</option>{bundleTargetOptions.map((target) => <option key={target.id} value={target.id}>{target.title}</option>)}</select></label>
-                  <label className="trainer-content-field"><span>Порядок</span><input className="trainer-content-input" type="number" min="1" value={bundleItemForm.position} onChange={(event) => setBundleItemForm((current) => ({ ...current, position: event.target.value }))} /></label>
+                  <label className="trainer-content-field"><span>Позиция</span><input className="trainer-content-input" type="number" min="1" value={bundleItemForm.position} onChange={(event) => setBundleItemForm((current) => ({ ...current, position: event.target.value }))} /></label>
                 </div>
                 <div className="trainer-content-actions">
                   <button className="trainer-content-button" type="submit" disabled={saving || !selectedBundleId}>Добавить материал</button>
@@ -832,7 +835,7 @@ export function TrainerContentStudio() {
                     <span>{item.item_type === 'program' ? 'Программа' : 'Видео'} · позиция {item.position || 0}</span>
                   </button>
                 ))}
-                {!sortedBundleItems.length ? <div className="trainer-bundle-row"><strong>Материалов пока нет</strong><span>Добавьте видео или программу в набор.</span></div> : null}
+                {!sortedBundleItems.length ? <div className="trainer-bundle-row"><strong>Материалов пока нет</strong><span>Добавьте видео или программу, чтобы собрать набор.</span></div> : null}
               </div>
             </div>
           ) : null}

@@ -52,6 +52,7 @@ const requiredFiles = [
   '../docs/design-system/v162_premium_trainer_finance_analytics.md',
   '../docs/design-system/v163_premium_trainer_education_reviews_payouts.md',
   '../docs/design-system/v164_premium_trainer_business_onboarding_status.md',
+  '../docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -721,6 +722,7 @@ const profileWorkbench = fs.readFileSync(path.join(root, 'src/design-system/prof
 const trainerFormat = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-format.ts'), 'utf8');
 const trainerDashboardPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/page.tsx'), 'utf8');
 const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/business/page.tsx'), 'utf8');
+const trainerVideosPage = fs.readFileSync(path.join(root, 'src/app/trainer/videos/page.tsx'), 'utf8');
 const trainerOnboardingPage = fs.readFileSync(path.join(root, 'src/app/trainer/onboarding/page.tsx'), 'utf8');
 const trainerOnboardingChecklist = fs.readFileSync(path.join(root, 'src/modules/trainer-onboarding/components/trainer-onboarding-checklist.tsx'), 'utf8');
 const trainerApplicationStatusPage = fs.readFileSync(path.join(root, 'src/app/trainer/application-status/page.tsx'), 'utf8');
@@ -1058,6 +1060,48 @@ for (const fragment of ['.trainer-business-workbench', '.trainer-business-hero',
   }
 }
 
+for (const [fileName, source, forbiddenFragments] of [
+  ['trainer/dashboard/page.tsx', trainerDashboardPage, ['TrainerDashboardCard', 'TrainerMetricCard', 'TrainerEmptyState', 'TrainerLoadingState', 'TrainerErrorState', 'trainer-metric-grid', 'trainer-dashboard-grid', 'Следующее действие', 'Публичный профиль', 'Все видимые заказы', 'Записи оплат', 'Executive cockpit', 'className="card', 'className="stack', 'className="row', 'style={{']],
+  ['trainer/videos/page.tsx', trainerVideosPage, ['Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.']],
+  ['trainer-content-studio.tsx', trainerContentStudio, ['profile-workbench-hero-copy', 'profile-workbench-hero-actions', 'Подготавливаем загрузку...', 'Загружаем файл...', 'Завершаем обработку...', 'Описание урока', 'Порядок</span>', 'Видеофайл</span>', 'Открытый урок для просмотра']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains v165 forbidden fragment: ${forbiddenFragment}`);
+    }
+  }
+}
+
+for (const fragment of ['trainer-home-workbench', 'trainer-home-hero', 'trainer-home-kpi-grid', 'trainer-home-layout', 'trainer-home-main', 'trainer-home-sidebar', 'trainer-home-panel', 'trainer-home-action-grid', 'trainer-home-action-card', 'trainer-home-timeline', 'trainer-home-timeline-item', 'trainer-home-product-rail', 'trainer-home-product-card', 'trainer-home-profile-card', 'trainer-home-alert', 'Кабинет тренера', 'Что сделать дальше', 'Динамика выручки', 'Лучшие продукты', 'Профиль и доступ']) {
+  if (!trainerDashboardPage.includes(fragment)) {
+    throw new Error(`trainer dashboard page missing v165 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-video-studio-workbench', 'trainer-video-studio-hero', 'Студия материалов', 'Загрузить видео', 'Создать продукт', 'Посмотреть аналитику']) {
+  if (!trainerVideosPage.includes(fragment)) {
+    throw new Error(`trainer videos page missing v165 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-video-studio-frame', 'trainer-video-studio-toolbar', 'Новый видеоурок', 'Новая программа', 'Новый набор', 'Сначала загрузите файл, затем сохраните описание и отправьте материал на проверку.', 'Подготавливаем загрузку…', 'Загружаем файл…', 'Завершаем обработку…', 'Видео из библиотеки', 'Бесплатный предпросмотр', 'Добавьте видео или программу, чтобы собрать набор.']) {
+  if (!trainerContentStudio.includes(fragment) && !trainerVideoUploadCard.includes(fragment)) {
+    throw new Error(`trainer content studio/upload missing v165 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-content-rail-card-premium-active', 'Адрес настроен', 'Адрес не указан']) {
+  if (!trainerContentCard.includes(fragment)) {
+    throw new Error(`trainer content card missing v165 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['.trainer-home-workbench', '.trainer-home-hero', '.trainer-home-kpi-grid', '.trainer-home-layout', '.trainer-home-main', '.trainer-home-sidebar', '.trainer-home-panel', '.trainer-home-action-grid', '.trainer-home-action-card', '.trainer-home-timeline', '.trainer-home-timeline-item', '.trainer-home-product-rail', '.trainer-home-product-card', '.trainer-home-profile-card', '.trainer-home-alert', '.trainer-video-studio-workbench', '.trainer-video-studio-hero', '.trainer-video-studio-frame', '.trainer-video-studio-toolbar', '.trainer-video-upload-helper', '.trainer-content-rail-card-premium-active', 'overflow-y: hidden', 'scroll-snap-type: x proximity']) {
+  if (!globals.includes(fragment)) {
+    throw new Error(`globals.css missing v165 fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
     throw new Error(`trainer product builder missing fragment: ${fragment}`);
@@ -1219,4 +1263,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v164 design system contract ok');
+console.log('v131-v165 design system contract ok');
