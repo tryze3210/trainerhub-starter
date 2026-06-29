@@ -64,6 +64,10 @@ type BundleItemFormState = {
 
 type StudioEntity = VideoDraft | ProgramDraft | BundleDraft;
 
+type TrainerContentStudioProps = {
+  compactHero?: boolean;
+};
+
 const contentTabs: Array<{ id: TrainerContentTab; label: string }> = [
   { id: 'videos', label: 'Видео' },
   { id: 'programs', label: 'Программы' },
@@ -161,7 +165,7 @@ function StatusBadge({ status }: { status?: string }) {
   return <span className={`trainer-content-status trainer-content-status-${statusTone(status)}`}>{statusLabel(status)}</span>;
 }
 
-export function TrainerContentStudio() {
+export function TrainerContentStudio({ compactHero = false }: TrainerContentStudioProps) {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<TrainerContentTab>('videos');
   const [videos, setVideos] = useState<VideoDraft[]>([]);
@@ -626,12 +630,12 @@ export function TrainerContentStudio() {
   }
 
   return (
-    <section className="profile-workbench trainer-video-workbench trainer-video-studio-frame">
-      <header className="trainer-video-studio-toolbar">
+    <section className={compactHero ? 'profile-workbench trainer-video-workbench trainer-video-studio-frame trainer-content-workbench trainer-content-workbench-compact' : 'profile-workbench trainer-video-workbench trainer-video-studio-frame trainer-content-workbench'}>
+      <header className="trainer-video-studio-toolbar trainer-content-toolbar">
         <div>
-          <p className="premium-eyebrow">Студия материалов</p>
-          <h2>Видео и материалы</h2>
-          <p>Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.</p>
+          {compactHero ? null : <p className="premium-eyebrow">Студия материалов</p>}
+          <h2>{compactHero ? 'Рабочая область' : 'Видео и материалы'}</h2>
+          <p>{compactHero ? 'Выберите материал, обновите описание или подготовьте публикацию.' : 'Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.'}</p>
         </div>
         <div className="trainer-video-studio-actions">
           <button className="trainer-content-button-secondary" type="button" onClick={() => { setTab('videos'); startNew('videos'); }}>Новый видеоурок</button>
@@ -653,7 +657,7 @@ export function TrainerContentStudio() {
         ))}
       </nav>
 
-      <section className="profile-workbench-metrics" aria-label="Метрики материалов">
+      <section className="profile-workbench-metrics trainer-content-kpi-grid" aria-label="Метрики материалов">
         {metrics.map((metric) => (
           <article className="profile-workbench-metric" key={metric.label}>
             <span>{metric.label}</span>
@@ -698,7 +702,7 @@ export function TrainerContentStudio() {
         </section>
       ) : null}
 
-      <section className="profile-workbench-rail-section">
+      <section className="profile-workbench-rail-section trainer-content-layout trainer-content-library">
         <header className="profile-workbench-section-header">
           <h3>{tab === 'videos' ? 'Библиотека видео' : tab === 'programs' ? 'Ваши программы' : 'Ваши наборы'}</h3>
           <p>Выберите материал для редактирования или создайте новый.</p>
@@ -713,7 +717,7 @@ export function TrainerContentStudio() {
         </div>
       </section>
 
-      <section className="profile-workbench-editor-panel trainer-content-editor-panel">
+      <section className="profile-workbench-editor-panel trainer-content-editor-panel trainer-content-editor">
         {tab === 'videos' ? (
           <section className="trainer-editor-section">
             <h3>Публикация и статус</h3>
@@ -841,7 +845,7 @@ export function TrainerContentStudio() {
           ) : null}
       </section>
 
-      <section className="profile-workbench-support-panels">
+      <section className="profile-workbench-support-panels trainer-content-preview">
         <article className="profile-workbench-panel trainer-content-preview-panel">
           <h3>Предпросмотр для каталога</h3>
           <StatusBadge status={(tab === 'videos' ? selectedVideo : tab === 'programs' ? selectedProgram : selectedBundle)?.status} />

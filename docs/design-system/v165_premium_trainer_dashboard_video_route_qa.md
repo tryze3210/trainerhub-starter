@@ -1,49 +1,125 @@
-# v165 — Premium Trainer Dashboard, Video Studio and Route QA Pass
+# v165 / v165.1 — Premium Trainer Dashboard, Video Studio and Route QA Pass
 
-## Updated Pages
+## 1. Scope
 
-- `/trainer/dashboard`
-- `/trainer/videos`
-- `TrainerContentStudio`
-- `TrainerContentCard`
-- `TrainerVideoUploadCard`
+v165 upgrades the trainer dashboard and video studio into premium trainer workbenches. v165.1 finalizes the unfinished sync between README, code and documentation: the trainer dashboard cockpit, video studio route shell, upload/card polish and route-level QA documentation now describe the same implemented state.
 
-## Trainer Dashboard Cockpit
+Backend and API contracts are intentionally unchanged. Existing load, retry, save, upload, publish, delete and move actions remain wired to the same frontend APIs.
 
-The trainer dashboard now works as the executive cockpit for the trainer workspace:
+## 2. Updated Files
 
-- hero with primary financial/readiness signal;
-- KPI deck for profile readiness, orders, payments, turnover, published materials, drafts, available payout and payout requests;
-- two-column desktop layout with mobile one-column fallback;
-- next-action cards for profile, products, sales, payouts and analytics;
-- revenue timeline with Russian empty state;
-- top product rail with safe wrapping;
-- profile/access panel with role warning and application status action.
+- `README.md`
+- `docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md`
+- `frontend/src/app/trainer/dashboard/page.tsx`
+- `frontend/src/app/trainer/videos/page.tsx`
+- `frontend/src/modules/upload/components/trainer-upload-panel.tsx`
+- `frontend/src/modules/upload/components/trainer-content-studio.tsx`
+- `frontend/src/modules/upload/components/trainer-content-card.tsx`
+- `frontend/src/modules/upload/components/trainer-video-upload-card.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/contracts/design-system-contract.test.js`
 
-## Video Studio Shell
+## 3. Trainer Dashboard Cockpit
 
-`/trainer/videos` now provides a premium video studio frame above `TrainerContentStudio`:
+`/trainer/dashboard` no longer uses the old generic trainer dashboard cards as the main UI. The page uses:
 
-- page title and description are aligned with the trainer shell;
-- top hero explains material upload, program assembly and catalog publishing;
-- actions link to video upload, product creation and analytics;
-- the inner studio uses a compact toolbar to avoid duplicate large heroes.
+- `ProtectedPage`;
+- `TrainerDashboardShell`;
+- `.trainer-home-workbench`;
+- `.trainer-home-hero`;
+- `.trainer-home-kpi-grid`;
+- `.trainer-home-layout`;
+- `.trainer-home-main`;
+- `.trainer-home-sidebar`.
 
-## TrainerContentStudio Polish
+The hero shows the primary state in this priority:
 
-The studio keeps the existing API and business logic, but improves the UI layer:
+- available payout amount;
+- gross revenue;
+- profile readiness.
 
-- compact toolbar with `Новый видеоурок`, `Новая программа`, `Новый набор`;
-- KPI deck for videos, programs, bundles and review queue;
-- video upload helper text and localized upload steps;
-- program lesson labels use `Название урока`, `Описание`, `Позиция`, `Видео из библиотеки`, `Бесплатный предпросмотр`;
-- bundle item labels use `Тип материала`, `Материал`, `Позиция`;
-- content cards keep Russian status labels and use premium active styling;
-- upload dropzone and selected file text wrap safely.
+The KPI deck covers profile readiness, orders, payments, turnover, published materials, drafts, available payout and payout request count. The left column contains next actions, revenue timeline and top products. The right column contains profile/access, quick actions and account state. Application status is mapped to Russian labels and is not shown as a raw backend status.
 
-## Route QA Checklist
+Loading and error states are premium panels with Russian copy and retry.
 
-Trainer routes checked by code and scoped CSS rules:
+## 4. Video Studio Route Shell
+
+`/trainer/videos` now owns the page-level context:
+
+- title: `Видео и материалы`;
+- description: `Загрузка видео, сборка программ и подготовка материалов к продаже`;
+- `.trainer-video-studio-workbench`;
+- `.trainer-video-studio-hero`;
+- actions for upload, product creation and analytics.
+
+The route passes `compactHero` to `TrainerUploadPanel`, so `TrainerContentStudio` renders as a compact working area instead of duplicating a second large hero.
+
+## 5. TrainerContentStudio Polish
+
+`TrainerContentStudio` accepts:
+
+```ts
+type TrainerContentStudioProps = {
+  compactHero?: boolean;
+};
+```
+
+When compact, it renders `Рабочая область` with the subtitle `Выберите материал, обновите описание или подготовьте публикацию.` It keeps the core actions:
+
+- `Новый видеоурок`;
+- `Новая программа`;
+- `Новый набор`.
+
+The studio uses scoped classes:
+
+- `.trainer-content-workbench`;
+- `.trainer-content-toolbar`;
+- `.trainer-content-kpi-grid`;
+- `.trainer-content-layout`;
+- `.trainer-content-library`;
+- `.trainer-content-editor`;
+- `.trainer-content-preview`.
+
+Tabs remain Russian: `Видео`, `Программы`, `Наборы`. KPI cards remain Russian: `Видео`, `Программы`, `Наборы`, `На проверке`.
+
+Upload steps use the Russian ellipsis:
+
+- `Подготавливаем загрузку…`;
+- `Загружаем файл…`;
+- `Завершаем обработку…`.
+
+Empty states:
+
+- videos: `Загрузите первый видеоурок, чтобы использовать его в программах и продуктах.`;
+- programs: `Создайте программу и добавьте уроки из библиотеки видео.`;
+- bundles: `Соберите несколько видео или программ в один платный набор.`;
+- lessons: `Сначала загрузите видеоурок, затем добавьте его в программу.`;
+- bundle items: `Добавьте видео или программу, чтобы собрать набор.`;
+
+## 6. TrainerContentCard and UploadCard Polish
+
+`TrainerContentCard` now exposes:
+
+- `.trainer-content-card`;
+- `.trainer-content-card--active`;
+- status and price header row;
+- title line clamp;
+- metadata row with `Адрес настроен` / `Адрес не указан`;
+- wrapped action row.
+
+`TrainerVideoUploadCard` now exposes:
+
+- `.trainer-content-upload-dropzone`;
+- `.trainer-content-upload-dropzone--highlighted`;
+- `.trainer-content-file-name`.
+
+The helper copy is:
+
+`Сначала загрузите файл, затем сохраните описание и отправьте материал на проверку.`
+
+## 7. Route QA Checklist
+
+Trainer-facing routes checked by code and CSS contract:
 
 - `/trainer/dashboard`
 - `/trainer/business`
@@ -63,35 +139,59 @@ Trainer routes checked by code and scoped CSS rules:
 QA rules:
 
 - no nested vertical scroll containers inside cards or panels;
-- long titles, slugs, IDs and links wrap safely;
+- no text overflow from cards, rails, buttons, slugs, URLs or IDs;
+- no incoherent text overlap;
+- no English user-facing labels in the updated trainer cockpit/studio routes;
+- no raw UUID/status/type as primary display text;
 - loading, error and empty states are Russian;
-- mobile routes collapse to one column;
-- horizontal rails use `overflow-x: auto`, `overflow-y: hidden` and scroll snap;
-- trainer CTAs keep the same premium level.
+- mobile layout collapses to one column;
+- horizontal rails use scoped `overflow-x: auto`, `overflow-y: hidden` and scroll snap;
+- header/nav should not create extra right-side page scroll.
 
-## CSS Safety Rules
+## 8. CSS Safety Rules
 
-v165 adds scoped CSS only:
+v165.1 uses scoped trainer classes only:
 
-- `trainer-home-*`
-- `trainer-video-studio-*`
-- targeted improvements for existing `trainer-content-*` upload/card classes.
+- `.trainer-home-*`;
+- `.trainer-video-studio-*`;
+- `.trainer-content-*`.
 
-Rules include `min-width: 0`, `overflow-wrap: anywhere`, line clamps for long descriptions and no vertical scroll containers inside cards.
+Rules include:
 
-## Backend/API Scope
+- `min-width: 0` for grid/flex children;
+- `overflow-wrap: anywhere` for long titles, slugs, IDs and URLs;
+- line clamp for long titles/descriptions;
+- no `overflow-y: auto` inside cards/panels;
+- horizontal rails use `overflow-x: auto`, `overflow-y: hidden`, `scroll-snap-type`;
+- responsive guards for `1024px` and `720px`;
+- actions wrap without overlap.
 
-Backend and API contracts were not changed. Existing loading, error, empty, save, publish, upload, delete and move actions remain intact.
+No Tailwind, no new UI libraries and no global resets were added.
 
-## Visual Checks
+## 9. Backend/API Scope
 
-Open the trainer routes listed above on desktop and mobile. Expected result:
+Backend code was not changed. API request paths and payload contracts were not changed. Existing save/publish/upload/delete/move/retry handlers remain in place.
 
-- `/trainer/dashboard` shows hero, KPI deck, action cards, revenue timeline, product rail and sidebar panels;
-- `/trainer/videos` shows one page-level hero and a compact material studio;
-- content rails scroll horizontally without page overflow;
-- forms, upload dropzone, lesson rows and bundle rows wrap safely on mobile.
+## 10. Verification
 
-## Known Limitation
+Expected local checks:
 
-`npm run build` may fail because of the existing `.next/trace` ownership/cache issue in this workspace. If that happens, use the exact build error in the final report and do not mark build as passed.
+```bash
+cd frontend
+npm run typecheck
+npm run test:contracts
+npm run build
+git diff --check
+```
+
+The design-system contract includes v165/v165.1 fragments for:
+
+- dashboard cockpit classes;
+- video studio shell classes;
+- compact content studio classes;
+- upload/card polish classes;
+- README/documentation sync.
+
+## 11. Known Limitation
+
+`npm run build` can fail in this workspace before compilation if the existing `.next/trace` file is owned by another user or has stale cache permissions. In that case the expected error is an `EACCES` failure opening `frontend/.next/trace`; typecheck and contract results should be reported separately and build must not be marked as passed.

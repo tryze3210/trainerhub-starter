@@ -55,6 +55,18 @@ function shortText(value?: string | null, fallback = 'Данные пока не
   return value && value.trim() ? value : fallback;
 }
 
+function mapApplicationStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    draft: 'Черновик',
+    submitted: 'Отправлена',
+    under_review: 'На проверке',
+    approved: 'Одобрена',
+    changes_requested: 'Нужны правки',
+    rejected: 'Отклонена',
+  };
+  return labels[status || ''] || 'Не отправлена';
+}
+
 export default function TrainerDashboardPage() {
   const { user } = useAuthSession();
   const [state, setState] = useState<DashboardState | null>(null);
@@ -67,7 +79,7 @@ export default function TrainerDashboardPage() {
       setError('');
       setState(await loadDashboardState());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось загрузить кабинет тренера');
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить кабинет');
     } finally {
       setLoading(false);
     }
@@ -107,10 +119,10 @@ export default function TrainerDashboardPage() {
   const actionCards = [
     state?.profile
       ? {
-        title: 'Создать продукт',
-        description: 'Соберите программу, видео или набор для продажи.',
-        href: '/trainer/dashboard/products',
-        label: 'Создать продукт',
+        title: 'Редактировать профиль',
+        description: 'Обновите публичную карточку, специализацию и описание.',
+        href: '/trainer/onboarding',
+        label: 'Редактировать профиль',
       }
       : {
         title: 'Заполнить профиль',
@@ -118,6 +130,12 @@ export default function TrainerDashboardPage() {
         href: '/trainer/onboarding',
         label: 'Заполнить профиль',
       },
+    {
+      title: 'Создать продукт',
+      description: 'Соберите программу, видео или набор для продажи.',
+      href: '/trainer/dashboard/products',
+      label: 'Создать продукт',
+    },
     {
       title: 'Проверить продажи',
       description: 'Посмотрите заказы, оплаты и доступы учеников.',
@@ -176,13 +194,13 @@ export default function TrainerDashboardPage() {
           {loading ? (
             <section className="trainer-home-panel">
               <h3>Загружаем кабинет тренера</h3>
-              <p>Собираем продажи, оплаты, контент и профиль.</p>
+              <p>Получаем профиль, продажи, материалы и выплаты.</p>
             </section>
           ) : null}
 
           {error ? (
             <section className="trainer-home-alert">
-              <h3>Не удалось загрузить кабинет тренера</h3>
+              <h3>Не удалось загрузить кабинет</h3>
               <p>{error}</p>
               <button className="premium-secondary-button" type="button" onClick={() => void load()}>
                 Повторить
@@ -283,6 +301,11 @@ export default function TrainerDashboardPage() {
                 <section className="trainer-home-panel">
                   <h3>Состояние кабинета</h3>
                   <div className="trainer-home-timeline">
+                    <article className="trainer-home-timeline-item">
+                      <span>Заявка</span>
+                      <strong>{mapApplicationStatusLabel(state.onboarding?.trainer_application_status)}</strong>
+                      <small>{user?.active_role === 'trainer' ? 'роль тренера активна' : 'ожидает активации'}</small>
+                    </article>
                     <article className="trainer-home-timeline-item">
                       <span>Профиль</span>
                       <strong>{formatPercent(profileProgress)}</strong>

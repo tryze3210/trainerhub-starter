@@ -2,6 +2,10 @@
 
 import { TrainerContentStudio } from './trainer-content-studio';
 
-export function TrainerUploadPanel() {
-  return <TrainerContentStudio />;
+type TrainerUploadPanelProps = {
+  compactHero?: boolean;
+};
+
+export function TrainerUploadPanel({ compactHero = false }: TrainerUploadPanelProps) {
+  return <TrainerContentStudio compactHero={compactHero} />;
 }

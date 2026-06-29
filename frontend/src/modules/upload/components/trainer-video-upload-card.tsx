@@ -63,12 +63,18 @@ export function TrainerVideoUploadCard({
         {actions}
       </div>
 
-      <label className={file ? 'trainer-upload-dropzone trainer-upload-dropzone-active' : 'trainer-upload-dropzone'} onDragOver={prevent} onDrop={dropFile}>
+      <label
+        className={file || highlighted
+          ? 'trainer-upload-dropzone trainer-upload-dropzone-active trainer-content-upload-dropzone trainer-content-upload-dropzone--highlighted'
+          : 'trainer-upload-dropzone trainer-content-upload-dropzone'}
+        onDragOver={prevent}
+        onDrop={dropFile}
+      >
         <input type="file" accept="video/mp4,video/quicktime" onChange={pickFile} />
         <strong>Перетащите видео сюда или выберите файл</strong>
         <span>MP4 или MOV</span>
         {file ? (
-          <span>Файл выбран: {file.name}. Размер: {trainerContentFileSize(file.size)}</span>
+          <span className="trainer-content-file-name">Файл выбран: {file.name}. Размер: {trainerContentFileSize(file.size)}</span>
         ) : (
           <span>Файл можно добавить сейчас или позже.</span>
         )}

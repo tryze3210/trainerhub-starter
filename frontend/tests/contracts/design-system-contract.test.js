@@ -1062,7 +1062,7 @@ for (const fragment of ['.trainer-business-workbench', '.trainer-business-hero',
 
 for (const [fileName, source, forbiddenFragments] of [
   ['trainer/dashboard/page.tsx', trainerDashboardPage, ['TrainerDashboardCard', 'TrainerMetricCard', 'TrainerEmptyState', 'TrainerLoadingState', 'TrainerErrorState', 'trainer-metric-grid', 'trainer-dashboard-grid', 'Следующее действие', 'Публичный профиль', 'Все видимые заказы', 'Записи оплат', 'Executive cockpit', 'className="card', 'className="stack', 'className="row', 'style={{']],
-  ['trainer/videos/page.tsx', trainerVideosPage, ['Загружайте видеоуроки, собирайте программы и наборы, готовьте материалы к публикации в каталоге.']],
+  ['trainer/videos/page.tsx', trainerVideosPage, ['<TrainerUploadPanel />']],
   ['trainer-content-studio.tsx', trainerContentStudio, ['profile-workbench-hero-copy', 'profile-workbench-hero-actions', 'Подготавливаем загрузку...', 'Загружаем файл...', 'Завершаем обработку...', 'Описание урока', 'Порядок</span>', 'Видеофайл</span>', 'Открытый урок для просмотра']],
 ]) {
   for (const forbiddenFragment of forbiddenFragments) {
@@ -1078,25 +1078,25 @@ for (const fragment of ['trainer-home-workbench', 'trainer-home-hero', 'trainer-
   }
 }
 
-for (const fragment of ['trainer-video-studio-workbench', 'trainer-video-studio-hero', 'Студия материалов', 'Загрузить видео', 'Создать продукт', 'Посмотреть аналитику']) {
+for (const fragment of ['trainer-video-studio-workbench', 'trainer-video-studio-hero', 'СТУДИЯ МАТЕРИАЛОВ', 'Видео и материалы', 'Загрузить видео', 'Создать продукт', 'Посмотреть аналитику', 'compactHero']) {
   if (!trainerVideosPage.includes(fragment)) {
     throw new Error(`trainer videos page missing v165 fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['trainer-video-studio-frame', 'trainer-video-studio-toolbar', 'Новый видеоурок', 'Новая программа', 'Новый набор', 'Сначала загрузите файл, затем сохраните описание и отправьте материал на проверку.', 'Подготавливаем загрузку…', 'Загружаем файл…', 'Завершаем обработку…', 'Видео из библиотеки', 'Бесплатный предпросмотр', 'Добавьте видео или программу, чтобы собрать набор.']) {
+for (const fragment of ['TrainerContentStudio({ compactHero = false }', 'trainer-content-workbench', 'trainer-content-toolbar', 'trainer-content-kpi-grid', 'trainer-content-layout', 'trainer-content-library', 'trainer-content-editor', 'trainer-content-preview', 'trainer-video-studio-frame', 'trainer-video-studio-toolbar', 'Рабочая область', 'Новый видеоурок', 'Новая программа', 'Новый набор', 'Сначала загрузите файл, затем сохраните описание и отправьте материал на проверку.', 'Подготавливаем загрузку…', 'Загружаем файл…', 'Завершаем обработку…', 'Видео из библиотеки', 'Бесплатный предпросмотр', 'Добавьте видео или программу, чтобы собрать набор.']) {
   if (!trainerContentStudio.includes(fragment) && !trainerVideoUploadCard.includes(fragment)) {
     throw new Error(`trainer content studio/upload missing v165 fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['trainer-content-rail-card-premium-active', 'Адрес настроен', 'Адрес не указан']) {
+for (const fragment of ['trainer-content-card', 'trainer-content-card--active', 'trainer-content-rail-card-premium-active', 'Адрес настроен', 'Адрес не указан']) {
   if (!trainerContentCard.includes(fragment)) {
     throw new Error(`trainer content card missing v165 fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['.trainer-home-workbench', '.trainer-home-hero', '.trainer-home-kpi-grid', '.trainer-home-layout', '.trainer-home-main', '.trainer-home-sidebar', '.trainer-home-panel', '.trainer-home-action-grid', '.trainer-home-action-card', '.trainer-home-timeline', '.trainer-home-timeline-item', '.trainer-home-product-rail', '.trainer-home-product-card', '.trainer-home-profile-card', '.trainer-home-alert', '.trainer-video-studio-workbench', '.trainer-video-studio-hero', '.trainer-video-studio-frame', '.trainer-video-studio-toolbar', '.trainer-video-upload-helper', '.trainer-content-rail-card-premium-active', 'overflow-y: hidden', 'scroll-snap-type: x proximity']) {
+for (const fragment of ['.trainer-home-workbench', '.trainer-home-hero', '.trainer-home-kpi-grid', '.trainer-home-layout', '.trainer-home-main', '.trainer-home-sidebar', '.trainer-home-panel', '.trainer-home-action-grid', '.trainer-home-action-card', '.trainer-home-timeline', '.trainer-home-timeline-item', '.trainer-home-product-rail', '.trainer-home-product-card', '.trainer-home-profile-card', '.trainer-home-alert', '.trainer-video-studio-workbench', '.trainer-video-studio-hero', '.trainer-video-studio-frame', '.trainer-video-studio-toolbar', '.trainer-video-upload-helper', '.trainer-content-workbench', '.trainer-content-toolbar', '.trainer-content-kpi-grid', '.trainer-content-layout', '.trainer-content-library', '.trainer-content-editor', '.trainer-content-preview', '.trainer-content-card', '.trainer-content-card--active', '.trainer-content-upload-dropzone', '.trainer-content-upload-dropzone--highlighted', '.trainer-content-file-name', '.trainer-content-rail-card-premium-active', 'overflow-y: hidden', 'scroll-snap-type: x mandatory']) {
   if (!globals.includes(fragment)) {
     throw new Error(`globals.css missing v165 fragment: ${fragment}`);
   }
@@ -1263,4 +1263,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v165 design system contract ok');
+console.log('v131-v165.1 design system contract ok');

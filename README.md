@@ -1,14 +1,16 @@
-# TrainerHub — current version v165
+# TrainerHub — current version v165.1
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v165 Premium Trainer Dashboard, Video Studio and Route QA Pass. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v165 premium storefront, customer workspace and trainer workspace block is now implemented.
+This README describes the current roadmap state after v165.1 Finalize Premium Trainer Dashboard, Video Studio and Route QA Sync. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v165.1 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 v163 завершил premium polish для заданий, отзывов и заявок на выплаты тренера.
 
 v164 завершил trainer business cockpit, onboarding application и application status polish.
 
 v165 синхронизирует главный cockpit тренера, video/content studio и route-level QA.
+
+v165.1 closes the unfinished v165 sync: README versioning, trainer dashboard cockpit, video studio route shell, upload/card polish and route-level QA documentation are aligned.
 
 ## Current Roadmap State
 
@@ -90,7 +92,8 @@ Roadmap status table:
 | v162 | Premium Trainer Finance & Analytics Workbenches | Done |
 | v163 | Premium Trainer Education, Reviews and Payout Request Workbenches | Done |
 | v164 | Premium Trainer Business, Onboarding and Application Status Workbenches | Done |
-| v165 | Premium Trainer Dashboard, Video Studio and Route QA Pass | Current |
+| v165 | Premium Trainer Dashboard, Video Studio and Route QA Pass | Done |
+| v165.1 | Finalize Premium Trainer Dashboard, Video Studio and Route QA Sync | Current |
 
 Completed implementation line:
 
@@ -188,6 +191,7 @@ Completed implementation line:
 - v163 — Premium Trainer Education, Reviews and Payout Request Workbenches
 - v164 — Premium Trainer Business, Onboarding and Application Status Workbenches
 - v165 — Premium Trainer Dashboard, Video Studio and Route QA Pass
+- v165.1 — Finalize Premium Trainer Dashboard, Video Studio and Route QA Sync
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
@@ -705,7 +709,7 @@ Updated trainer layer:
 
 ## Premium Trainer Product Builder
 
-v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow. v158.3 replaces narrow column layouts with horizontal product and video workbenches. v159 adds the shared premium profile workbench system and replaces customer/trainer sidebar shells with horizontal navigation. v159.1 repairs the dark profile scene, panel surfaces, horizontal nav surface, rails and dark form controls. v159.2 removes nested vertical scrollbars and polishes profile workbench scrolling. v160 adds the premium media library picker and product publishing flow. v160.1 completes the product builder integration. v160.2 stabilizes the product/video flow before CRM and schedule work. v160.3 centralizes product media loading and starts the profile CSS layer split. v160.4 finishes the product media single source of truth so the product builder owns video library loading, retry, loading and error state. v161 rebuilds trainer CRM and schedule as premium operations workbenches. v162 upgrades trainer sales, finance and content analytics into premium workbenches. v163 completes trainer-facing education, reviews and payout request polish. v164 completes the trainer business cockpit, onboarding application and application status workbenches. v165 completes the trainer dashboard cockpit, video studio shell and route QA pass.
+v157.1 repairs trainer shell integration, v158 upgrades product creation into a premium commercial builder, and v158.1 removes the remaining technical product and video studio windows, and v158.2 repairs upload-first usability, product material flow and layout overflow. v158.3 replaces narrow column layouts with horizontal product and video workbenches. v159 adds the shared premium profile workbench system and replaces customer/trainer sidebar shells with horizontal navigation. v159.1 repairs the dark profile scene, panel surfaces, horizontal nav surface, rails and dark form controls. v159.2 removes nested vertical scrollbars and polishes profile workbench scrolling. v160 adds the premium media library picker and product publishing flow. v160.1 completes the product builder integration. v160.2 stabilizes the product/video flow before CRM and schedule work. v160.3 centralizes product media loading and starts the profile CSS layer split. v160.4 finishes the product media single source of truth so the product builder owns video library loading, retry, loading and error state. v161 rebuilds trainer CRM and schedule as premium operations workbenches. v162 upgrades trainer sales, finance and content analytics into premium workbenches. v163 completes trainer-facing education, reviews and payout request polish. v164 completes the trainer business cockpit, onboarding application and application status workbenches. v165 completes the trainer dashboard cockpit, video studio shell and route QA pass. v165.1 closes the final README/code/docs sync for the trainer cockpit and content studio.
 
 Updated product layer:
 
