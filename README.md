@@ -1,10 +1,10 @@
-# TrainerHub — current version v166.2
+# TrainerHub — current version v166.3
 
-This README describes the current roadmap state after v166.2 Contract Gate Repair and Documentation Formatting Lock.
+This README describes the current roadmap state after v166.3 Repository Hygiene, Contract Readability and CSS Architecture Prep.
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v166.2 premium storefront, customer workspace and trainer workspace block is now implemented.
+The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v166.3 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 v163 завершил premium polish для заданий, отзывов и заявок на выплаты тренера.
 
@@ -23,6 +23,8 @@ v166 hardens the complete commercial UI before demo: public storefront, checkout
 v166.1 closes the implementation gap in v166 by adding the scoped visual hardening CSS layer, preserving v165.3 trainer dashboard/video studio hooks, and protecting the production UI hardening rules with design-system contract tests.
 
 v166.2 repairs the production quality gate by removing empty contract fragments, formatting the design-system contract test, syncing BUILD_REPORT and keeping v166.1 visual hardening protected by reliable contract checks.
+
+v166.3 improves repository maintainability after the premium UI hardening block: README, BUILD_REPORT, v166 documentation and design-system contract tests are formatted for review, while the next CSS architecture step is documented before any large stylesheet split.
 
 ## Current Roadmap State
 
@@ -110,7 +112,8 @@ Roadmap status table:
 | v165.3 | Trainer Dashboard and Video Studio CSS Contract Lock | Done |
 | v166 | Production Visual Hardening Pass | Done |
 | v166.1 | Production Visual Hardening CSS and Contract Lock | Done |
-| v166.2 | Contract Gate Repair and Documentation Formatting Lock | Current |
+| v166.2 | Contract Gate Repair and Documentation Formatting Lock | Done |
+| v166.3 | Repository Hygiene, Contract Readability and CSS Architecture Prep | Current |
 
 Completed implementation line:
 
@@ -214,6 +217,7 @@ Completed implementation line:
 - v166 — Production Visual Hardening Pass
 - v166.1 — Production Visual Hardening CSS and Contract Lock
 - v166.2 — Contract Gate Repair and Documentation Formatting Lock
+- v166.3 — Repository Hygiene, Contract Readability and CSS Architecture Prep
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.

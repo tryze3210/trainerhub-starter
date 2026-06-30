@@ -1,18 +1,16 @@
-# BUILD REPORT — TrainerHub v166.2
+# BUILD REPORT — TrainerHub v166.3
 
 ## Summary
 
-- Current version: `v166.2`
-- Current repair: Contract Gate Repair and Documentation Formatting Lock.
+- Current version: `v166.3`
 - v166 completed production visual hardening route QA.
-- v166.1 locked production visual hardening CSS and contracts.
-- v166.2 repairs contract gate reliability and documentation formatting.
-
-The current premium block is `v151-v166.2` for the premium storefront, customer workspace and trainer workspace line.
+- v166.1 locked scoped visual hardening CSS and route hooks.
+- v166.2 repaired contract-gate coverage.
+- v166.3 formats the quality-gate documentation and contract tests for maintainability.
 
 ## Verification Performed
 
-Commands used for this pass:
+Commands for this pass:
 
 ```bash
 cd frontend
@@ -22,26 +20,26 @@ npm run build
 git diff --check
 ```
 
-Results recorded during v166.2:
+Backend commands were not required for v166.3 because this pass is limited to repository hygiene, documentation, contract-test readability and CSS architecture preparation comments.
 
-- `npm run typecheck` verifies TypeScript without emitting application changes.
-- `npm run test:contracts` runs the API contract test and the design-system contract test.
-- `npm run build` is executed and must not be reported as passed if it stops on the local `.next/trace` ownership/cache issue.
-- `git diff --check` verifies patch whitespace.
+## Results
 
-Backend compile/check was not required for v166.2 because the repair is limited to README, BUILD_REPORT, design documentation and frontend contract tests.
+- typecheck: passed
+- test:contracts: passed
+- build: failed before compilation because local `.next/trace` is not writable by the active user
+- git diff --check: passed
 
-## Known Local Limitation
-
-The local frontend build can fail before compilation if stale generated `.next` files are owned by another user:
+Build failure observed locally:
 
 ```text
-EACCES: permission denied, open 'frontend/.next/trace'
+EACCES: permission denied, open '/home/tryze/Рабочий стол/мои работы/trainerhub-starter/frontend/.next/trace'
 ```
 
-This is a local generated-cache ownership issue. If it appears, do not report `npm run build` as passed.
+## Known Local Limitations
 
-Backend tests require installed Python dependencies in the active environment. If Django/DRF are missing, backend pytest will fail before executing application tests.
+- `.next/trace` ownership/cache can block local build if stale files are owned by another user.
+- Backend tests require installed Python dependencies and configured environment.
+- If build is blocked by local cache ownership, clear `.next` with correct permissions before rerunning.
 
 ## Recommended Full Validation
 
@@ -65,8 +63,9 @@ npm run test:contracts
 npm run build
 ```
 
-CI:
+Repository:
 
 ```bash
-git push
+git diff --check
+git status
 ```

@@ -93,6 +93,7 @@ const requiredFiles = [
   '../docs/design-system/v164_premium_trainer_business_onboarding_status.md',
   '../docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md',
   '../docs/design-system/v166_production_visual_hardening.md',
+  '../docs/design-system/v166_3_repository_hygiene_contract_css_prep.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -781,6 +782,7 @@ const readme = readUtf8(repoRoot, 'README.md');
 const buildReport = readUtf8(repoRoot, 'BUILD_REPORT.md');
 const v165Doc = readUtf8(repoRoot, 'docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md');
 const v166Doc = readUtf8(repoRoot, 'docs/design-system/v166_production_visual_hardening.md');
+const v1663Doc = readUtf8(repoRoot, 'docs/design-system/v166_3_repository_hygiene_contract_css_prep.md');
 const contractSource = readUtf8(root, 'tests/contracts/design-system-contract.test.js');
 const productLanding = [
   contentDetail,
@@ -1206,21 +1208,24 @@ assertIncludesAll(readme, ['v166 | Production Visual Hardening Pass | Done', 'v1
 assertIncludesAll(
   readme,
   [
-    'current version v166.2',
+    'current version v166.3',
     'v166.1 | Production Visual Hardening CSS and Contract Lock | Done',
-    'v166.2 | Contract Gate Repair and Documentation Formatting Lock | Current',
-    'v151-v166.2 premium storefront, customer workspace and trainer workspace block',
+    'v166.2 | Contract Gate Repair and Documentation Formatting Lock | Done',
+    'v166.3 | Repository Hygiene, Contract Readability and CSS Architecture Prep | Current',
+    'v151-v166.3 premium storefront, customer workspace and trainer workspace block',
     'v166.2 — Contract Gate Repair and Documentation Formatting Lock',
+    'v166.3 — Repository Hygiene, Contract Readability and CSS Architecture Prep',
   ],
-  'README.md v166.2',
+  'README.md v166.3',
 );
 
 assertIncludesAll(
   v166Doc,
   [
-    'v166 / v166.1 / v166.2',
+    'v166 / v166.1 / v166.2 / v166.3',
     'Why v166.1 Was Needed',
     'Why v166.2 Was Needed',
+    'Why v166.3 Was Needed',
     'Contract Gate Repair',
     'Route QA Matrix',
     'Public storefront',
@@ -1233,18 +1238,32 @@ assertIncludesAll(
   'v166 design-system doc',
 );
 
+assertIncludesAll(
+  v1663Doc,
+  [
+    'Repository Hygiene',
+    'Contract Test Rules',
+    'CSS Architecture Prep',
+    'no empty required fragments',
+    'no empty forbidden fragments',
+  ],
+  'v166.3 repository hygiene doc',
+);
+
 assertIncludesAll(v166Doc, ['/catalog', '/checkout', '/customer/hub', '/learning', '/trainer/dashboard', '/trainer/videos', '/admin'], 'v166 route QA doc');
 
 assertIncludesAll(
   buildReport,
   [
-    'v166.2',
-    'Contract Gate Repair and Documentation Formatting Lock',
+    'BUILD REPORT — TrainerHub v166.3',
+    'Verification Performed',
+    'Results',
+    'Known Local Limitations',
     'test:contracts',
-    'npm run build',
-    '.next/trace',
+    'npm run test:contracts',
+    'git diff --check',
   ],
-  'BUILD_REPORT.md v166.2',
+  'BUILD_REPORT.md v166.3',
 );
 
 assertIncludesAll(
@@ -1304,6 +1323,28 @@ assertExcludesAll(
     'for (const fragment of [' + '""' + '])',
   ],
   'design-system-contract.test.js',
+);
+
+assertIncludesAll(
+  contractSource,
+  [
+    'assertNonEmptyFragments',
+    'assertIncludesAll',
+    'assertExcludesAll',
+    'v166.3',
+  ],
+  'design-system-contract.test.js self-contract',
+);
+
+assertIncludesAll(
+  globals,
+  [
+    'v166.3 CSS architecture prep',
+    'globals.css is intentionally left as the active stylesheet for this pass.',
+    'inventory stable scoped blocks',
+    'preserving import order and contract tests',
+  ],
+  'globals.css v166.3 architecture prep',
 );
 
 for (const fragment of ['v165.3', 'Why v165.3 Was Needed', 'v165.3 trainer dashboard/video studio CSS contract lock', '.trainer-home-workbench', '.trainer-video-studio-workbench', '.trainer-content-upload-dropzone', '.trainer-content-card--active']) {
@@ -1510,4 +1551,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v166.2 design system contract ok');
+console.log('v131-v166.3 design system contract ok');

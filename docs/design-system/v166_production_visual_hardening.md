@@ -1,4 +1,4 @@
-# v166 / v166.1 / v166.2 — Production Visual Hardening Pass
+# v166 / v166.1 / v166.2 / v166.3 — Production Visual Hardening Pass
 
 ## Scope
 
@@ -15,6 +15,10 @@ v166 created the production visual hardening roadmap and route QA matrix, but th
 Contract Gate Repair:
 
 v166.1 locked the visual hardening CSS and route hooks, but the contract gate itself needed repair. v166.2 removes empty fragment checks, reformats the design-system contract test for maintainability, syncs BUILD_REPORT with the current version and keeps the production visual hardening layer protected by reliable contract tests.
+
+## Why v166.3 Was Needed
+
+v166.2 repaired the contract gate conceptually, but the repository still needed a maintainability pass. v166.3 formats README, BUILD_REPORT, the v166 design documentation and the design-system contract test into reviewable multi-line files, while documenting the CSS architecture preparation before any large stylesheet split.
 
 ## Updated Areas
 

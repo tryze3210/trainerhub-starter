@@ -10787,3 +10787,9 @@ small {
     justify-content: center;
   }
 }
+
+/* v166.3 CSS architecture prep
+globals.css is intentionally left as the active stylesheet for this pass.
+The next CSS architecture step must inventory stable scoped blocks before moving them into split files.
+Do not perform a bulk split without preserving import order and contract tests.
+*/
