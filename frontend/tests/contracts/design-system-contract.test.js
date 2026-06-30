@@ -54,6 +54,7 @@ const requiredFiles = [
   '../docs/design-system/v163_premium_trainer_education_reviews_payouts.md',
   '../docs/design-system/v164_premium_trainer_business_onboarding_status.md',
   '../docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md',
+  '../docs/design-system/v166_production_visual_hardening.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -740,6 +741,7 @@ const trainerUploadFormat = fs.readFileSync(path.join(root, 'src/modules/upload/
 const trainerAssignmentsPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/assignments/page.tsx'), 'utf8');
 const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
 const v165Doc = fs.readFileSync(path.join(repoRoot, 'docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md'), 'utf8');
+const v166Doc = fs.readFileSync(path.join(repoRoot, 'docs/design-system/v166_production_visual_hardening.md'), 'utf8');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -1105,7 +1107,7 @@ for (const fragment of ['/* v165.2 trainer dashboard/video studio scoped polish 
   }
 }
 
-for (const fragment of ['current version v165.3', 'v165.3 | Trainer Dashboard and Video Studio CSS Contract Lock | Current']) {
+for (const fragment of ['v165.3 | Trainer Dashboard and Video Studio CSS Contract Lock | Done', 'v165.3 — Trainer Dashboard and Video Studio CSS Contract Lock']) {
   if (!readme.includes(fragment)) {
     throw new Error(`README.md missing v165.3 fragment: ${fragment}`);
   }
@@ -1156,6 +1158,36 @@ for (const fragment of ['trainer-content-upload-card', 'trainer-content-upload-d
 for (const fragment of ['v165.3 trainer dashboard/video studio CSS contract lock', '.trainer-home-workbench', '.trainer-home-hero', '.trainer-home-kpi-grid', '.trainer-home-layout', '.trainer-video-studio-workbench', '.trainer-video-studio-hero', '.trainer-content-workbench', '.trainer-content-workbench--compact', '.trainer-content-card--active', '.trainer-content-upload-dropzone', '.trainer-content-file-name', '@media (max-width: 1024px)', '@media (max-width: 720px)', 'overflow-wrap: anywhere', 'scroll-snap-type: x mandatory']) {
   if (!globals.includes(fragment)) {
     throw new Error(`globals.css missing v165.3 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['current version v166', 'v166 | Production Visual Hardening Pass | Current', 'v151-v166 premium storefront, customer workspace and trainer workspace block', 'v166 — Production Visual Hardening Pass']) {
+  if (!readme.includes(fragment)) {
+    throw new Error(`README.md missing v166 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['Route QA Matrix', 'Public storefront', 'Customer', 'Trainer', 'Admin/Ops', 'Backend unchanged', '.next/trace']) {
+  if (!v166Doc.includes(fragment)) {
+    throw new Error(`v166 design-system doc missing fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['/catalog', '/checkout', '/customer/hub', '/learning', '/trainer/dashboard', '/trainer/videos', '/admin']) {
+  if (!v166Doc.includes(fragment)) {
+    throw new Error(`v166 route QA doc missing route fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['v166 production visual hardening', 'min-width: 0', 'overflow-wrap: anywhere', 'scroll-snap-type: x mandatory', '@media (max-width: 1180px)', '@media (max-width: 1024px)', '@media (max-width: 768px)', '@media (max-width: 640px)', '.premium-empty-state', '.premium-loading-state', '.premium-error-state', '.premium-alert']) {
+  if (!globals.includes(fragment)) {
+    throw new Error(`globals.css missing v166 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['v165.3', 'Why v165.3 Was Needed', 'v165.3 trainer dashboard/video studio CSS contract lock', '.trainer-home-workbench', '.trainer-video-studio-workbench', '.trainer-content-upload-dropzone', '.trainer-content-card--active']) {
+  if (!`${readme}\n${v165Doc}\n${globals}\n${fs.readFileSync(__filename, 'utf8')}`.includes(fragment)) {
+    throw new Error(`v165.3 contract fragment lost during v166: ${fragment}`);
   }
 }
 
@@ -1320,4 +1352,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v165.3 design system contract ok');
+console.log('v131-v166 design system contract ok');

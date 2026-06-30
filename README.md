@@ -1,8 +1,10 @@
-# TrainerHub — current version v165.3
+# TrainerHub — current version v166
+
+This README describes the current roadmap state after v166 Production Visual Hardening Pass.
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-This README describes the current roadmap state after v165.3 Trainer Dashboard and Video Studio CSS Contract Lock. The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v165.3 premium storefront, customer workspace and trainer workspace block is now implemented.
+The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v166 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 v163 завершил premium polish для заданий, отзывов и заявок на выплаты тренера.
 
@@ -15,6 +17,8 @@ v165.1 closes the unfinished v165 sync: README versioning, trainer dashboard coc
 v165.2 closes the unfinished v165/v165.1 polish by aligning README versioning, route-level video shell, dashboard/studio scoped CSS contracts, upload cards and route QA documentation.
 
 v165.3 locks the v165 dashboard/video studio polish by adding the missing scoped CSS layer and contract tests for trainer-home, trainer-video-studio and trainer-content class hooks.
+
+v166 hardens the complete commercial UI before demo: public storefront, checkout, customer cabinet, learning, trainer workspace and admin/ops routes are checked for overflow, nested scrollbars, raw technical labels, Russian empty/error/loading states and responsive consistency.
 
 ## Current Roadmap State
 
@@ -99,7 +103,8 @@ Roadmap status table:
 | v165 | Premium Trainer Dashboard, Video Studio and Route QA Pass | Done |
 | v165.1 | Finalize Premium Trainer Dashboard, Video Studio and Route QA Sync | Done |
 | v165.2 | CSS Contract, README Sync and Trainer Studio Finalization | Done |
-| v165.3 | Trainer Dashboard and Video Studio CSS Contract Lock | Current |
+| v165.3 | Trainer Dashboard and Video Studio CSS Contract Lock | Done |
+| v166 | Production Visual Hardening Pass | Current |
 
 Completed implementation line:
 
@@ -200,6 +205,7 @@ Completed implementation line:
 - v165.1 — Finalize Premium Trainer Dashboard, Video Studio and Route QA Sync
 - v165.2 — CSS Contract, README Sync and Trainer Studio Finalization
 - v165.3 — Trainer Dashboard and Video Studio CSS Contract Lock
+- v166 — Production Visual Hardening Pass
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.
