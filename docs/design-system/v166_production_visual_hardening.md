@@ -1,10 +1,14 @@
-# v166 — Production Visual Hardening Pass
+# v166 / v166.1 — Production Visual Hardening Pass
 
 ## Scope
 
 v166 is a production visual hardening pass, not a feature release. It keeps backend and API behavior unchanged and only tightens UI/CSS/copy/className contracts for the commercial demo surface.
 
 The pass covers overflow safety, readable empty/loading/error states, responsive consistency, CTA wrapping, long-string handling and removal of primary raw technical labels where the premium UI already has human labels.
+
+## Why v166.1 Was Needed
+
+v166 created the production visual hardening roadmap and route QA matrix, but the CSS and contract-test layer needed to be locked. v166.1 adds the scoped CSS hardening rules to globals.css, restores/protects the v165.3 trainer dashboard/video studio hooks, and adds contract tests for README, documentation, CSS selectors, responsive breakpoints and long-string safety rules.
 
 ## Updated Areas
 
@@ -42,6 +46,12 @@ The pass covers overflow safety, readable empty/loading/error states, responsive
 - Line-clamp where titles and descriptions can become too long.
 - Responsive breakpoints: 1180px, 1024px, 768px, 640px.
 - Safe horizontal rails use `overflow-x: auto`, `overflow-y: hidden`, `scroll-snap-type: x mandatory` and local scroll only.
+- v166.1 confirms the rules exist in `frontend/src/app/globals.css`.
+- v166.1 preserves v165.3 trainer hooks:
+  - `.trainer-home-workbench`
+  - `.trainer-video-studio-workbench`
+  - `.trainer-content-upload-dropzone`
+  - `.trainer-content-card--active`
 
 ## Route QA Matrix
 

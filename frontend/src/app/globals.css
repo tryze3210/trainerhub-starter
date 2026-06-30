@@ -10490,3 +10490,300 @@ small {
     min-width: 560px;
   }
 }
+
+/* v166.1 production visual hardening CSS and contract lock */
+:where(
+  .premium-main,
+  .premium-page,
+  .premium-section,
+  .premium-card,
+  [class*="customer-"],
+  [class*="trainer-"],
+  [class*="admin-"],
+  [class*="checkout-"],
+  [class*="marketplace-"],
+  [class*="product-"],
+  [class*="learning-"]
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+:where(
+  .premium-main,
+  .premium-page,
+  .premium-section,
+  .premium-card,
+  [class*="customer-"],
+  [class*="trainer-"],
+  [class*="admin-"],
+  [class*="checkout-"],
+  [class*="marketplace-"],
+  [class*="product-"],
+  [class*="learning-"]
+) :where(
+  [class*="title"],
+  [class*="name"],
+  [class*="slug"],
+  [class*="url"],
+  [class*="link"],
+  [class*="email"],
+  [class*="id"],
+  [class*="file"]
+) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+:where(
+  .premium-main,
+  .premium-page,
+  .premium-section,
+  .premium-card,
+  [class*="customer-"],
+  [class*="trainer-"],
+  [class*="admin-"],
+  [class*="checkout-"],
+  [class*="marketplace-"],
+  [class*="product-"],
+  [class*="learning-"]
+) :where(
+  [class*="actions"],
+  [class*="toolbar"],
+  [class*="filters"],
+  [class*="cta"]
+) {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+:where(
+  .premium-main,
+  .premium-page,
+  .premium-section,
+  .premium-card,
+  [class*="customer-"],
+  [class*="trainer-"],
+  [class*="admin-"],
+  [class*="checkout-"],
+  [class*="marketplace-"],
+  [class*="product-"],
+  [class*="learning-"]
+) :where(
+  [class*="rail"],
+  [class*="carousel"],
+  [class*="horizontal"]
+) {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+:where(
+  [class*="rail"],
+  [class*="carousel"],
+  [class*="horizontal"]
+) > * {
+  scroll-snap-align: start;
+}
+
+:where(
+  [class*="table-wrap"],
+  [class*="tableWrapper"],
+  [class*="table-shell"]
+) {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+:where(.premium-empty-state, .premium-loading-state, .premium-error-state, .premium-alert) {
+  min-height: 0;
+  height: auto;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.045);
+  overflow-wrap: anywhere;
+}
+
+.trainer-home-workbench,
+.trainer-video-studio-workbench,
+.trainer-content-workbench {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.trainer-home-hero,
+.trainer-video-studio-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.trainer-home-hero-actions,
+.trainer-video-studio-actions,
+.trainer-content-card-actions,
+.trainer-content-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-home-hero-metric,
+.trainer-home-alert,
+.trainer-home-loading,
+.trainer-home-kpi-card,
+.trainer-home-panel,
+.trainer-home-action-card,
+.trainer-home-timeline-item,
+.trainer-home-product-card,
+.trainer-home-profile-card,
+.trainer-home-status-item,
+.trainer-home-empty,
+.trainer-content-kpi-card,
+.trainer-content-alert,
+.trainer-content-card,
+.trainer-content-upload-card {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+  overflow-wrap: anywhere;
+}
+
+.trainer-home-kpi-grid,
+.trainer-home-action-grid,
+.trainer-home-status-grid,
+.trainer-content-kpi-grid {
+  min-width: 0;
+}
+
+.trainer-home-layout,
+.trainer-content-layout {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.trainer-home-main,
+.trainer-home-sidebar,
+.trainer-video-studio-hero-content,
+.trainer-content-library,
+.trainer-content-editor,
+.trainer-content-preview {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.trainer-home-timeline {
+  min-width: 0;
+}
+
+.trainer-home-product-rail,
+.trainer-content-tabs {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.trainer-video-studio-eyebrow,
+.trainer-content-card-title,
+.trainer-content-card-meta,
+.trainer-content-file-name,
+.trainer-content-upload-step,
+.trainer-content-upload-dropzone {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.trainer-content-workbench--compact {
+  min-width: 0;
+}
+
+.trainer-content-tab,
+.trainer-content-card,
+.trainer-home-product-card {
+  scroll-snap-align: start;
+}
+
+.trainer-content-tab--active,
+.trainer-content-card--active,
+.trainer-content-upload-dropzone--highlighted {
+  border-color: rgba(118, 228, 210, 0.52);
+}
+
+.trainer-content-alert--success {
+  border-color: rgba(74, 222, 128, 0.30);
+}
+
+.trainer-content-alert--danger {
+  border-color: rgba(248, 113, 113, 0.32);
+}
+
+.trainer-content-card-header,
+.trainer-content-card-meta,
+.trainer-content-card-actions {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.trainer-content-upload-dropzone {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (max-width: 1180px) {
+  :where(.premium-product-layout, .premium-checkout-layout, .customer-cabinet-layout, .trainer-home-layout, .trainer-content-layout, .trainer-business-layout, .trainer-education-layout, .trainer-review-layout, .trainer-payout-layout, .trainer-onboarding-layout, .trainer-status-layout, .profile-workbench-content, [class*="admin-layout"]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :where(.trainer-home-sidebar, .profile-workbench-support-panels, [class*="sidebar"]) {
+    order: 2;
+  }
+}
+
+@media (max-width: 1024px) {
+  :where(.premium-hero-grid, .premium-catalog-hero-grid, .premium-product-hero, .trainer-home-hero, .trainer-video-studio-hero, [class*="dashboard-layout"]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :where([class*="actions"], [class*="toolbar"], [class*="filters"], [class*="cta"]) {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  :where(.premium-main, .premium-page, .premium-section, .customer-cabinet-shell, .trainer-home-workbench, .trainer-video-studio-workbench, .trainer-content-workbench, .admin-page, .premium-checkout-page, .premium-product-page, .premium-catalog-page, .learning-page) {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  :where([class*="actions"], [class*="toolbar"], [class*="filters"], [class*="cta"]) > :where(a, button) {
+    flex: 1 1 min(100%, 220px);
+  }
+}
+
+@media (max-width: 640px) {
+  :where(.premium-card, .premium-section, .premium-purchase-panel, .premium-checkout-panel, .customer-commerce-card, .customer-dashboard-card, .trainer-home-panel, .trainer-content-card, .trainer-content-upload-card, .profile-workbench-editor-panel, [class*="admin-card"], [class*="admin-panel"]) {
+    padding: clamp(14px, 4vw, 20px);
+  }
+
+  :where([class*="actions"], [class*="toolbar"], [class*="filters"], [class*="cta"]) > :where(a, button) {
+    width: 100%;
+    justify-content: center;
+  }
+}

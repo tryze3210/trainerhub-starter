@@ -1161,13 +1161,19 @@ for (const fragment of ['v165.3 trainer dashboard/video studio CSS contract lock
   }
 }
 
-for (const fragment of ['current version v166', 'v166 | Production Visual Hardening Pass | Current', 'v151-v166 premium storefront, customer workspace and trainer workspace block', 'v166 — Production Visual Hardening Pass']) {
+for (const fragment of ['v166 | Production Visual Hardening Pass | Done', 'v166 — Production Visual Hardening Pass']) {
   if (!readme.includes(fragment)) {
     throw new Error(`README.md missing v166 fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['Route QA Matrix', 'Public storefront', 'Customer', 'Trainer', 'Admin/Ops', 'Backend unchanged', '.next/trace']) {
+for (const fragment of ['current version v166.1', 'v166.1 | Production Visual Hardening CSS and Contract Lock | Current', 'v151-v166.1 premium storefront, customer workspace and trainer workspace block', 'v166.1 — Production Visual Hardening CSS and Contract Lock']) {
+  if (!readme.includes(fragment)) {
+    throw new Error(`README.md missing v166.1 fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['v166 / v166.1', 'Why v166.1 Was Needed', 'Route QA Matrix', 'Public storefront', 'Customer', 'Trainer', 'Admin/Ops', 'Backend unchanged', '.next/trace']) {
   if (!v166Doc.includes(fragment)) {
     throw new Error(`v166 design-system doc missing fragment: ${fragment}`);
   }
@@ -1185,11 +1191,54 @@ for (const fragment of ['v166 production visual hardening', 'min-width: 0', 'ove
   }
 }
 
+for (const fragment of ['v166.1 production visual hardening CSS and contract lock', 'overflow-wrap: anywhere', 'word-break: normal', 'scroll-snap-type: x mandatory', '@media (max-width: 1180px)', '@media (max-width: 1024px)', '@media (max-width: 768px)', '@media (max-width: 640px)', '.trainer-home-workbench', '.trainer-video-studio-workbench', '.trainer-content-upload-dropzone', '.trainer-content-card--active', '.premium-empty-state', '.premium-error-state', '.premium-loading-state', '[class*="customer-"]', '[class*="trainer-"]', '[class*="admin-"]', '[class*="checkout-"]', '[class*="marketplace-"]', '[class*="product-"]', '[class*="learning-"]']) {
+  if (!globals.includes(fragment)) {
+    throw new Error(`globals.css missing v166.1 fragment: ${fragment}`);
+  }
+}
+
 for (const fragment of ['v165.3', 'Why v165.3 Was Needed', 'v165.3 trainer dashboard/video studio CSS contract lock', '.trainer-home-workbench', '.trainer-video-studio-workbench', '.trainer-content-upload-dropzone', '.trainer-content-card--active']) {
   if (!`${readme}\n${v165Doc}\n${globals}\n${fs.readFileSync(__filename, 'utf8')}`.includes(fragment)) {
     throw new Error(`v165.3 contract fragment lost during v166: ${fragment}`);
   }
 }
+
+for (const fragment of ['v165.3']) {
+  if (!v165Doc.includes(fragment)) {
+    throw new Error(`v165 doc missing preservation fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['compactHero={compactHero}']) {
+  if (!trainerUploadPanel.includes(fragment)) {
+    throw new Error(`trainer upload panel missing v166.1 preservation fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['<TrainerUploadPanel compactHero />']) {
+  if (!trainerVideosPage.includes(fragment)) {
+    throw new Error(`trainer videos page missing v166.1 preservation fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-home-workbench']) {
+  if (!trainerDashboardPage.includes(fragment)) {
+    throw new Error(`trainer dashboard page missing v166.1 preservation fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-content-card--active']) {
+  if (!trainerContentCard.includes(fragment)) {
+    throw new Error(`trainer content card missing v166.1 preservation fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-content-upload-dropzone']) {
+  if (!trainerVideoUploadCard.includes(fragment)) {
+    throw new Error(`trainer video upload card missing v166.1 preservation fragment: ${fragment}`);
+  }
+}
+
 
 for (const fragment of ['Продукты', 'Готовность к публикации', 'Предпросмотр в каталоге', 'Новый продукт', '/trainer/videos?tab=videos&intent=upload', 'Загрузить видео']) {
   if (!trainerProductBuilder.includes(fragment)) {
@@ -1352,4 +1401,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v166 design system contract ok');
+console.log('v131-v166.1 design system contract ok');
