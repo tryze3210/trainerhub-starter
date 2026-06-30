@@ -1,4 +1,4 @@
-# v166 / v166.1 — Production Visual Hardening Pass
+# v166 / v166.1 / v166.2 — Production Visual Hardening Pass
 
 ## Scope
 
@@ -9,6 +9,12 @@ The pass covers overflow safety, readable empty/loading/error states, responsive
 ## Why v166.1 Was Needed
 
 v166 created the production visual hardening roadmap and route QA matrix, but the CSS and contract-test layer needed to be locked. v166.1 adds the scoped CSS hardening rules to globals.css, restores/protects the v165.3 trainer dashboard/video studio hooks, and adds contract tests for README, documentation, CSS selectors, responsive breakpoints and long-string safety rules.
+
+## Why v166.2 Was Needed
+
+Contract Gate Repair:
+
+v166.1 locked the visual hardening CSS and route hooks, but the contract gate itself needed repair. v166.2 removes empty fragment checks, reformats the design-system contract test for maintainability, syncs BUILD_REPORT with the current version and keeps the production visual hardening layer protected by reliable contract tests.
 
 ## Updated Areas
 

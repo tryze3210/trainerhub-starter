@@ -4,6 +4,44 @@ const path = require('path');
 const root = path.resolve(__dirname, '..', '..');
 const repoRoot = path.resolve(root, '..');
 
+function readUtf8(...parts) {
+  return fs.readFileSync(path.join(...parts), 'utf8');
+}
+
+function assertNonEmptyFragments(label, fragments) {
+  for (const fragment of fragments) {
+    if (typeof fragment !== 'string' || fragment.trim().length === 0) {
+      throw new Error(`${label} contains empty contract fragment`);
+    }
+  }
+}
+
+function assertIncludes(source, fragment, label) {
+  if (!source.includes(fragment)) {
+    throw new Error(`${label} missing fragment: ${fragment}`);
+  }
+}
+
+function assertNotIncludes(source, fragment, label) {
+  if (source.includes(fragment)) {
+    throw new Error(`${label} contains forbidden fragment: ${fragment}`);
+  }
+}
+
+function assertIncludesAll(source, fragments, label) {
+  assertNonEmptyFragments(label, fragments);
+  for (const fragment of fragments) {
+    assertIncludes(source, fragment, label);
+  }
+}
+
+function assertExcludesAll(source, fragments, label) {
+  assertNonEmptyFragments(label, fragments);
+  for (const fragment of fragments) {
+    assertNotIncludes(source, fragment, label);
+  }
+}
+
 const requiredFiles = [
   'src/app/globals.css',
   'src/app/profile-workbench.css',
@@ -108,18 +146,18 @@ for (const file of requiredFiles) {
   }
 }
 
-const globals = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8');
-const profileWorkbenchCss = fs.readFileSync(path.join(root, 'src/app/profile-workbench.css'), 'utf8');
-const trainerOperationsCss = fs.readFileSync(path.join(root, 'src/app/trainer-operations.css'), 'utf8');
-const trainerFinanceAnalyticsCss = fs.readFileSync(path.join(root, 'src/app/trainer-finance-analytics.css'), 'utf8');
-const tokens = fs.readFileSync(path.join(root, 'src/design-system/tokens.ts'), 'utf8');
-const components = fs.readFileSync(path.join(root, 'src/design-system/components.tsx'), 'utf8');
-const feedback = fs.readFileSync(path.join(root, 'src/design-system/feedback.tsx'), 'utf8');
-const layouts = fs.readFileSync(path.join(root, 'src/design-system/layouts.tsx'), 'utf8');
-const library = fs.readFileSync(path.join(root, 'src/design-system/library.tsx'), 'utf8');
-const theme = fs.readFileSync(path.join(root, 'src/design-system/theme.tsx'), 'utf8');
-const animated = fs.readFileSync(path.join(root, 'src/design-system/animated.tsx'), 'utf8');
-const countUp = fs.readFileSync(path.join(root, 'src/design-system/use-count-up.ts'), 'utf8');
+const globals = readUtf8(root, 'src/app/globals.css');
+const profileWorkbenchCss = readUtf8(root, 'src/app/profile-workbench.css');
+const trainerOperationsCss = readUtf8(root, 'src/app/trainer-operations.css');
+const trainerFinanceAnalyticsCss = readUtf8(root, 'src/app/trainer-finance-analytics.css');
+const tokens = readUtf8(root, 'src/design-system/tokens.ts');
+const components = readUtf8(root, 'src/design-system/components.tsx');
+const feedback = readUtf8(root, 'src/design-system/feedback.tsx');
+const layouts = readUtf8(root, 'src/design-system/layouts.tsx');
+const library = readUtf8(root, 'src/design-system/library.tsx');
+const theme = readUtf8(root, 'src/design-system/theme.tsx');
+const animated = readUtf8(root, 'src/design-system/animated.tsx');
+const countUp = readUtf8(root, 'src/design-system/use-count-up.ts');
 
 for (const fragment of [
   '--color-primary',
@@ -739,9 +777,11 @@ const trainerVideoUploadCard = fs.readFileSync(path.join(root, 'src/modules/uplo
 const trainerContentCard = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-content-card.tsx'), 'utf8');
 const trainerUploadFormat = fs.readFileSync(path.join(root, 'src/modules/upload/components/trainer-upload-format.ts'), 'utf8');
 const trainerAssignmentsPage = fs.readFileSync(path.join(root, 'src/app/trainer/dashboard/assignments/page.tsx'), 'utf8');
-const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
-const v165Doc = fs.readFileSync(path.join(repoRoot, 'docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md'), 'utf8');
-const v166Doc = fs.readFileSync(path.join(repoRoot, 'docs/design-system/v166_production_visual_hardening.md'), 'utf8');
+const readme = readUtf8(repoRoot, 'README.md');
+const buildReport = readUtf8(repoRoot, 'BUILD_REPORT.md');
+const v165Doc = readUtf8(repoRoot, 'docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md');
+const v166Doc = readUtf8(repoRoot, 'docs/design-system/v166_production_visual_hardening.md');
+const contractSource = readUtf8(root, 'tests/contracts/design-system-contract.test.js');
 const productLanding = [
   contentDetail,
   fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/product-purchase-panel.tsx'), 'utf8'),
@@ -1161,41 +1201,110 @@ for (const fragment of ['v165.3 trainer dashboard/video studio CSS contract lock
   }
 }
 
-for (const fragment of ['v166 | Production Visual Hardening Pass | Done', 'v166 — Production Visual Hardening Pass']) {
-  if (!readme.includes(fragment)) {
-    throw new Error(`README.md missing v166 fragment: ${fragment}`);
-  }
-}
+assertIncludesAll(readme, ['v166 | Production Visual Hardening Pass | Done', 'v166 — Production Visual Hardening Pass'], 'README.md v166');
 
-for (const fragment of ['current version v166.1', 'v166.1 | Production Visual Hardening CSS and Contract Lock | Current', 'v151-v166.1 premium storefront, customer workspace and trainer workspace block', 'v166.1 — Production Visual Hardening CSS and Contract Lock']) {
-  if (!readme.includes(fragment)) {
-    throw new Error(`README.md missing v166.1 fragment: ${fragment}`);
-  }
-}
+assertIncludesAll(
+  readme,
+  [
+    'current version v166.2',
+    'v166.1 | Production Visual Hardening CSS and Contract Lock | Done',
+    'v166.2 | Contract Gate Repair and Documentation Formatting Lock | Current',
+    'v151-v166.2 premium storefront, customer workspace and trainer workspace block',
+    'v166.2 — Contract Gate Repair and Documentation Formatting Lock',
+  ],
+  'README.md v166.2',
+);
 
-for (const fragment of ['v166 / v166.1', 'Why v166.1 Was Needed', 'Route QA Matrix', 'Public storefront', 'Customer', 'Trainer', 'Admin/Ops', 'Backend unchanged', '.next/trace']) {
-  if (!v166Doc.includes(fragment)) {
-    throw new Error(`v166 design-system doc missing fragment: ${fragment}`);
-  }
-}
+assertIncludesAll(
+  v166Doc,
+  [
+    'v166 / v166.1 / v166.2',
+    'Why v166.1 Was Needed',
+    'Why v166.2 Was Needed',
+    'Contract Gate Repair',
+    'Route QA Matrix',
+    'Public storefront',
+    'Customer',
+    'Trainer',
+    'Admin/Ops',
+    'Backend unchanged',
+    '.next/trace',
+  ],
+  'v166 design-system doc',
+);
 
-for (const fragment of ['/catalog', '/checkout', '/customer/hub', '/learning', '/trainer/dashboard', '/trainer/videos', '/admin']) {
-  if (!v166Doc.includes(fragment)) {
-    throw new Error(`v166 route QA doc missing route fragment: ${fragment}`);
-  }
-}
+assertIncludesAll(v166Doc, ['/catalog', '/checkout', '/customer/hub', '/learning', '/trainer/dashboard', '/trainer/videos', '/admin'], 'v166 route QA doc');
 
-for (const fragment of ['v166 production visual hardening', 'min-width: 0', 'overflow-wrap: anywhere', 'scroll-snap-type: x mandatory', '@media (max-width: 1180px)', '@media (max-width: 1024px)', '@media (max-width: 768px)', '@media (max-width: 640px)', '.premium-empty-state', '.premium-loading-state', '.premium-error-state', '.premium-alert']) {
-  if (!globals.includes(fragment)) {
-    throw new Error(`globals.css missing v166 fragment: ${fragment}`);
-  }
-}
+assertIncludesAll(
+  buildReport,
+  [
+    'v166.2',
+    'Contract Gate Repair and Documentation Formatting Lock',
+    'test:contracts',
+    'npm run build',
+    '.next/trace',
+  ],
+  'BUILD_REPORT.md v166.2',
+);
 
-for (const fragment of ['v166.1 production visual hardening CSS and contract lock', 'overflow-wrap: anywhere', 'word-break: normal', 'scroll-snap-type: x mandatory', '@media (max-width: 1180px)', '@media (max-width: 1024px)', '@media (max-width: 768px)', '@media (max-width: 640px)', '.trainer-home-workbench', '.trainer-video-studio-workbench', '.trainer-content-upload-dropzone', '.trainer-content-card--active', '.premium-empty-state', '.premium-error-state', '.premium-loading-state', '[class*="customer-"]', '[class*="trainer-"]', '[class*="admin-"]', '[class*="checkout-"]', '[class*="marketplace-"]', '[class*="product-"]', '[class*="learning-"]']) {
-  if (!globals.includes(fragment)) {
-    throw new Error(`globals.css missing v166.1 fragment: ${fragment}`);
-  }
-}
+assertIncludesAll(
+  globals,
+  [
+    'v166 production visual hardening',
+    'min-width: 0',
+    'overflow-wrap: anywhere',
+    'scroll-snap-type: x mandatory',
+    '@media (max-width: 1180px)',
+    '@media (max-width: 1024px)',
+    '@media (max-width: 768px)',
+    '@media (max-width: 640px)',
+    '.premium-empty-state',
+    '.premium-loading-state',
+    '.premium-error-state',
+    '.premium-alert',
+  ],
+  'globals.css v166',
+);
+
+assertIncludesAll(
+  globals,
+  [
+    'v166.1 production visual hardening CSS and contract lock',
+    'overflow-wrap: anywhere',
+    'word-break: normal',
+    'scroll-snap-type: x mandatory',
+    '@media (max-width: 1180px)',
+    '@media (max-width: 1024px)',
+    '@media (max-width: 768px)',
+    '@media (max-width: 640px)',
+    '.trainer-home-workbench',
+    '.trainer-video-studio-workbench',
+    '.trainer-content-upload-dropzone',
+    '.trainer-content-card--active',
+    '.premium-empty-state',
+    '.premium-error-state',
+    '.premium-loading-state',
+    '[class*="customer-"]',
+    '[class*="trainer-"]',
+    '[class*="admin-"]',
+    '[class*="checkout-"]',
+    '[class*="marketplace-"]',
+    '[class*="product-"]',
+    '[class*="learning-"]',
+  ],
+  'globals.css v166.1',
+);
+
+assertExcludesAll(
+  contractSource,
+  [
+    '[' + "''" + ']',
+    '[' + '""' + ']',
+    "for (const fragment of [" + "''" + '])',
+    'for (const fragment of [' + '""' + '])',
+  ],
+  'design-system-contract.test.js',
+);
 
 for (const fragment of ['v165.3', 'Why v165.3 Was Needed', 'v165.3 trainer dashboard/video studio CSS contract lock', '.trainer-home-workbench', '.trainer-video-studio-workbench', '.trainer-content-upload-dropzone', '.trainer-content-card--active']) {
   if (!`${readme}\n${v165Doc}\n${globals}\n${fs.readFileSync(__filename, 'utf8')}`.includes(fragment)) {
@@ -1401,4 +1510,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v166.1 design system contract ok');
+console.log('v131-v166.2 design system contract ok');
