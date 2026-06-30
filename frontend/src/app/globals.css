@@ -10793,3 +10793,207 @@ globals.css is intentionally left as the active stylesheet for this pass.
 The next CSS architecture step must inventory stable scoped blocks before moving them into split files.
 Do not perform a bulk split without preserving import order and contract tests.
 */
+
+/* v166.4 no unwanted scrollbars and catalog overflow repair */
+.premium-catalog-page,
+.premium-catalog-page *,
+.premium-marketplace-card,
+.premium-marketplace-card * {
+  box-sizing: border-box;
+}
+
+.premium-catalog-page,
+.premium-catalog-hero,
+.premium-catalog-hero-content,
+.premium-catalog-proof-row,
+.premium-catalog-shell,
+.premium-catalog-toolbar,
+.premium-catalog-featured,
+.premium-catalog-grid,
+.premium-catalog-state,
+.premium-catalog-skeleton-grid,
+.premium-catalog-spotlight,
+.premium-catalog-flow,
+.premium-catalog-final-cta,
+.premium-marketplace-card,
+.premium-marketplace-card-cover,
+.premium-marketplace-card-body,
+.premium-marketplace-card-meta,
+.premium-marketplace-card-title,
+.premium-marketplace-card-description,
+.premium-marketplace-card-chips,
+.premium-marketplace-card-price,
+.premium-marketplace-card-actions,
+.premium-site-header,
+.premium-site-header__inner,
+.premium-site-footer,
+.premium-site-footer__inner,
+.premium-nav,
+.premium-header-actions,
+.premium-header-user {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.premium-catalog-hero,
+.premium-catalog-featured,
+.premium-catalog-state,
+.premium-catalog-spotlight,
+.premium-catalog-final-cta,
+.premium-marketplace-card,
+.premium-marketplace-card-body {
+  overflow-y: visible;
+}
+
+.premium-catalog-proof-row,
+.premium-catalog-toolbar,
+.premium-marketplace-card-meta,
+.premium-marketplace-card-chips,
+.premium-marketplace-card-actions,
+.premium-header-actions,
+.premium-nav,
+.premium-site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.premium-catalog-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+  overflow-y: hidden;
+}
+
+.premium-catalog-filter-button {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.premium-catalog-grid,
+.premium-catalog-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(16px, 2vw, 24px);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.premium-marketplace-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.premium-marketplace-card-title,
+.premium-marketplace-card-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.premium-marketplace-card-title {
+  -webkit-line-clamp: 2;
+}
+
+.premium-marketplace-card-description {
+  -webkit-line-clamp: 3;
+}
+
+.premium-marketplace-card-price,
+.premium-marketplace-card-price strong,
+.premium-header-user,
+.premium-header-user strong,
+.premium-header-user span {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.premium-marketplace-card-actions > :where(a, button),
+.premium-header-actions > :where(a, button) {
+  min-width: 0;
+  white-space: normal;
+}
+
+.premium-site-header__inner {
+  min-width: 0;
+}
+
+.premium-site-footer__grid,
+.premium-site-footer__bottom {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .premium-catalog-hero-grid,
+  .premium-featured-product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .premium-catalog-toolbar,
+  .premium-catalog-proof-row,
+  .premium-marketplace-card-actions,
+  .premium-header-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .premium-catalog-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  .premium-catalog-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .premium-catalog-filter-button {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .premium-catalog-grid,
+  .premium-catalog-skeleton-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .premium-nav,
+  .premium-header-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .premium-catalog-hero,
+  .premium-catalog-shell,
+  .premium-catalog-featured,
+  .premium-catalog-state,
+  .premium-catalog-spotlight,
+  .premium-catalog-final-cta,
+  .premium-marketplace-card-body {
+    padding-inline: clamp(14px, 4vw, 20px);
+  }
+
+  .premium-marketplace-card-actions > :where(a, button),
+  .premium-header-actions > :where(a, button) {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

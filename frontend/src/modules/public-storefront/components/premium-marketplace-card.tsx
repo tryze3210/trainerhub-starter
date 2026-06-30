@@ -33,8 +33,8 @@ export function PremiumMarketplaceCard({ item }: { item: StorefrontItem }) {
           <span>{item.trainer_name || 'TrainerHub'}</span>
           <span>{metric(item.difficulty, 'любой уровень')}</span>
         </div>
-        <h3>{item.title}</h3>
-        <p>{getStorefrontDescription(item)}</p>
+        <h3 className="premium-marketplace-card-title">{item.title}</h3>
+        <p className="premium-marketplace-card-description">{getStorefrontDescription(item)}</p>
         <div className="premium-marketplace-card-chips">
           <span>{item.category || 'тренировки'}</span>
           <span>{duration}</span>

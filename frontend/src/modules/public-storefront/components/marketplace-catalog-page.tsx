@@ -120,10 +120,10 @@ function PremiumCatalogFilters({
   onFilterChange: (filterId: string) => void;
 }) {
   return (
-    <div className="premium-filter-bar" aria-label="Фильтры каталога">
+    <div className="premium-filter-bar premium-catalog-filter-row" aria-label="Фильтры каталога">
       {filters.map((filter) => (
         <button
-          className={`premium-filter-chip ${activeFilter === filter.id ? 'premium-filter-chip-active' : ''}`}
+          className={`premium-filter-chip premium-catalog-filter-button ${activeFilter === filter.id ? 'premium-filter-chip-active' : ''}`}
           key={filter.id}
           onClick={() => onFilterChange(filter.id)}
           type="button"
@@ -137,7 +137,7 @@ function PremiumCatalogFilters({
 
 function PremiumFeaturedProduct({ item }: { item: StorefrontItem }) {
   return (
-    <section className="premium-featured-product" aria-labelledby="featured-product-title">
+    <section className="premium-featured-product premium-catalog-featured" aria-labelledby="featured-product-title">
       <div className="premium-featured-product-grid">
         <div>
           <span className="premium-eyebrow">Рекомендуем начать с этого</span>
@@ -168,7 +168,7 @@ function PremiumFeaturedProduct({ item }: { item: StorefrontItem }) {
 
 function PremiumCatalogState({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="premium-state-card">
+    <div className="premium-state-card premium-catalog-state">
       <strong>{title}</strong>
       {description ? <p>{description}</p> : null}
     </div>
@@ -177,7 +177,7 @@ function PremiumCatalogState({ title, description }: { title: string; descriptio
 
 function PremiumSkeletonGrid() {
   return (
-    <div className="premium-product-grid">
+    <div className="premium-product-grid premium-catalog-skeleton-grid">
       {Array.from({ length: 6 }).map((_, index) => (
         <div className="premium-skeleton-card" key={index}>
           <span />
@@ -205,7 +205,7 @@ export function MarketplaceCatalogPage() {
     <main className="premium-landing premium-catalog-page">
       <section className="premium-catalog-hero" aria-labelledby="catalog-title">
         <div className="premium-container premium-catalog-hero-grid">
-          <div>
+          <div className="premium-catalog-hero-content">
             <span className="premium-eyebrow">MARKETPLACE</span>
             <h1 className="premium-hero-title" id="catalog-title">
               Каталог программ и тренеров
@@ -215,7 +215,7 @@ export function MarketplaceCatalogPage() {
               кабинете и отслеживайте прогресс.
             </p>
           </div>
-          <aside className="premium-catalog-preview" aria-label="Как работает доступ после покупки">
+          <aside className="premium-catalog-preview premium-catalog-proof-row" aria-label="Как работает доступ после покупки">
             {['Доступ после оплаты', 'Прогресс уроков', 'Материалы и задания', 'Связь с тренером'].map((item) => (
               <span key={item}>{item}</span>
             ))}
@@ -228,8 +228,8 @@ export function MarketplaceCatalogPage() {
           <PremiumFeaturedProduct item={featured} />
         </AnimatedSection>
 
-        <AnimatedSection className="premium-section premium-catalog-products" aria-labelledby="catalog-products-title">
-          <div className="premium-section-header">
+        <AnimatedSection className="premium-section premium-catalog-shell premium-catalog-products" aria-labelledby="catalog-products-title">
+          <div className="premium-section-header premium-catalog-toolbar">
             <span className="premium-eyebrow">PROGRAMS / VIDEO / ACCESS</span>
             <h2 className="premium-section-title" id="catalog-products-title">
               Выберите формат под цель обучения
@@ -247,7 +247,7 @@ export function MarketplaceCatalogPage() {
           ) : filtered.length === 0 ? (
             <PremiumCatalogState title="Пока нет программ по выбранному фильтру" />
           ) : (
-            <div className="premium-product-grid">
+            <div className="premium-product-grid premium-catalog-grid">
               {filtered.map((item) => (
                 <PremiumMarketplaceCard item={item} key={`${item.entity_type}:${item.id}`} />
               ))}
@@ -256,7 +256,7 @@ export function MarketplaceCatalogPage() {
         </AnimatedSection>
 
         <AnimatedSection className="premium-section">
-          <div className="premium-trainer-spotlight">
+          <div className="premium-trainer-spotlight premium-catalog-spotlight">
             <span className="premium-eyebrow">TRAINER SPOTLIGHT</span>
             <h2>Тренер остаётся в центре продукта</h2>
             <p>
@@ -277,7 +277,7 @@ export function MarketplaceCatalogPage() {
                 Как работает доступ
               </h2>
             </div>
-            <div className="premium-row-list">
+            <div className="premium-row-list premium-catalog-flow">
               {[
                 'Вы покупаете программу или подписку',
                 'TrainerHub активирует доступ в личном кабинете',
@@ -294,7 +294,7 @@ export function MarketplaceCatalogPage() {
         </AnimatedSection>
 
         <AnimatedSection className="premium-section premium-final-cta-section">
-          <div className="premium-final-cta">
+          <div className="premium-final-cta premium-catalog-final-cta">
             <span className="premium-eyebrow">TRAINERHUB MARKETPLACE</span>
             <h2>Готовы выбрать программу и продолжить обучение в одном кабинете?</h2>
             <p>Откройте каталог, сравните формат, уровень и тренера, затем получите доступ без ручной переписки.</p>

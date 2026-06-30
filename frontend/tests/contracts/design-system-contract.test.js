@@ -94,6 +94,7 @@ const requiredFiles = [
   '../docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md',
   '../docs/design-system/v166_production_visual_hardening.md',
   '../docs/design-system/v166_3_repository_hygiene_contract_css_prep.md',
+  '../docs/design-system/v166_4_no_unwanted_scrollbars_catalog_overflow_repair.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -735,6 +736,8 @@ for (const fragment of ['useCountUp', 'requestAnimationFrame', 'durationMs', 'fo
 }
 
 const marketingHome = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/marketing-home-page.tsx'), 'utf8');
+const marketplaceCatalogPage = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/marketplace-catalog-page.tsx'), 'utf8');
+const premiumMarketplaceCard = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/premium-marketplace-card.tsx'), 'utf8');
 const contentDetail = fs.readFileSync(path.join(root, 'src/modules/public-storefront/components/content-detail-page.tsx'), 'utf8');
 const sessionNav = fs.readFileSync(path.join(root, 'src/components/session-nav.tsx'), 'utf8');
 const checkoutPage = fs.readFileSync(path.join(root, 'src/modules/checkout/components/checkout-page.tsx'), 'utf8');
@@ -783,6 +786,7 @@ const buildReport = readUtf8(repoRoot, 'BUILD_REPORT.md');
 const v165Doc = readUtf8(repoRoot, 'docs/design-system/v165_premium_trainer_dashboard_video_route_qa.md');
 const v166Doc = readUtf8(repoRoot, 'docs/design-system/v166_production_visual_hardening.md');
 const v1663Doc = readUtf8(repoRoot, 'docs/design-system/v166_3_repository_hygiene_contract_css_prep.md');
+const v1664Doc = readUtf8(repoRoot, 'docs/design-system/v166_4_no_unwanted_scrollbars_catalog_overflow_repair.md');
 const contractSource = readUtf8(root, 'tests/contracts/design-system-contract.test.js');
 const productLanding = [
   contentDetail,
@@ -1208,15 +1212,17 @@ assertIncludesAll(readme, ['v166 | Production Visual Hardening Pass | Done', 'v1
 assertIncludesAll(
   readme,
   [
-    'current version v166.3',
+    'current version v166.4',
     'v166.1 | Production Visual Hardening CSS and Contract Lock | Done',
     'v166.2 | Contract Gate Repair and Documentation Formatting Lock | Done',
-    'v166.3 | Repository Hygiene, Contract Readability and CSS Architecture Prep | Current',
-    'v151-v166.3 premium storefront, customer workspace and trainer workspace block',
+    'v166.3 | Repository Hygiene, Contract Readability and CSS Architecture Prep | Done',
+    'v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Current',
+    'v151-v166.4 premium storefront, customer workspace and trainer workspace block',
     'v166.2 — Contract Gate Repair and Documentation Formatting Lock',
     'v166.3 — Repository Hygiene, Contract Readability and CSS Architecture Prep',
+    'v166.4 — No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup',
   ],
-  'README.md v166.3',
+  'README.md v166.4',
 );
 
 assertIncludesAll(
@@ -1253,9 +1259,43 @@ assertIncludesAll(
 assertIncludesAll(v166Doc, ['/catalog', '/checkout', '/customer/hub', '/learning', '/trainer/dashboard', '/trainer/videos', '/admin'], 'v166 route QA doc');
 
 assertIncludesAll(
+  v1664Doc,
+  [
+    'Scrollbar Policy',
+    'Catalog QA',
+    'Route QA Matrix',
+    'Backend unchanged',
+    '.next/trace',
+  ],
+  'v166.4 no unwanted scrollbars doc',
+);
+
+assertIncludesAll(
+  marketplaceCatalogPage,
+  [
+    'premium-catalog-page',
+    'premium-catalog-filter-row',
+    'premium-catalog-grid',
+    'premium-catalog-final-cta',
+  ],
+  'marketplace catalog page v166.4',
+);
+
+assertIncludesAll(
+  premiumMarketplaceCard,
+  [
+    'premium-marketplace-card',
+    'premium-marketplace-card-title',
+    'premium-marketplace-card-description',
+    'premium-marketplace-card-actions',
+  ],
+  'premium marketplace card v166.4',
+);
+
+assertIncludesAll(
   buildReport,
   [
-    'BUILD REPORT — TrainerHub v166.3',
+    'BUILD REPORT — TrainerHub v166.4',
     'Verification Performed',
     'Results',
     'Known Local Limitations',
@@ -1263,7 +1303,45 @@ assertIncludesAll(
     'npm run test:contracts',
     'git diff --check',
   ],
-  'BUILD_REPORT.md v166.3',
+  'BUILD_REPORT.md v166.4',
+);
+
+assertIncludesAll(
+  globals,
+  [
+    'v166.4 no unwanted scrollbars and catalog overflow repair',
+    '.premium-catalog-page',
+    '.premium-catalog-filter-row',
+    '.premium-catalog-grid',
+    '.premium-marketplace-card',
+    '.premium-marketplace-card-title',
+    'overflow-wrap: anywhere',
+    'scroll-snap-type: x proximity',
+    'overscroll-behavior-inline: contain',
+    '@media (max-width: 768px)',
+    '@media (max-width: 640px)',
+  ],
+  'globals.css v166.4 catalog overflow repair',
+);
+
+assertIncludesAll(
+  sessionNav,
+  [
+    'Биллинг',
+    'Кабинет тренера',
+    'Админка',
+  ],
+  'session-nav.tsx v166.4 localized labels',
+);
+
+assertExcludesAll(
+  sessionNav,
+  [
+    'Billing',
+    'Trainer dashboard',
+    'Admin cockpit',
+  ],
+  'session-nav.tsx v166.4 forbidden English labels',
 );
 
 assertIncludesAll(
@@ -1551,4 +1629,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v166.3 design system contract ok');
+console.log('v131-v166.4 design system contract ok');

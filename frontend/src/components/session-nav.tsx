@@ -12,6 +12,7 @@ const publicLinks = [
 const studentLinks = [
   { href: '/catalog', label: 'Каталог' },
   { href: '/learning', label: 'Моё обучение' },
+  { href: '/billing', label: 'Биллинг' },
   { href: '/messages', label: 'Сообщения' },
 ];
 
@@ -23,7 +24,7 @@ const trainerLinks = [
 ];
 
 const adminLinks = [
-  { href: '/admin', label: 'Admin' },
+  { href: '/admin', label: 'Админка' },
   { href: '/admin/operations', label: 'Операции' },
   { href: '/admin/payments', label: 'Финансы' },
 ];
