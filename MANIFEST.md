@@ -1,4 +1,14 @@
-# MANIFEST — TrainerHub v165.3
+# MANIFEST — TrainerHub v167.0
+
+## v167.0 Production Optimization Foundation
+
+Current production foundation changes:
+
+- Unified quality gates live in `scripts/quality/`.
+- Backend runtime dependencies are sourced from `backend/requirements.txt`; dev/test tooling lives in `backend/requirements-dev.txt`.
+- Production Dockerfiles are multi-stage for backend and frontend; dev bind mounts live in `docker-compose.dev.yml`.
+- Frontend global CSS is split through `frontend/src/styles/` and `frontend/src/app/globals.css` is import-only.
+- `frontend/tests/contracts/css-layer-contract.test.js` protects the CSS layer structure.
 
 This manifest describes the current repository state after v165.3 Trainer Dashboard and Video Studio CSS Contract Lock.
 

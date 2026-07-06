@@ -1,4 +1,22 @@
-# TrainerHub — current version v166.5.1
+# TrainerHub — current version v167.0
+
+## v167.0 Production Optimization Foundation
+
+v167.0 starts the production optimization foundation. This pass adds unified quality gates, synchronizes backend runtime/dev dependency files, hardens production Docker layering, and splits the large frontend global stylesheet into explicit CSS layers without changing public route contracts.
+
+Validation commands:
+
+```bash
+make backend-check
+make frontend-check
+make full-check
+```
+
+Known local blockers from this workspace:
+
+- `backend_check.sh` reaches Django but fails `makemigrations --check --dry-run` because existing model/migration drift is present. No migrations were generated blindly.
+- `frontend_check.sh` passes `npm ci`, typecheck and contracts, then build is blocked by stale `.next` files owned by another user.
+- `.next` cleanup could not be completed from the active user due filesystem permissions.
 
 This README describes the current roadmap state after v166.5.1 Premium Page Scrollbar Styling for Catalog.
 
