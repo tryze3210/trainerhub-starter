@@ -1,0 +1,341 @@
+/* v167 public storefront route overrides. */
+/* v166.5.2 catalog uses an internal scroller instead of body scroll */
+body:has(.premium-main > .premium-catalog-page) {
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-catalog-page) .premium-site-footer {
+  display: none;
+}
+
+body:has(.premium-main > .premium-catalog-page) .premium-main {
+  flex: 0 0 calc(100dvh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
+  min-height: 0;
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-catalog-page) .premium-main > .premium-catalog-page {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* v166.5.6 catalog filter contrast lock */
+.premium-catalog-page .premium-catalog-filter-button {
+  appearance: none;
+  border-color: var(--premium-border);
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--premium-text-secondary);
+}
+
+.premium-catalog-page .premium-catalog-filter-button:hover,
+.premium-catalog-page .premium-catalog-filter-button:focus-visible,
+.premium-catalog-page .premium-catalog-filter-button.premium-filter-chip-active {
+  border-color: rgba(118, 228, 210, 0.42);
+  background: rgba(118, 228, 210, 0.1);
+  color: var(--premium-text);
+}
+
+/* v166.5.4 home uses an internal scroller instead of body scroll */
+body:has(.premium-main > .premium-home-page) {
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-home-page) .premium-site-footer {
+  display: none;
+}
+
+body:has(.premium-main > .premium-home-page) .premium-main {
+  flex: 0 0 calc(100dvh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
+  min-height: 0;
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-home-page) .premium-main > .premium-home-page {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* v166.5.5 premium login */
+.premium-auth-page {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.premium-auth-layout {
+  min-height: calc(100vh - var(--header-height));
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 0.48fr);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: center;
+  padding-top: clamp(58px, 8vw, 104px);
+  padding-bottom: clamp(58px, 8vw, 104px);
+}
+
+.premium-auth-copy,
+.premium-auth-card,
+.premium-auth-form,
+.premium-auth-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.premium-auth-copy {
+  display: grid;
+  gap: 24px;
+}
+
+.premium-auth-proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 760px;
+}
+
+.premium-auth-proof span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--premium-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--premium-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.premium-auth-card {
+  display: grid;
+  gap: 24px;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid var(--premium-border-strong);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(118, 228, 210, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.035)),
+    var(--premium-surface);
+  box-shadow: 0 34px 100px rgba(0, 0, 0, 0.32);
+}
+
+.premium-auth-card-header {
+  display: grid;
+  gap: 12px;
+}
+
+.premium-auth-card-header h2 {
+  margin: 0;
+  color: var(--premium-text);
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  font-weight: 620;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+.premium-auth-card-header p {
+  margin: 0;
+  color: var(--premium-text-secondary);
+  line-height: 1.65;
+}
+
+.premium-auth-form {
+  display: grid;
+  gap: 18px;
+}
+
+.premium-auth-field {
+  display: grid;
+  gap: 9px;
+  color: var(--premium-text-secondary);
+  font-size: 0.84rem;
+  font-weight: 740;
+}
+
+.premium-auth-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.72fr);
+  gap: 14px;
+}
+
+.premium-auth-field input,
+.premium-auth-field select {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid var(--premium-border);
+  border-radius: 18px;
+  padding: 0 18px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--premium-text);
+  outline: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.premium-auth-field select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--premium-text-secondary) 50%) calc(100% - 18px) 50% / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--premium-text-secondary) 50%, transparent 50%) calc(100% - 13px) 50% / 7px 7px no-repeat,
+    rgba(255, 255, 255, 0.055);
+}
+
+.premium-auth-field select option {
+  background: #ffffff;
+  color: #0b1220;
+}
+
+.premium-auth-field select option:checked {
+  background: #e9eef6;
+  color: #0b1220;
+}
+
+.premium-auth-field input::placeholder {
+  color: var(--premium-text-muted);
+}
+
+.premium-auth-field input:focus,
+.premium-auth-field select:focus {
+  border-color: rgba(118, 228, 210, 0.42);
+  background: rgba(255, 255, 255, 0.075);
+  box-shadow: 0 0 0 4px rgba(118, 228, 210, 0.08);
+}
+
+.premium-auth-field select:focus {
+  background:
+    linear-gradient(45deg, transparent 50%, var(--premium-text) 50%) calc(100% - 18px) 50% / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--premium-text) 50%, transparent 50%) calc(100% - 13px) 50% / 7px 7px no-repeat,
+    rgba(255, 255, 255, 0.075);
+}
+
+.premium-auth-message {
+  padding: 14px 16px;
+  border-radius: 18px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.premium-auth-message-error {
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(127, 29, 29, 0.18);
+  color: #fecaca;
+}
+
+.premium-auth-message-success {
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  background: rgba(20, 83, 45, 0.18);
+  color: #bbf7d0;
+}
+
+.premium-auth-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.premium-auth-submit:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.premium-auth-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  color: var(--premium-text-secondary);
+}
+
+.premium-auth-footer a {
+  color: var(--premium-accent);
+  font-weight: 780;
+}
+
+.premium-auth-fallback {
+  min-height: calc(100vh - var(--header-height));
+  display: grid;
+  place-items: center;
+  background: #070a0f;
+  color: #f7f3ea;
+}
+
+body:has(.premium-main > .premium-login-page) {
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-login-page) .premium-site-footer {
+  display: none;
+}
+
+body:has(.premium-main > .premium-login-page) .premium-main {
+  flex: 0 0 calc(100dvh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
+  min-height: 0;
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-login-page) .premium-main > .premium-login-page {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+body:has(.premium-main > .premium-register-page) {
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-register-page) .premium-site-footer {
+  display: none;
+}
+
+body:has(.premium-main > .premium-register-page) .premium-main {
+  flex: 0 0 calc(100dvh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
+  min-height: 0;
+  overflow: hidden;
+}
+
+body:has(.premium-main > .premium-register-page) .premium-main > .premium-register-page {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 980px) {
+  .premium-auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .premium-auth-layout {
+    padding-top: 54px;
+    padding-bottom: 54px;
+  }
+
+  .premium-auth-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

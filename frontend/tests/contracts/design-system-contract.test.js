@@ -44,9 +44,16 @@ function assertExcludesAll(source, fragments, label) {
 
 const requiredFiles = [
   'src/app/globals.css',
-  'src/app/profile-workbench.css',
-  'src/app/trainer-operations.css',
-  'src/app/trainer-finance-analytics.css',
+  'src/styles/00-reset.css',
+  'src/styles/01-tokens.css',
+  'src/styles/02-layout.css',
+  'src/styles/03-premium-shell.css',
+  'src/styles/04-public-storefront.css',
+  'src/styles/05-customer-cabinet.css',
+  'src/styles/06-trainer-cabinet.css',
+  'src/styles/07-admin-ops.css',
+  'src/styles/08-components.css',
+  'src/styles/09-responsive.css',
   'src/design-system/tokens.ts',
   'src/design-system/components.tsx',
   'src/design-system/feedback.tsx',
@@ -149,10 +156,26 @@ for (const file of requiredFiles) {
   }
 }
 
-const globals = readUtf8(root, 'src/app/globals.css');
-const profileWorkbenchCss = readUtf8(root, 'src/app/profile-workbench.css');
-const trainerOperationsCss = readUtf8(root, 'src/app/trainer-operations.css');
-const trainerFinanceAnalyticsCss = readUtf8(root, 'src/app/trainer-finance-analytics.css');
+const globalsEntry = readUtf8(root, 'src/app/globals.css');
+const cssLayerFiles = [
+  '00-reset.css',
+  '01-tokens.css',
+  '02-layout.css',
+  '03-premium-shell.css',
+  '04-public-storefront.css',
+  '05-customer-cabinet.css',
+  '06-trainer-cabinet.css',
+  '07-admin-ops.css',
+  '08-components.css',
+  '09-responsive.css',
+];
+const cssLayers = Object.fromEntries(cssLayerFiles.map((file) => [file, readUtf8(root, 'src/styles', file)]));
+const globals = `${globalsEntry}\n${Object.values(cssLayers).join('\n')}`;
+const profileWorkbenchCss = cssLayers['06-trainer-cabinet.css'];
+const trainerOperationsCss = cssLayers['06-trainer-cabinet.css'];
+const trainerFinanceAnalyticsCss = cssLayers['06-trainer-cabinet.css'];
+const premiumPublicRoutesCss = cssLayers['04-public-storefront.css'];
+const premiumAuthCss = cssLayers['04-public-storefront.css'];
 const tokens = readUtf8(root, 'src/design-system/tokens.ts');
 const components = readUtf8(root, 'src/design-system/components.tsx');
 const feedback = readUtf8(root, 'src/design-system/feedback.tsx');
@@ -578,17 +601,37 @@ for (const forbiddenFragment of [
   }
 }
 
-if (!globals.includes("@import './profile-workbench.css'")) {
-  throw new Error('globals.css missing profile-workbench.css import');
+for (const cssLayerFile of cssLayerFiles) {
+  if (!globalsEntry.includes(`@import "../styles/${cssLayerFile}";`)) {
+    throw new Error(`globals.css missing CSS layer import: ${cssLayerFile}`);
+  }
 }
 
-if (!globals.includes("@import './trainer-operations.css'")) {
-  throw new Error('globals.css missing trainer-operations.css import');
-}
+assertIncludesAll(
+  premiumPublicRoutesCss,
+  [
+    'v166.5.2 catalog uses an internal scroller instead of body scroll',
+    'v166.5.4 home uses an internal scroller instead of body scroll',
+    'v166.5.6 catalog filter contrast lock',
+    'body:has(.premium-main > .premium-catalog-page)',
+    'body:has(.premium-main > .premium-home-page)',
+    '.premium-catalog-page .premium-catalog-filter-button',
+  ],
+  'premium-public-routes.css',
+);
 
-if (!globals.includes("@import './trainer-finance-analytics.css'")) {
-  throw new Error('globals.css missing trainer-finance-analytics.css import');
-}
+assertIncludesAll(
+  premiumAuthCss,
+  [
+    'v166.5.5 premium login',
+    '.premium-auth-page',
+    '.premium-auth-layout',
+    '.premium-auth-field select option',
+    'body:has(.premium-main > .premium-login-page)',
+    'body:has(.premium-main > .premium-register-page)',
+  ],
+  'premium-auth.css',
+);
 
 for (const fragment of [
   '.profile-workbench',
@@ -1228,7 +1271,7 @@ assertIncludesAll(
 assertIncludesAll(
   readme,
   [
-    'current version v166.5.1',
+    'current version v167.0',
     'v151-v166.5.1 premium storefront, customer workspace and trainer workspace block',
     'v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Done',
     'v166.5 | Catalog Scroll Elimination and Full No-Extra-Scroll QA | Done',
@@ -1349,29 +1392,31 @@ assertIncludesAll(
 assertIncludesAll(
   buildReport,
   [
-    'BUILD REPORT — TrainerHub v166.5',
-    'Verification Performed',
-    'Results',
+    'BUILD REPORT — TrainerHub v167.0',
+    'v167.0 Baseline Quality Gate',
+    'Dependency Sync Result',
+    'Docker Result',
+    'CSS Size Before/After',
     'Known Local Limitations',
     'test:contracts',
     'npm run test:contracts',
     'git diff --check',
   ],
-  'BUILD_REPORT.md v166.4',
+  'BUILD_REPORT.md v167.0',
 );
 
 assertIncludesAll(
   buildReport,
   [
-    'BUILD REPORT — TrainerHub v166.5',
-    'Current version: v166.5',
-    'v166.5 removes unwanted catalog scrollbars and verifies anti-overflow rules',
+    'BUILD REPORT — TrainerHub v167.0',
+    'Current version: v167.0',
+    'Production Optimization Foundation',
     'typecheck',
     'test:contracts',
     'build',
     'git diff --check',
   ],
-  'BUILD_REPORT.md v166.5',
+  'BUILD_REPORT.md v167.0 summary',
 );
 
 assertIncludesAll(

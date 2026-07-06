@@ -1,0 +1,958 @@
+/* v167 trainer/profile cabinet extracted legacy partials. */
+/* v160.3 — Profile workbench and product media picker layer */
+.profile-workbench,
+.trainer-workbench {
+  width: min(1320px, calc(100% - 64px));
+  margin: 32px auto 72px;
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  color: #f7f3ea;
+}
+
+.profile-workbench-content {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.profile-workbench,
+.profile-workbench-content,
+.profile-workbench-panel,
+.profile-workbench-editor-panel,
+.trainer-workbench,
+.trainer-product-workbench,
+.trainer-video-workbench,
+.trainer-content-studio,
+.trainer-content-editor-panel,
+.trainer-product-editor-panel {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+.profile-workbench,
+.profile-workbench-content,
+.trainer-workbench,
+.trainer-content-studio {
+  overflow-x: clip;
+}
+
+.profile-workbench-nav,
+.profile-workbench-rail,
+.trainer-workbench-rail,
+.trainer-content-rail,
+.trainer-media-picker-rail {
+  overflow-y: hidden;
+}
+
+.trainer-product-workbench,
+.trainer-video-workbench {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.trainer-workbench-local-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  min-width: 0;
+  padding: 0 2px 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.trainer-workbench-local-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-product-materials-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.trainer-product-materials-panel-highlighted {
+  border-color: rgba(118, 228, 210, 0.48);
+  box-shadow: 0 0 0 1px rgba(118, 228, 210, 0.14);
+}
+
+.trainer-product-materials-hint {
+  padding: 12px 14px;
+  border: 1px solid rgba(118, 228, 210, 0.26);
+  border-radius: 16px;
+  background: rgba(118, 228, 210, 0.07);
+  color: rgba(247, 243, 234, 0.92);
+}
+
+.trainer-product-media-picker {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.06), transparent 44%),
+    rgba(0, 0, 0, 0.14);
+}
+
+.trainer-product-media-picker-highlighted {
+  border-color: rgba(118, 228, 210, 0.42);
+  box-shadow: 0 0 0 1px rgba(118, 228, 210, 0.12);
+}
+
+.trainer-product-media-picker-state {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-product-media-picker-state strong,
+.trainer-product-media-picker-state p {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trainer-media-picker-rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 4px 12px;
+  min-width: 0;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118, 228, 210, 0.28) transparent;
+}
+
+.trainer-media-picker-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.trainer-media-picker-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.trainer-media-picker-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(118, 228, 210, 0.28);
+}
+
+.trainer-media-picker-card {
+  width: 260px;
+  min-width: 260px;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  text-align: left;
+  color: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.trainer-media-picker-card:hover,
+.trainer-media-picker-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(118, 228, 210, 0.34);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.22);
+  outline: none;
+}
+
+.trainer-media-picker-card strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #f7f3ea;
+}
+
+.trainer-media-picker-card-active {
+  border-color: rgba(118, 228, 210, 0.48);
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.034));
+  box-shadow:
+    0 0 0 1px rgba(118, 228, 210, 0.14),
+    0 20px 52px rgba(0, 0, 0, 0.24);
+}
+
+.trainer-media-picker-card-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trainer-selected-media-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-selected-media-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.trainer-selected-media-row > div,
+.trainer-selected-media-row strong,
+.trainer-selected-media-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trainer-product-advanced-field {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-product-advanced-field-toggle {
+  justify-self: start;
+}
+
+.trainer-product-advanced-field textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  resize: vertical;
+}
+
+@media (max-width: 760px) {
+  .profile-workbench,
+  .trainer-workbench {
+    width: min(100% - 24px, 1320px);
+    margin: 20px auto 56px;
+  }
+
+  .trainer-workbench-local-header {
+    display: grid;
+  }
+
+  .trainer-workbench-local-header-actions {
+    justify-content: flex-start;
+  }
+
+  .trainer-media-picker-card {
+    width: 240px;
+    min-width: 240px;
+  }
+
+  .trainer-selected-media-row {
+    display: grid;
+  }
+}
+
+/* v161 — Premium trainer operations pages */
+
+.trainer-operations-page,
+.trainer-operations-page * {
+  box-sizing: border-box;
+}
+
+.trainer-operations-page {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  color: #f7f3ea;
+}
+
+.trainer-operations-page :where(h2, h3, h4, p, span, strong, small, label, button, a) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.trainer-operations-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.07), transparent 42%),
+    rgba(0, 0, 0, 0.14);
+}
+
+.trainer-operations-toolbar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainer-operations-field {
+  display: grid;
+  gap: 7px;
+  min-width: min(100%, 220px);
+}
+
+.trainer-operations-field label {
+  color: rgba(247, 243, 234, 0.84);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.trainer-operations-field input,
+.trainer-operations-field select,
+.trainer-operations-field textarea {
+  width: 100%;
+  min-width: 0;
+  color: #f7f3ea;
+  background: rgba(7, 10, 15, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.trainer-operations-field textarea {
+  resize: vertical;
+}
+
+.trainer-operations-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainer-operations-metric {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.trainer-operations-metric span {
+  display: block;
+  color: rgba(184, 192, 204, 0.78);
+  font-size: 12px;
+}
+
+.trainer-operations-metric strong {
+  display: block;
+  margin-top: 8px;
+  color: #f7f3ea;
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.trainer-operations-rail-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-operations-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 0;
+}
+
+.trainer-operations-section-header h3,
+.trainer-operations-section-header p {
+  margin: 0;
+}
+
+.trainer-operations-section-header p {
+  margin-top: 6px;
+  color: rgba(184, 192, 204, 0.78);
+}
+
+.trainer-operations-rail {
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 4px 12px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118, 228, 210, 0.28) transparent;
+}
+
+.trainer-operations-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.trainer-operations-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.trainer-operations-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(118, 228, 210, 0.28);
+}
+
+.trainer-operations-card {
+  width: 280px;
+  min-width: 280px;
+  scroll-snap-align: start;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  color: inherit;
+  text-align: left;
+  overflow: hidden;
+}
+
+.trainer-operations-card-active {
+  border-color: rgba(118, 228, 210, 0.48);
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.034));
+  box-shadow:
+    0 0 0 1px rgba(118, 228, 210, 0.14),
+    0 20px 52px rgba(0, 0, 0, 0.24);
+}
+
+.trainer-operations-card strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #f7f3ea;
+}
+
+.trainer-operations-panel,
+.trainer-operations-detail-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.055), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.026));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 20px 70px rgba(0, 0, 0, 0.18);
+}
+
+.trainer-operations-support-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  min-width: 0;
+}
+
+.trainer-operations-row-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-operations-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-operations-row > div {
+  min-width: 0;
+}
+
+.trainer-operations-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainer-operations-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(247, 243, 234, 0.86);
+  font-size: 0.82rem;
+  line-height: 1.15;
+}
+
+.trainer-operations-status-success {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.trainer-operations-status-warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.trainer-operations-status-danger {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.trainer-operations-empty,
+.trainer-operations-message {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-operations-page,
+.trainer-operations-panel,
+.trainer-operations-detail-panel {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+@media (max-width: 900px) {
+  .trainer-operations-support-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .trainer-operations-toolbar,
+  .trainer-operations-section-header {
+    display: grid;
+    align-items: start;
+  }
+
+  .trainer-operations-card {
+    width: 250px;
+    min-width: 250px;
+  }
+
+  .trainer-operations-row {
+    display: grid;
+  }
+}
+
+/* v162 — Premium trainer finance and analytics workbenches */
+
+.trainer-finance-workbench,
+.trainer-sales-workbench,
+.trainer-analytics-workbench,
+.trainer-finance-workbench *,
+.trainer-sales-workbench *,
+.trainer-analytics-workbench * {
+  box-sizing: border-box;
+}
+
+.trainer-finance-workbench,
+.trainer-sales-workbench,
+.trainer-analytics-workbench {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  color: #f7f3ea;
+}
+
+.trainer-finance-workbench :where(h2, h3, h4, p, span, strong, small, label, button, a),
+.trainer-sales-workbench :where(h2, h3, h4, p, span, strong, small, label, button, a),
+.trainer-analytics-workbench :where(h2, h3, h4, p, span, strong, small, label, button, a) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.trainer-finance-hero,
+.trainer-sales-hero,
+.trainer-analytics-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 20px;
+  min-width: 0;
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.12), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.028));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.trainer-finance-hero h2,
+.trainer-sales-hero h2,
+.trainer-analytics-hero h2,
+.trainer-finance-hero p,
+.trainer-sales-hero p,
+.trainer-analytics-hero p {
+  margin: 0;
+}
+
+.trainer-finance-hero p,
+.trainer-sales-hero p,
+.trainer-analytics-hero p,
+.trainer-finance-muted {
+  color: rgba(184, 192, 204, 0.82);
+}
+
+.trainer-finance-hero-total {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 260px);
+  padding: 18px;
+  border: 1px solid rgba(118, 228, 210, 0.2);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-finance-hero-total span {
+  color: rgba(184, 192, 204, 0.82);
+  font-size: 0.86rem;
+}
+
+.trainer-finance-hero-total strong {
+  color: #f7f3ea;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: 0;
+}
+
+.trainer-finance-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.trainer-finance-kpi-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.trainer-finance-kpi-card span,
+.trainer-finance-kpi-card small {
+  color: rgba(184, 192, 204, 0.8);
+}
+
+.trainer-finance-kpi-card strong {
+  color: #f7f3ea;
+  font-size: 1.45rem;
+  letter-spacing: 0;
+}
+
+.trainer-finance-workspace,
+.trainer-analytics-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+  gap: 20px;
+  min-width: 0;
+  align-items: start;
+}
+
+.trainer-finance-main,
+.trainer-finance-sidebar {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.trainer-finance-panel,
+.trainer-analytics-insight-card,
+.trainer-sales-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 228, 210, 0.055), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.026));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 20px 70px rgba(0, 0, 0, 0.16);
+}
+
+.trainer-finance-panel h3,
+.trainer-analytics-insight-card h3,
+.trainer-sales-card h3 {
+  margin: 0;
+}
+
+.trainer-finance-rail,
+.trainer-sales-rail {
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 4px 12px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118, 228, 210, 0.28) transparent;
+}
+
+.trainer-finance-rail::-webkit-scrollbar,
+.trainer-sales-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.trainer-finance-rail::-webkit-scrollbar-track,
+.trainer-sales-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.trainer-finance-rail::-webkit-scrollbar-thumb,
+.trainer-sales-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(118, 228, 210, 0.28);
+}
+
+.trainer-finance-source-card,
+.trainer-sales-card {
+  scroll-snap-align: start;
+}
+
+.trainer-finance-source-card,
+.trainer-sales-product-card,
+.trainer-analytics-content-card {
+  width: 280px;
+  min-width: 280px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.028));
+  color: inherit;
+  overflow: hidden;
+}
+
+.trainer-finance-source-card strong,
+.trainer-sales-product-card strong,
+.trainer-analytics-content-card strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #f7f3ea;
+}
+
+.trainer-finance-timeline {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainer-finance-timeline-item,
+.trainer-finance-compact-card,
+.trainer-sales-timeline-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.trainer-finance-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  align-items: center;
+}
+
+.trainer-finance-status {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(247, 243, 234, 0.86);
+  font-size: 0.82rem;
+}
+
+.trainer-finance-status-success {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.trainer-finance-status-warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.trainer-finance-status-danger {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.trainer-finance-empty,
+.trainer-finance-message {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.trainer-analytics-progress {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.trainer-analytics-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #76e4d2, #93c5fd);
+}
+
+.trainer-finance-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+  align-items: end;
+}
+
+.trainer-finance-field {
+  display: grid;
+  gap: 7px;
+  min-width: min(100%, 180px);
+}
+
+.trainer-finance-field span {
+  color: rgba(247, 243, 234, 0.84);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.trainer-finance-field select {
+  width: 100%;
+  min-width: 0;
+  color: #f7f3ea;
+  background: rgba(7, 10, 15, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.trainer-finance-workbench,
+.trainer-sales-workbench,
+.trainer-analytics-workbench,
+.trainer-finance-panel,
+.trainer-analytics-insight-card,
+.trainer-sales-card {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+@media (max-width: 980px) {
+  .trainer-finance-hero,
+  .trainer-sales-hero,
+  .trainer-analytics-hero,
+  .trainer-finance-workspace,
+  .trainer-analytics-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .trainer-finance-hero,
+  .trainer-sales-hero,
+  .trainer-analytics-hero {
+    padding: 20px;
+  }
+
+  .trainer-finance-source-card,
+  .trainer-sales-product-card,
+  .trainer-analytics-content-card {
+    width: 250px;
+    min-width: 250px;
+  }
+
+  .trainer-finance-row {
+    display: grid;
+  }
+}
