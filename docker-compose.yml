@@ -1,12 +1,11 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,9 +16,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -32,14 +30,11 @@ services:
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
+    restart: unless-stopped
     command: ["/app/deploy/backend/entrypoint.sh"]
     env_file: .env.example
     environment:
       DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,12 +47,11 @@ services:
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
+    restart: unless-stopped
     command: ["/app/deploy/backend/celery-worker.sh"]
     env_file: .env.example
     environment:
       DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
-    volumes:
-      - ./backend:/app/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,12 +62,11 @@ services:
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
+    restart: unless-stopped
     command: ["/app/deploy/backend/celery-beat.sh"]
     env_file: .env.example
     environment:
       DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
-    volumes:
-      - ./backend:/app/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,12 +77,11 @@ services:
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
+    restart: unless-stopped
     command: ["celery", "-A", "config.celery_app", "flower", "--port=5555"]
     env_file: .env.example
     environment:
       DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
-    volumes:
-      - ./backend:/app/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,17 +94,19 @@ services:
     build:
       context: .
       dockerfile: deploy/frontend/Dockerfile
+    restart: unless-stopped
     env_file: .env.example
     environment:
       NEXT_PUBLIC_API_BASE_URL: /api/v1
       NEXT_PUBLIC_API_BASE: /api/v1
-    volumes:
-      - ./frontend:/app/frontend
+    depends_on:
+      - backend
     expose:
       - "3000"
 
   nginx:
     image: nginx:1.27-alpine
+    restart: unless-stopped
     depends_on:
       - backend
       - frontend

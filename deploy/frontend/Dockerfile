@@ -1,7 +1,33 @@
-FROM node:22-alpine
+FROM node:22-alpine AS deps
 
 WORKDIR /app/frontend
-COPY frontend/package.json /app/frontend/package.json
-RUN npm install
-COPY frontend /app/frontend
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+FROM node:22-alpine AS builder
+
+WORKDIR /app/frontend
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/frontend/node_modules ./node_modules
+COPY frontend ./
+RUN npm run build
+
+FROM node:22-alpine AS runner
+
+WORKDIR /app/frontend
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
+
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+CMD ["node", "server.js"]

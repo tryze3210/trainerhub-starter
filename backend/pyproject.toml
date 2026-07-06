@@ -5,6 +5,9 @@ description = "TrainerHub backend modular monolith"
 authors = ["OpenAI <support@openai.com>"]
 package-mode = false
 
+# v167: production/runtime installs are intentionally driven by requirements.txt
+# because Docker and CI use pip. Keep this file as Poetry/tooling metadata.
+
 [tool.poetry.dependencies]
 python = "^3.12"
 Django = "^5.1"
@@ -26,8 +29,10 @@ argon2-cffi = "^23.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
 pytest-django = "^4.9"
-ruff = "^0.7"
 mypy = "^1.11"
+flake8 = "^7.1"
+django-stubs = "^5.1.0"
+djangorestframework-stubs = "^3.15.0"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
