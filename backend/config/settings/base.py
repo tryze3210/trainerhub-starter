@@ -5,12 +5,48 @@ from datetime import timedelta
 import dj_database_url
 from dotenv import load_dotenv
 
+from config.env import is_production_env, validate_production_environment
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 
+
+def _csv_env(name: str, default: str) -> list[str]:
+    return [v.strip() for v in os.getenv(name, default).split(",") if v.strip()]
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+APP_ENV_NAME = os.getenv("APP_ENV", os.getenv("DJANGO_ENV", "local")).strip().lower()
+IS_PRODUCTION = is_production_env(APP_ENV_NAME)
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
 DEBUG = os.getenv("DEBUG", "0") == "1"
-ALLOWED_HOSTS = [v.strip() for v in os.getenv("ALLOWED_HOSTS", "*").split(",") if v.strip()]
+ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "*")
+CORS_ALLOWED_ORIGINS = _csv_env(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+CSRF_TRUSTED_ORIGINS = _csv_env(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+CORS_ALLOW_CREDENTIALS = True
+
+validate_production_environment(
+    env=APP_ENV_NAME,
+    debug=DEBUG,
+    secret_key=SECRET_KEY,
+    allowed_hosts=ALLOWED_HOSTS,
+    csrf_trusted_origins=CSRF_TRUSTED_ORIGINS,
+    cors_allowed_origins=CORS_ALLOWED_ORIGINS,
+    storage_access_key=os.getenv("VK_S3_ACCESS_KEY_ID") or os.getenv("VK_CLOUD_ACCESS_KEY"),
+    storage_secret_key=os.getenv("VK_S3_SECRET_ACCESS_KEY") or os.getenv("VK_CLOUD_SECRET_KEY"),
+)
 
 INSTALLED_APPS = [
     "corsheaders",
@@ -181,21 +217,17 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    v.strip()
-    for v in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
-    ).split(",")
-    if v.strip()
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = _bool_env("SECURE_SSL_REDIRECT", IS_PRODUCTION)
+SESSION_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE", IS_PRODUCTION)
+CSRF_COOKIE_SECURE = _bool_env("CSRF_COOKIE_SECURE", IS_PRODUCTION)
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000" if IS_PRODUCTION else "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _bool_env("SECURE_HSTS_INCLUDE_SUBDOMAINS", IS_PRODUCTION)
+SECURE_HSTS_PRELOAD = _bool_env("SECURE_HSTS_PRELOAD", IS_PRODUCTION)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
 
 VK_S3_ENDPOINT_URL = os.getenv("VK_S3_ENDPOINT_URL", "")
 VK_S3_ACCESS_KEY_ID = os.getenv("VK_S3_ACCESS_KEY_ID", "")

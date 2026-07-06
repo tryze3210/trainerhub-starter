@@ -4,7 +4,7 @@
 
 - Current version: v167.0
 - Goal: Production Optimization Foundation.
-- Scope completed in this pass: baseline quality gates, backend dependency split, production Docker baseline, CSS layer decomposition, documentation update.
+- Scope completed in this pass: baseline quality gates, backend dependency split, production Docker baseline, CSS layer decomposition, production env/security hardening, documentation update.
 
 ## Baseline File Sizes
 
@@ -117,6 +117,9 @@ cd frontend
 npm run typecheck
 npm run test:contracts
 git diff --check
+backend/.venv/bin/python -m pytest backend/tests/test_production_env_v167.py -q
+backend/.venv/bin/python backend/manage.py check
+backend/.venv/bin/python -m flake8 backend/config/env.py backend/config/settings/base.py backend/tests/test_production_env_v167.py
 ```
 
 Blocked / not fully passed:
@@ -127,6 +130,18 @@ Blocked / not fully passed:
 
 ## Known Local Limitations
 
-- Production env/security hardening, API route matrix, frontend API client strict typing and backend performance baseline remain follow-up work for the next v167.x slices.
+- API route matrix, frontend API client strict typing and backend performance baseline remain follow-up work for the next v167.x slices.
 - `.next` cleanup requires correcting filesystem ownership outside this session.
 - Migration drift must be resolved deliberately with review of affected apps.
+
+## v167.4 Production Env/Security Hardening
+
+Added:
+
+- Central production environment validation in `backend/config/env.py`.
+- Active Django settings integration in `backend/config/settings/base.py`.
+- Explicit production requirements for `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS` and VK/S3 credentials.
+- Cookie, SSL redirect, HSTS, content-type nosniff and frame protection defaults that become strict when `APP_ENV=production`.
+- Regression coverage in `backend/tests/test_production_env_v167.py`.
+
+This was implemented without changing the current sqlite fallback used by local/test settings.
