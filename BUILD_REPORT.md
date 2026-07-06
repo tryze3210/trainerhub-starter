@@ -4,7 +4,7 @@
 
 - Current version: v167.0
 - Goal: Production Optimization Foundation.
-- Scope completed in this pass: baseline quality gates, backend dependency split, production Docker baseline, CSS layer decomposition, production env/security hardening, documentation update.
+- Scope completed in this pass: baseline quality gates, backend dependency split, production Docker baseline, CSS layer decomposition, production env/security hardening, frontend API fallback cleanup, documentation update.
 
 ## Baseline File Sizes
 
@@ -130,7 +130,7 @@ Blocked / not fully passed:
 
 ## Known Local Limitations
 
-- API route matrix, frontend API client strict typing and backend performance baseline remain follow-up work for the next v167.x slices.
+- Full API route matrix, frontend API client strict typing and backend performance baseline remain follow-up work for the next v167.x slices.
 - `.next` cleanup requires correcting filesystem ownership outside this session.
 - Migration drift must be resolved deliberately with review of affected apps.
 
@@ -145,3 +145,9 @@ Added:
 - Regression coverage in `backend/tests/test_production_env_v167.py`.
 
 This was implemented without changing the current sqlite fallback used by local/test settings.
+
+## v167.5 Frontend API Fallback Cleanup
+
+Removed the only active `apiRequestWithFallback` usage from the frontend session flow. `authApi.me()` now calls the canonical backend route `/auth/me/`, which is mounted by `apps.authn.api.urls`.
+
+Added contract coverage to keep frontend source free of `apiRequestWithFallback` and the unmounted legacy `/users/me/` route.

@@ -1,10 +1,40 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 const route = (path) => `${API_BASE_URL}${path}`;
+const root = path.resolve(__dirname, '..', '..');
+
+function walkFiles(dir, predicate, result = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const absolute = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkFiles(absolute, predicate, result);
+    } else if (predicate(absolute)) {
+      result.push(absolute);
+    }
+  }
+  return result;
+}
+
+function assertNoFrontendFragment(fragment, reason) {
+  const files = walkFiles(
+    path.join(root, 'src'),
+    (file) => /\.(ts|tsx)$/.test(file)
+  );
+  const offenders = files.filter((file) => fs.readFileSync(file, 'utf8').includes(fragment));
+
+  assert.deepEqual(
+    offenders.map((file) => path.relative(root, file)),
+    [],
+    reason
+  );
+}
 
 (function main() {
   assert.equal(route('/auth/login/'), `${API_BASE_URL}/auth/login/`);
+  assert.equal(route('/auth/me/'), `${API_BASE_URL}/auth/me/`);
   assert.equal(route('/content/videos/'), `${API_BASE_URL}/content/videos/`);
   assert.equal(route('/content/programs/'), `${API_BASE_URL}/content/programs/`);
   assert.equal(route('/content/bundles/'), `${API_BASE_URL}/content/bundles/`);
@@ -78,5 +108,7 @@ const route = (path) => `${API_BASE_URL}${path}`;
   assert.equal(route('/payouts/admin-ops/ledger/export.csv'), `${API_BASE_URL}/payouts/admin-ops/ledger/export.csv`);
   assert.equal(route('/payouts/admin-ops/reconciliation/snapshot/'), `${API_BASE_URL}/payouts/admin-ops/reconciliation/snapshot/`);
   assert.equal(route('/payouts/admin-ops/integrity/'), `${API_BASE_URL}/payouts/admin-ops/integrity/`);
+  assertNoFrontendFragment('apiRequestWithFallback', 'frontend API client must not use legacy request fallbacks');
+  assertNoFrontendFragment('/users/me/', 'frontend session API must use canonical /auth/me/');
   console.log('frontend contract routes ok');
 })();

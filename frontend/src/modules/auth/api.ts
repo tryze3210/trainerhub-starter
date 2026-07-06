@@ -1,5 +1,5 @@
 import { clearTokens } from '@/lib/auth';
-import { apiRequest, apiRequestWithFallback } from '@/lib/api-client';
+import { apiRequest } from '@/lib/api-client';
 import type { AuthResponse, SessionPayload } from '@/types/api';
 import { normalizeAuthResponse, normalizeSessionPayload, splitFullName } from './normalizers';
 
@@ -59,10 +59,7 @@ export const authApi = {
   },
 
   async me(): Promise<SessionPayload> {
-    const response = await apiRequestWithFallback<Record<string, unknown>>(
-      ['/auth/me/', '/users/me/'],
-      { auth: true }
-    );
+    const response = await apiRequest<Record<string, unknown>>('/auth/me/', { auth: true });
     return normalizeSessionPayload(response);
   },
 

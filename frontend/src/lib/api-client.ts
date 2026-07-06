@@ -141,17 +141,3 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   return parseResponse<T>(response);
 }
-
-export async function apiRequestWithFallback<T>(paths: string[], options: ApiRequestOptions = {}): Promise<T> {
-  let lastError: unknown = null;
-
-  for (const path of paths) {
-    try {
-      return await apiRequest<T>(path, options);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error('Request failed');
-}

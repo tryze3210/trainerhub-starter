@@ -10,6 +10,7 @@
 - Split frontend CSS entrypoint into explicit files under `frontend/src/styles`.
 - Added CSS layer contract coverage.
 - Added production env/security validation and active Django settings integration.
+- Removed the frontend session legacy fallback route and added contract coverage for it.
 
 ## What Was Not Touched
 
@@ -44,7 +45,7 @@ npm run test:contracts
 
 - The CSS split is a production structure foundation. Some selectors remain mechanically grouped in `08-components.css`; future passes should move namespaces into narrower layers or CSS Modules.
 - Docker build was not completed in this session.
-- Frontend API strict typing and backend performance baseline should be completed in follow-up v167.x slices.
+- Frontend API strict typing, full route matrix and backend performance baseline should be completed in follow-up v167.x slices.
 
 ## v167.4 Env/Security Slice
 
@@ -58,8 +59,14 @@ Production mode now fails early when the environment is unsafe:
 
 The active `config.settings.base` keeps local/test defaults intact, but applies strict cookie, SSL redirect, HSTS, nosniff and frame protection defaults in production.
 
+## v167.5 Frontend API Fallback Slice
+
+The active backend URL config exposes `auth-me` at `/api/v1/auth/me/`; `/api/v1/users/me/` is not mounted by the active `config.urls` tree.
+
+Frontend session loading now calls `/auth/me/` directly and the generic `apiRequestWithFallback` helper was removed. `api-contract.test.js` now fails if frontend source reintroduces `apiRequestWithFallback` or `/users/me/`.
+
 ## Next Stage v168
 
 - Resolve migration drift.
 - Move route-specific frontend CSS into route/module chunks where safe.
-- Add API route matrix and remove verified redundant fallback paths.
+- Add the remaining API route matrix.
