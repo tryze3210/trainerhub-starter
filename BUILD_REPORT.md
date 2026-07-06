@@ -1,13 +1,9 @@
-# BUILD REPORT — TrainerHub v166.4
+# BUILD REPORT — TrainerHub v166.5
 
 ## Summary
 
-- Current version: `v166.4`
-- v166 completed production visual hardening route QA.
-- v166.1 locked scoped visual hardening CSS and route hooks.
-- v166.2 repaired contract-gate coverage.
-- v166.3 formats the quality-gate documentation and contract tests for maintainability.
-- v166.4 removes unwanted scrollbars and repairs public catalog overflow.
+- Current version: v166.5
+- v166.5 removes unwanted catalog scrollbars and verifies anti-overflow rules.
 
 ## Verification Performed
 
@@ -21,7 +17,7 @@ npm run build
 git diff --check
 ```
 
-Backend commands were not required for v166.4 because this pass is limited to frontend UI/CSS, documentation and contract tests.
+Backend commands were not required for v166.5 because this pass is limited to frontend UI/CSS, documentation and contract tests.
 
 ## Results
 

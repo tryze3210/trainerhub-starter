@@ -1,10 +1,10 @@
-# TrainerHub — current version v166.4
+# TrainerHub — current version v166.5.1
 
-This README describes the current roadmap state after v166.4 No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup.
+This README describes the current roadmap state after v166.5.1 Premium Page Scrollbar Styling for Catalog.
 
 TrainerHub is a trainer commerce platform with admin operations, customer billing, trainer sales, payout controls, subscriptions, entitlements, audit trails, notifications, CRM, booking, attendance, and production-readiness checks.
 
-The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v166.4 premium storefront, customer workspace and trainer workspace block is now implemented.
+The v70-v95 platform-readiness block, v97-v105 content-learning launch block, v106-v120 production-launch block and v131-v150 UX redesign block are closed; the v151-v166.5.1 premium storefront, customer workspace and trainer workspace block is now implemented.
 
 v163 завершил premium polish для заданий, отзывов и заявок на выплаты тренера.
 
@@ -27,6 +27,10 @@ v166.2 repairs the production quality gate by removing empty contract fragments,
 v166.3 improves repository maintainability after the premium UI hardening block: README, BUILD_REPORT, v166 documentation and design-system contract tests are formatted for review, while the next CSS architecture step is documented before any large stylesheet split.
 
 v166.4 removes unwanted UI scrollbars and overflow after the production visual hardening pass, with a focused repair on the public catalog and a route-level cleanup across public, checkout, customer, learning, trainer and admin surfaces.
+
+v166.5 removes the unwanted catalog scrollbar by replacing the mobile filter rail with wrapped filter chips, then audits catalog cards, page shell, app navigation and major product surfaces for accidental overflow and nested scrollbars.
+
+v166.5.1 styles the main document/page scrollbar for the dark premium catalog UI and keeps catalog scrolling in natural document flow without introducing a second internal vertical scrollbar.
 
 ## Current Roadmap State
 
@@ -116,7 +120,9 @@ Roadmap status table:
 | v166.1 | Production Visual Hardening CSS and Contract Lock | Done |
 | v166.2 | Contract Gate Repair and Documentation Formatting Lock | Done |
 | v166.3 | Repository Hygiene, Contract Readability and CSS Architecture Prep | Done |
-| v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Current |
+| v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Done |
+| v166.5 | Catalog Scroll Elimination and Full No-Extra-Scroll QA | Done |
+| v166.5.1 | Premium Page Scrollbar Styling for Catalog | Current |
 
 Completed implementation line:
 
@@ -222,6 +228,8 @@ Completed implementation line:
 - v166.2 — Contract Gate Repair and Documentation Formatting Lock
 - v166.3 — Repository Hygiene, Contract Readability and CSS Architecture Prep
 - v166.4 — No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup
+- v166.5 — Catalog Scroll Elimination and Full No-Extra-Scroll QA
+- v166.5.1 — Premium Page Scrollbar Styling for Catalog
 
 The v70-v95 production-readiness roadmap is now closed at the platform gate level.
 The v97-v105 content-learning launch roadmap is now closed at the launch gate level.

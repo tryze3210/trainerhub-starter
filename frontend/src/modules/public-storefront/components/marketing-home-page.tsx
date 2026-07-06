@@ -19,7 +19,7 @@ const painRows = [
 
 export function MarketingHomePage() {
   return (
-    <main className="premium-landing">
+    <main className="premium-landing premium-home-page">
       <section className="premium-hero" aria-labelledby="home-hero-title">
         <div className="premium-container premium-hero-grid">
           <div className="premium-hero-copy">

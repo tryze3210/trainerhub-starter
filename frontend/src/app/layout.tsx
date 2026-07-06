@@ -47,7 +47,7 @@ export default function RootLayout({
                     <div className="premium-site-footer__links">
                       <Link href="/catalog" className="premium-footer-link">Каталог</Link>
                       <Link href="/trainers" className="premium-footer-link">Тренеры</Link>
-                      <Link href="/register" className="premium-footer-link">Стать тренером</Link>
+                      <Link href="/register" className="premium-footer-link">Регистрация</Link>
                     </div>
                   </div>
                   <div className="premium-site-footer__column">

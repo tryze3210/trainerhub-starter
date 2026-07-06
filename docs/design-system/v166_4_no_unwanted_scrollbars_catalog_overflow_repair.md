@@ -37,7 +37,7 @@ The user noticed an unwanted scrollbar in the public catalog. These issues usual
 
 - `/catalog` desktop 1440px: no right horizontal page scroll.
 - `/catalog` laptop 1280px: no nested vertical scrollbars.
-- `/catalog` tablet 768px: filters stay inside their row and use only local horizontal scroll when needed.
+- `/catalog` tablet 768px: filters stay inside their row and wrap without creating a local scrollbar.
 - `/catalog` mobile 390px: cards stay inside a one-column grid.
 - Filter chips do not create a second page scrollbar.
 - Cards do not escape the grid.
@@ -96,10 +96,11 @@ Admin/Ops:
 
 ## Catalog Repair Notes
 
-- Catalog filters use `.premium-catalog-filter-row` as the only local mobile horizontal rail.
+- Catalog filters use `.premium-catalog-filter-row` with wrapping on mobile, not a local horizontal scrollbar.
 - Catalog cards use `.premium-catalog-grid` with `auto-fit` and `minmax(min(100%, 280px), 1fr)`.
 - Marketplace card titles and descriptions are clamped and wrap safely.
 - Header, navigation and footer action rows wrap instead of expanding the viewport.
+- The catalog root is a regular container inside the app-level `<main>`, so nested `main` min-height rules do not create extra vertical scroll.
 
 Intentional scroll areas that may remain:
 

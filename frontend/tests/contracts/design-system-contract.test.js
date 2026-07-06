@@ -95,6 +95,7 @@ const requiredFiles = [
   '../docs/design-system/v166_production_visual_hardening.md',
   '../docs/design-system/v166_3_repository_hygiene_contract_css_prep.md',
   '../docs/design-system/v166_4_no_unwanted_scrollbars_catalog_overflow_repair.md',
+  '../docs/design-system/v166_5_catalog_scroll_elimination.md',
   'src/modules/trainer-operations/format.ts',
   'src/modules/trainer-products/components/trainer-product-media-picker.tsx',
   'src/modules/trainer-products/components/trainer-selected-media-list.tsx',
@@ -787,6 +788,7 @@ const v165Doc = readUtf8(repoRoot, 'docs/design-system/v165_premium_trainer_dash
 const v166Doc = readUtf8(repoRoot, 'docs/design-system/v166_production_visual_hardening.md');
 const v1663Doc = readUtf8(repoRoot, 'docs/design-system/v166_3_repository_hygiene_contract_css_prep.md');
 const v1664Doc = readUtf8(repoRoot, 'docs/design-system/v166_4_no_unwanted_scrollbars_catalog_overflow_repair.md');
+const v1665Doc = readUtf8(repoRoot, 'docs/design-system/v166_5_catalog_scroll_elimination.md');
 const contractSource = readUtf8(root, 'tests/contracts/design-system-contract.test.js');
 const productLanding = [
   contentDetail,
@@ -834,7 +836,7 @@ for (const fragment of [
   'Кабинет тренера',
   'Операции',
   'Финансы',
-  'Стать тренером',
+  'Регистрация',
 ]) {
   if (!sessionNav.includes(fragment)) {
     throw new Error(`session-nav.tsx missing premium header fragment: ${fragment}`);
@@ -1212,17 +1214,31 @@ assertIncludesAll(readme, ['v166 | Production Visual Hardening Pass | Done', 'v1
 assertIncludesAll(
   readme,
   [
-    'current version v166.4',
     'v166.1 | Production Visual Hardening CSS and Contract Lock | Done',
     'v166.2 | Contract Gate Repair and Documentation Formatting Lock | Done',
     'v166.3 | Repository Hygiene, Contract Readability and CSS Architecture Prep | Done',
-    'v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Current',
-    'v151-v166.4 premium storefront, customer workspace and trainer workspace block',
+    'v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Done',
     'v166.2 — Contract Gate Repair and Documentation Formatting Lock',
     'v166.3 — Repository Hygiene, Contract Readability and CSS Architecture Prep',
     'v166.4 — No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup',
   ],
   'README.md v166.4',
+);
+
+assertIncludesAll(
+  readme,
+  [
+    'current version v166.5.1',
+    'v151-v166.5.1 premium storefront, customer workspace and trainer workspace block',
+    'v166.4 | No Unwanted Scrollbars, Catalog Overflow Repair and UI Noise Cleanup | Done',
+    'v166.5 | Catalog Scroll Elimination and Full No-Extra-Scroll QA | Done',
+    'v166.5.1 | Premium Page Scrollbar Styling for Catalog | Current',
+    'v166.5 — Catalog Scroll Elimination and Full No-Extra-Scroll QA',
+    'v166.5 removes the unwanted catalog scrollbar by replacing the mobile filter rail with wrapped filter chips',
+    'v166.5.1 — Premium Page Scrollbar Styling for Catalog',
+    'v166.5.1 styles the main document/page scrollbar for the dark premium catalog UI',
+  ],
+  'README.md v166.5.1',
 );
 
 assertIncludesAll(
@@ -1271,6 +1287,21 @@ assertIncludesAll(
 );
 
 assertIncludesAll(
+  v1665Doc,
+  [
+    'v166.5.1',
+    'Root Cause',
+    'Scrollbar Policy',
+    'Premium Page Scrollbar Styling',
+    'main document/page scrollbar',
+    'Catalog QA Checklist',
+    'Backend unchanged',
+    '.next/trace',
+  ],
+  'v166.5 catalog scroll elimination doc',
+);
+
+assertIncludesAll(
   marketplaceCatalogPage,
   [
     'premium-catalog-page',
@@ -1279,6 +1310,14 @@ assertIncludesAll(
     'premium-catalog-final-cta',
   ],
   'marketplace catalog page v166.4',
+);
+
+assertExcludesAll(
+  marketplaceCatalogPage,
+  [
+    '<main className="premium-landing premium-catalog-page"',
+  ],
+  'marketplace catalog page nested main guard',
 );
 
 assertIncludesAll(
@@ -1293,9 +1332,24 @@ assertIncludesAll(
 );
 
 assertIncludesAll(
+  premiumMarketplaceCard,
+  [
+    'premium-marketplace-card-cover',
+    'premium-marketplace-card-body',
+    'premium-marketplace-card-meta',
+    'premium-marketplace-card-title',
+    'premium-marketplace-card-description',
+    'premium-marketplace-card-chips',
+    'premium-marketplace-card-price',
+    'premium-marketplace-card-actions',
+  ],
+  'premium marketplace card v166.5',
+);
+
+assertIncludesAll(
   buildReport,
   [
-    'BUILD REPORT — TrainerHub v166.4',
+    'BUILD REPORT — TrainerHub v166.5',
     'Verification Performed',
     'Results',
     'Known Local Limitations',
@@ -1304,6 +1358,20 @@ assertIncludesAll(
     'git diff --check',
   ],
   'BUILD_REPORT.md v166.4',
+);
+
+assertIncludesAll(
+  buildReport,
+  [
+    'BUILD REPORT — TrainerHub v166.5',
+    'Current version: v166.5',
+    'v166.5 removes unwanted catalog scrollbars and verifies anti-overflow rules',
+    'typecheck',
+    'test:contracts',
+    'build',
+    'git diff --check',
+  ],
+  'BUILD_REPORT.md v166.5',
 );
 
 assertIncludesAll(
@@ -1316,13 +1384,57 @@ assertIncludesAll(
     '.premium-marketplace-card',
     '.premium-marketplace-card-title',
     'overflow-wrap: anywhere',
-    'scroll-snap-type: x proximity',
+    'scroll-snap-type: none',
     'overscroll-behavior-inline: contain',
     '@media (max-width: 768px)',
     '@media (max-width: 640px)',
   ],
   'globals.css v166.4 catalog overflow repair',
 );
+
+assertIncludesAll(
+  globals,
+  [
+    'v166.5 catalog scroll elimination',
+    '.premium-catalog-filter-row',
+    'overflow-x: visible',
+    'overflow-y: visible',
+    'scroll-snap-type: none',
+    '.premium-catalog-page',
+    'overflow-x: clip',
+    '.premium-catalog-page .premium-section',
+    '.premium-marketplace-card-title',
+    'overflow-wrap: anywhere',
+    'grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+  ],
+  'globals.css v166.5 catalog scroll elimination',
+);
+
+assertIncludesAll(
+  globals,
+  [
+    'v166.5.1 premium page scrollbar styling',
+    'scrollbar-color',
+    'html::-webkit-scrollbar',
+    'body::-webkit-scrollbar',
+    '.premium-catalog-page',
+    'overflow-x: clip',
+  ],
+  'globals.css v166.5.1 premium page scrollbar styling',
+);
+
+assertExcludesAll(
+  globals,
+  [
+    '.premium-main { overflow-y: auto',
+    '.premium-main { overflow-y: scroll',
+  ],
+  'globals.css v166.5.1 premium-main inner scroll guard',
+);
+
+const emptySingleQuoteArray = `[${"''"}]`;
+const emptyDoubleQuoteArray = `[${'""'}]`;
+assertExcludesAll(contractSource, [emptySingleQuoteArray, emptyDoubleQuoteArray], 'design-system contract empty fragment guard');
 
 assertIncludesAll(
   sessionNav,
@@ -1629,4 +1741,4 @@ for (const [fileName, source, forbiddenFragments] of [
   }
 }
 
-console.log('v131-v166.4 design system contract ok');
+console.log('v131-v166.5.1 design system contract ok');

@@ -202,7 +202,7 @@ export function MarketplaceCatalogPage() {
   const featured = items.find((item) => item.is_featured) ?? items[0] ?? fallbackItems[0];
 
   return (
-    <main className="premium-landing premium-catalog-page">
+    <div className="premium-landing premium-catalog-page">
       <section className="premium-catalog-hero" aria-labelledby="catalog-title">
         <div className="premium-container premium-catalog-hero-grid">
           <div className="premium-catalog-hero-content">
@@ -309,6 +309,6 @@ export function MarketplaceCatalogPage() {
           </div>
         </AnimatedSection>
       </div>
-    </main>
+    </div>
   );
 }

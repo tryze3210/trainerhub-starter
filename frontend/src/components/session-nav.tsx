@@ -83,7 +83,7 @@ export function SessionNav() {
         ) : (
           <>
             <Link href="/login" className="premium-header-ghost">Войти</Link>
-            <Link href="/register" className="premium-header-cta">Стать тренером</Link>
+            <Link href="/register" className="premium-header-cta">Регистрация</Link>
           </>
         )}
       </div>

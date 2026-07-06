@@ -51,59 +51,99 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <div className="stack" style={{ gap: 10, marginBottom: 22 }}>
-          <span className="badge">Регистрация</span>
-          <h1 className="title-lg">Создай аккаунт в TrainerHub</h1>
-          <p>Для клиента это быстрый вход в кабинет. Для тренера — старт onboarding, заявки и будущей публикации.</p>
-        </div>
+    <div className="premium-landing premium-auth-page premium-register-page">
+      <div className="premium-container premium-auth-layout">
+        <section className="premium-auth-copy" aria-labelledby="register-title">
+          <span className="premium-eyebrow">TRAINERHUB ONBOARDING</span>
+          <h1 className="premium-hero-title" id="register-title">
+            Создайте аккаунт в TrainerHub
+          </h1>
+          <p className="premium-hero-subtitle">
+            Клиент получает кабинет для покупок и обучения. Тренер начинает onboarding, готовит профиль, продукты и
+            будущую публикацию в marketplace.
+          </p>
+          <div className="premium-auth-proof" aria-label="Что можно сделать после регистрации">
+            <span>Кабинет ученика</span>
+            <span>Trainer onboarding</span>
+            <span>Каталог продуктов</span>
+            <span>Оплаты и доступы</span>
+          </div>
+        </section>
 
-        <form className="form" onSubmit={onSubmit}>
-          <div className="form-group">
-            <label className="label" htmlFor="full_name">Полное имя</label>
-            <input
-              id="full_name"
-              className="input"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              autoComplete="name"
-              placeholder="Можно заполнить позже в onboarding"
-            />
+        <div className="premium-auth-card">
+          <div className="premium-auth-card-header">
+            <span className="premium-eyebrow">CREATE ACCOUNT</span>
+            <h2>Регистрация</h2>
+            <p>Выберите роль сейчас. Данные профиля можно будет уточнить после входа.</p>
           </div>
 
-          <div className="grid-2">
-            <div className="form-group">
-              <label className="label" htmlFor="email">Email</label>
-              <input id="email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+          <form className="premium-auth-form" onSubmit={onSubmit}>
+            <label className="premium-auth-field" htmlFor="full_name">
+              <span>Полное имя</span>
+              <input
+                id="full_name"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoComplete="name"
+                placeholder="Можно заполнить позже в onboarding"
+              />
+            </label>
+
+            <div className="premium-auth-field-grid">
+              <label className="premium-auth-field" htmlFor="email">
+                <span>Email</span>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </label>
+
+              <label className="premium-auth-field" htmlFor="role">
+                <span>Роль</span>
+                <select id="role" value={role} onChange={(e) => setRole(e.target.value as 'user' | 'trainer')}>
+                  <option value="user">Покупатель / клиент</option>
+                  <option value="trainer">Тренер</option>
+                </select>
+              </label>
             </div>
 
-            <div className="form-group">
-              <label className="label" htmlFor="role">Роль</label>
-              <select id="role" className="select" value={role} onChange={(e) => setRole(e.target.value as 'user' | 'trainer')}>
-                <option value="user">Покупатель / клиент</option>
-                <option value="trainer">Тренер</option>
-              </select>
-            </div>
+            <label className="premium-auth-field" htmlFor="password">
+              <span>Пароль</span>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </label>
+
+            {msg ? (
+              <div className="premium-auth-message premium-auth-message-error">
+                {msg}
+              </div>
+            ) : null}
+            {success ? (
+              <div className="premium-auth-message premium-auth-message-success">
+                {success}
+              </div>
+            ) : null}
+
+            <button className="premium-primary-button premium-auth-submit" type="submit" disabled={loading}>
+              {loading ? 'Создаём аккаунт...' : role === 'trainer' ? 'Создать trainer-аккаунт' : 'Создать аккаунт'}
+            </button>
+          </form>
+
+          <div className="premium-auth-footer">
+            <span>Уже есть аккаунт?</span>
+            <Link href="/login">Войти</Link>
           </div>
-
-          <div className="form-group">
-            <label className="label" htmlFor="password">Пароль</label>
-            <input id="password" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
-          </div>
-
-          {msg ? <div className="card error compact">{msg}</div> : null}
-          {success ? <div className="card success compact">{success}</div> : null}
-
-          <button className="button lg w-full" type="submit" disabled={loading}>
-            {loading ? 'Создаём аккаунт...' : role === 'trainer' ? 'Создать trainer-аккаунт' : 'Создать аккаунт'}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <span className="muted">Уже есть аккаунт?</span>
-          <Link href="/login">Войти</Link>
         </div>
       </div>
     </div>

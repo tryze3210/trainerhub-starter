@@ -43,35 +43,72 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <div className="stack" style={{ gap: 10, marginBottom: 22 }}>
-          <span className="badge secondary">Вход</span>
-          <h1 className="title-lg">Войти в TrainerHub</h1>
-          <p>Trainer-аккаунт после входа уходит в dashboard shell. Клиент остаётся в обычном кабинете.</p>
-        </div>
+    <div className="premium-landing premium-auth-page premium-login-page">
+      <div className="premium-container premium-auth-layout">
+        <section className="premium-auth-copy" aria-labelledby="login-title">
+          <span className="premium-eyebrow">TRAINERHUB ACCESS</span>
+          <h1 className="premium-hero-title" id="login-title">
+            Войти в TrainerHub
+          </h1>
+          <p className="premium-hero-subtitle">
+            Один вход открывает клиентский кабинет, обучение, покупки и рабочее пространство тренера с продуктами,
+            аналитикой и сопровождением учеников.
+          </p>
+          <div className="premium-auth-proof" aria-label="Что доступно после входа">
+            <span>Личный кабинет</span>
+            <span>Доступы после оплаты</span>
+            <span>Trainer dashboard</span>
+            <span>Прогресс и материалы</span>
+          </div>
+        </section>
 
-        <form className="form" onSubmit={onSubmit}>
-          <div className="form-group">
-            <label className="label" htmlFor="email">Email</label>
-            <input id="email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+        <div className="premium-auth-card">
+          <div className="premium-auth-card-header">
+            <span className="premium-eyebrow">SECURE LOGIN</span>
+            <h2>Доступ к аккаунту</h2>
+            <p>Тренер попадает в dashboard shell. Клиент продолжает работу в обычном кабинете.</p>
           </div>
 
-          <div className="form-group">
-            <label className="label" htmlFor="password">Пароль</label>
-            <input id="password" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+          <form className="premium-auth-form" onSubmit={onSubmit}>
+            <label className="premium-auth-field" htmlFor="email">
+              <span>Email</span>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </label>
+
+            <label className="premium-auth-field" htmlFor="password">
+              <span>Пароль</span>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </label>
+
+            {msg ? (
+              <div className="premium-auth-message premium-auth-message-error">
+                {msg}
+              </div>
+            ) : null}
+
+            <button className="premium-primary-button premium-auth-submit" type="submit" disabled={loading}>
+              {loading ? 'Входим...' : 'Войти'}
+            </button>
+          </form>
+
+          <div className="premium-auth-footer">
+            <span>Нет аккаунта?</span>
+            <Link href="/register">Создать</Link>
           </div>
-
-          {msg ? <div className="card error compact">{msg}</div> : null}
-
-          <button className="button lg w-full" type="submit" disabled={loading}>
-            {loading ? 'Входим...' : 'Войти'}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <span className="muted">Нет аккаунта?</span>
-          <Link href="/register">Создать</Link>
         </div>
       </div>
     </div>
@@ -80,9 +117,8 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Загрузка...</div>}>
+    <Suspense fallback={<div className="premium-auth-fallback">Загрузка...</div>}>
       <LoginPageContent />
     </Suspense>
   );
 }
-
