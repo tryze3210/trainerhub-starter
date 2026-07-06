@@ -5672,7 +5672,7 @@ small {
   }
 
   .ds-modal {
-    align-items: end;
+    align-items: flex-end;
     padding: var(--space-md);
   }
 
@@ -5684,7 +5684,7 @@ small {
   }
 
   .ds-command-palette {
-    align-items: end;
+    align-items: flex-end;
     padding: var(--space-md);
   }
 
@@ -6261,7 +6261,7 @@ small {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.4fr);
   gap: 28px;
-  align-items: end;
+  align-items: flex-end;
   min-height: 320px;
   padding: 34px;
   border: 1px solid var(--premium-border);
@@ -6369,7 +6369,7 @@ small {
 }
 
 .premium-timeline-step h3 {
-  align-self: end;
+  align-self: flex-end;
   margin: 0;
   color: var(--premium-text-secondary);
   font-size: 1.02rem;
@@ -6479,7 +6479,7 @@ small {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.45fr);
   gap: clamp(32px, 6vw, 80px);
-  align-items: end;
+  align-items: flex-end;
 }
 
 .premium-catalog-preview {
@@ -6514,7 +6514,7 @@ small {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
   gap: 32px;
-  align-items: end;
+  align-items: flex-end;
   padding: clamp(28px, 5vw, 56px);
 }
 
@@ -7017,7 +7017,7 @@ small {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 24px;
-  align-items: end;
+  align-items: flex-end;
 }
 
 .premium-access-timeline {
@@ -8149,7 +8149,7 @@ small {
 }
 
 .trainer-product-advanced-field-toggle {
-  justify-self: end;
+  justify-self: flex-end;
 }
 
 .trainer-product-materials-panel {
@@ -8554,7 +8554,7 @@ small {
 .trainer-payout-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: flex-end;
   gap: 20px;
   min-width: 0;
   padding: 26px;
@@ -8843,7 +8843,7 @@ small {
 .trainer-status-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
-  align-items: end;
+  align-items: flex-end;
   gap: 20px;
   min-width: 0;
   padding: 26px;
@@ -9251,7 +9251,7 @@ small {
 .trainer-video-studio-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
-  align-items: end;
+  align-items: flex-end;
   gap: 20px;
   min-width: 0;
   padding: 26px;
@@ -11221,7 +11221,7 @@ body::-webkit-scrollbar-thumb:hover {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(300px, 0.42fr);
   gap: clamp(32px, 6vw, 80px);
-  align-items: end;
+  align-items: flex-end;
 }
 
 .premium-trainers-hero-content,
@@ -11273,7 +11273,7 @@ body::-webkit-scrollbar-thumb:hover {
   display: flex;
   justify-content: space-between;
   gap: 24px;
-  align-items: end;
+  align-items: flex-end;
 }
 
 .premium-trainers-count {

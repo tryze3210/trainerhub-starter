@@ -629,7 +629,7 @@
 .trainer-analytics-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: flex-end;
   gap: 20px;
   min-width: 0;
   padding: 26px;
@@ -892,7 +892,7 @@
   flex-wrap: wrap;
   gap: 12px;
   min-width: 0;
-  align-items: end;
+  align-items: flex-end;
 }
 
 .trainer-finance-field {
