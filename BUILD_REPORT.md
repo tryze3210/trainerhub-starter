@@ -4,7 +4,7 @@
 
 - Current version: v167.0
 - Goal: Production Optimization Foundation.
-- Scope completed in this pass: baseline quality gates, backend dependency split, production Docker baseline, CSS layer decomposition, production env/security hardening, frontend API fallback cleanup, documentation update.
+- Scope completed in this pass: baseline quality gates, backend dependency split, production Docker baseline, CSS layer decomposition, production env/security hardening, frontend API fallback cleanup, backend API route matrix, documentation update.
 
 ## Baseline File Sizes
 
@@ -118,6 +118,7 @@ npm run typecheck
 npm run test:contracts
 git diff --check
 backend/.venv/bin/python -m pytest backend/tests/test_production_env_v167.py -q
+backend/.venv/bin/python -m pytest backend/tests/test_api_route_matrix_v167.py -q
 backend/.venv/bin/python backend/manage.py check
 backend/.venv/bin/python -m flake8 backend/config/env.py backend/config/settings/base.py backend/tests/test_production_env_v167.py
 ```
@@ -130,7 +131,7 @@ Blocked / not fully passed:
 
 ## Known Local Limitations
 
-- Full API route matrix, frontend API client strict typing and backend performance baseline remain follow-up work for the next v167.x slices.
+- Frontend API client strict typing and backend performance baseline remain follow-up work for the next v167.x slices.
 - `.next` cleanup requires correcting filesystem ownership outside this session.
 - Migration drift must be resolved deliberately with review of affected apps.
 
@@ -151,3 +152,9 @@ This was implemented without changing the current sqlite fallback used by local/
 Removed the only active `apiRequestWithFallback` usage from the frontend session flow. `authApi.me()` now calls the canonical backend route `/auth/me/`, which is mounted by `apps.authn.api.urls`.
 
 Added contract coverage to keep frontend source free of `apiRequestWithFallback` and the unmounted legacy `/users/me/` route.
+
+## v167.6 Backend API Route Matrix
+
+Added `backend/tests/test_api_route_matrix_v167.py` to resolve frontend-facing backend paths through the active Django `config.urls` tree and assert their expected `url_name`.
+
+Added `docs/optimization/v167_api_route_matrix.md` as the readable route matrix index. The contract covers auth, public catalog, content catalog, trainers, commerce, payouts, products, subscriptions, access, ops, referrals, audit, booking, messaging and notifications.

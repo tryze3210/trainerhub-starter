@@ -11,6 +11,7 @@
 - Added CSS layer contract coverage.
 - Added production env/security validation and active Django settings integration.
 - Removed the frontend session legacy fallback route and added contract coverage for it.
+- Added backend API route matrix coverage for frontend-facing routes.
 
 ## What Was Not Touched
 
@@ -37,6 +38,7 @@ npm run test:contracts
 - Frontend contracts: passed.
 - Backend `manage.py check`: passed.
 - Backend production env tests: passed.
+- Backend API route matrix tests: passed.
 - Backend changed-file flake8: passed.
 - Backend quality gate: blocked by existing migration drift at `makemigrations --check --dry-run`.
 - Frontend build: blocked locally by stale `.next` ownership/permissions.
@@ -45,7 +47,7 @@ npm run test:contracts
 
 - The CSS split is a production structure foundation. Some selectors remain mechanically grouped in `08-components.css`; future passes should move namespaces into narrower layers or CSS Modules.
 - Docker build was not completed in this session.
-- Frontend API strict typing, full route matrix and backend performance baseline should be completed in follow-up v167.x slices.
+- Frontend API strict typing and backend performance baseline should be completed in follow-up v167.x slices.
 
 ## v167.4 Env/Security Slice
 
@@ -65,8 +67,14 @@ The active backend URL config exposes `auth-me` at `/api/v1/auth/me/`; `/api/v1/
 
 Frontend session loading now calls `/auth/me/` directly and the generic `apiRequestWithFallback` helper was removed. `api-contract.test.js` now fails if frontend source reintroduces `apiRequestWithFallback` or `/users/me/`.
 
+## v167.6 Backend API Route Matrix Slice
+
+Added `backend/tests/test_api_route_matrix_v167.py`, which resolves frontend-facing sample routes through active Django URL configuration and asserts the exact `url_name`. This catches both missing mounts and accidental dynamic-route capture.
+
+Added `docs/optimization/v167_api_route_matrix.md` as the human-readable matrix index.
+
 ## Next Stage v168
 
 - Resolve migration drift.
 - Move route-specific frontend CSS into route/module chunks where safe.
-- Add the remaining API route matrix.
+- Add frontend API client strict typing where route contracts still use broad `Record<string, unknown>` payloads.
