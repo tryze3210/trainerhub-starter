@@ -3,35 +3,24 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
 
 jobs:
   backend-quality:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.12'
       - name: Install backend deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-      - name: Compile backend
-        run: python -m compileall backend
-      - name: Pytest
-        run: |
-          cd backend
-          pytest
-      - name: Flake8
-        run: flake8 backend
-      - name: Mypy
-        run: mypy backend
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Run backend quality gate
+        run: bash scripts/quality/backend_check.sh
 
-  frontend-build:
+  frontend-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,48 +28,18 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: frontend/package.json
-      - name: Install frontend deps
-        run: |
-          cd frontend
-          npm ci
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+          cache-dependency-path: frontend/package-lock.json
+      - name: Run frontend quality gate
+        run: bash scripts/quality/frontend_check.sh
 
   launch-hardening:
     runs-on: ubuntu-latest
-    needs: [backend-quality, frontend-build]
+    needs: [backend-quality, frontend-quality]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package.json
-      - name: Install backend deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-      - name: Install frontend deps
-        run: |
-          cd frontend
-          npm ci
-      - name: Run launch gate
-        run: bash scripts/ci/launch_gate.sh
-
-  production-gate:
-    runs-on: ubuntu-latest
-    needs: [backend-quality, frontend-build, launch-hardening]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+          python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -89,6 +48,21 @@ jobs:
       - name: Install backend deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Run launch gate
+        run: bash scripts/ci/launch_gate.sh
+
+  production-gate:
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality, launch-hardening]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
       - name: Run production gate
         run: bash scripts/ci/production_gate.sh

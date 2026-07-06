@@ -2,7 +2,7 @@ PYTHON ?= python3
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
 
-.PHONY: install install-backend install-frontend test lint typecheck quality build-frontend smoke migrate
+.PHONY: install install-backend install-frontend test lint typecheck quality build-frontend smoke migrate backend-check frontend-check full-check
 
 install: install-backend install-frontend
 
@@ -22,11 +22,16 @@ typecheck:
 	mypy $(BACKEND_DIR)
 
 quality:
-	$(PYTHON) -m compileall $(BACKEND_DIR)
-	$(MAKE) test
-	$(MAKE) lint
-	$(MAKE) typecheck
-	$(MAKE) build-frontend
+	$(MAKE) full-check
+
+backend-check:
+	bash scripts/quality/backend_check.sh
+
+frontend-check:
+	bash scripts/quality/frontend_check.sh
+
+full-check:
+	bash scripts/quality/full_check.sh
 
 build-frontend:
 	cd $(FRONTEND_DIR) && npm ci && npm run build
