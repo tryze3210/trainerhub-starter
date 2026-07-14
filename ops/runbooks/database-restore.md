@@ -4,6 +4,12 @@
 - Data corruption, failed migration, accidental destructive operation, or infrastructure loss.
 - Production readiness or runtime health cannot recover through app-level repair.
 
+## Triage
+- Record the incident start time, affected services and first visible customer impact.
+- Check whether the issue is isolated to reads, writes, background jobs, payments or all database access.
+- Compare the latest successful backup time with the first known bad write.
+- Do not run manual SQL repairs until the restore point and rollback owner are confirmed.
+
 ## Preconditions
 - Confirm incident commander approval.
 - Freeze deploys and background repair jobs.

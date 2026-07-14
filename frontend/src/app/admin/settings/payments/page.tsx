@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { privateApi } from '@/lib/api';
 import type { PaymentProviderSettings } from '@/types/api';
 
@@ -13,7 +14,7 @@ const emptySettings: PaymentProviderSettings = {
 
 export default function AdminPaymentSettingsPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [settings, setSettings] = useState<PaymentProviderSettings>(emptySettings);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,16 +56,16 @@ export default function AdminPaymentSettingsPage() {
   }
 
   return (
-    <ProtectedPage title="Payment provider settings" description="Конфигурация checkout adapters для платформы.">
+    <ProtectedPage title="Настройки платежных провайдеров" description="Конфигурация платежных адаптеров для платформы.">
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="row" style={{ alignItems: 'flex-start' }}>
             <div className="stack" style={{ gap: 10 }}>
-              <span className="badge secondary">Admin settings</span>
-              <h1>Payment provider config</h1>
-              <p className="lead">Хранилище provider contract settings в PlatformSettings.homepage_config без отдельной миграции под каждый gateway.</p>
+              <span className="badge secondary">Настройки администратора</span>
+              <h1>Конфигурация платежных провайдеров</h1>
+              <p className="lead">Хранилище настроек платежных договоров в PlatformSettings.homepage_config без отдельной миграции под каждый шлюз.</p>
             </div>
             <button className="button" disabled={busy} onClick={() => void save()}>{busy ? 'Сохраняем...' : 'Сохранить'}</button>
           </div>
@@ -73,7 +74,7 @@ export default function AdminPaymentSettingsPage() {
 
           <div className="card">
             <div className="form-group">
-              <label className="label" htmlFor="default-provider">Default provider</label>
+              <label className="label" htmlFor="default-provider">Провайдер по умолчанию</label>
               <select id="default-provider" className="select" value={settings.default_provider} onChange={(event) => setSettings((current) => ({ ...current, default_provider: event.target.value }))}>
                 {settings.providers.map((provider) => (
                   <option key={provider.provider} value={provider.provider}>{provider.display_name || provider.provider}</option>
@@ -91,35 +92,35 @@ export default function AdminPaymentSettingsPage() {
                     <span className={`badge ${provider.is_enabled ? 'success' : 'warning'}`}>{provider.is_enabled ? 'enabled' : 'disabled'}</span>
                   </div>
                   <div className="form-group">
-                    <label className="label">Display name</label>
+                    <label className="label">Название на экране</label>
                     <input className="input" value={provider.display_name || ''} onChange={(event) => updateProvider(index, { display_name: event.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="label">Environment</label>
+                    <label className="label">Среда</label>
                     <select className="select" value={provider.environment || 'test'} onChange={(event) => updateProvider(index, { environment: event.target.value })}>
-                      <option value="dev">dev</option>
-                      <option value="test">test</option>
-                      <option value="prod">prod</option>
+                      <option value="dev">Разработка</option>
+                      <option value="test">Тест</option>
+                      <option value="prod">Продакшен</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="label">Public key / public id</label>
+                    <label className="label">Публичный ключ / публичный ID</label>
                     <input className="input" value={provider.public_key || ''} onChange={(event) => updateProvider(index, { public_key: event.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="label">Shop ID</label>
+                    <label className="label">ID магазина</label>
                     <input className="input" value={provider.shop_id || ''} onChange={(event) => updateProvider(index, { shop_id: event.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="label">Webhook secret (masked)</label>
+                    <label className="label">Секрет вебхука (скрыт)</label>
                     <input className="input" value={provider.webhook_secret_masked || ''} onChange={(event) => updateProvider(index, { webhook_secret_masked: event.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="label">Return URL override</label>
+                    <label className="label">Переопределение return URL</label>
                     <input className="input" value={provider.return_url_override || ''} onChange={(event) => updateProvider(index, { return_url_override: event.target.value })} placeholder="https://app.example.com/checkout/success" />
                   </div>
                   <div className="form-group">
-                    <label className="label">Notes</label>
+                    <label className="label">Заметки</label>
                     <textarea className="textarea" value={provider.notes || ''} onChange={(event) => updateProvider(index, { notes: event.target.value })} />
                   </div>
                   <label className="checkbox-inline">

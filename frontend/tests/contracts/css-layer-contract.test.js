@@ -3,6 +3,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..', '..');
 const globalsPath = path.join(root, 'src/app/globals.css');
+const trainerRouteCssPath = path.join(root, 'src/app/trainer/trainer-route.css');
 const stylesDir = path.join(root, 'src/styles');
 
 const expectedLayers = [
@@ -43,6 +44,7 @@ for (const layer of expectedLayers) {
 
 const combinedCss = expectedLayers
   .map((layer) => fs.readFileSync(path.join(stylesDir, layer), 'utf8'))
+  .concat(fs.readFileSync(trainerRouteCssPath, 'utf8'))
   .join('\n');
 
 for (const fragment of [

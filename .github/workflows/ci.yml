@@ -17,10 +17,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Run backend contract tests
+        run: scripts/test/run_backend_contracts.sh
       - name: Run backend quality gate
         run: bash scripts/quality/backend_check.sh
 
-  frontend-quality:
+  frontend-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +36,7 @@ jobs:
 
   launch-hardening:
     runs-on: ubuntu-latest
-    needs: [backend-quality, frontend-quality]
+    needs: [backend-quality, frontend-build]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -54,12 +56,17 @@ jobs:
 
   production-gate:
     runs-on: ubuntu-latest
-    needs: [backend-quality, frontend-quality, launch-hardening]
+    needs: [backend-quality, frontend-build, launch-hardening]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
       - name: Install backend deps
         run: |
           python -m pip install --upgrade pip

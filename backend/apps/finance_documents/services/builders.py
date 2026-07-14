@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from uuid import uuid4
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.finance_documents.models import FinanceDocument
@@ -25,8 +26,8 @@ class FinanceDocumentBuilder:
     """
 
     def _number(self, doc_type: str, trainer_id: int) -> str:
-        stamp = timezone.now().strftime("%Y%m%d%H%M%S")
-        return f"{doc_type.upper()}-{trainer_id}-{stamp}"
+        stamp = timezone.now().strftime("%Y%m%d%H%M%S%f")
+        return f"{doc_type.upper()}-{trainer_id}-{stamp}-{uuid4().hex[:6]}"
 
     def build(self, *, doc_type: str, context: BuildContext) -> FinanceDocument:
         return FinanceDocument.objects.create(

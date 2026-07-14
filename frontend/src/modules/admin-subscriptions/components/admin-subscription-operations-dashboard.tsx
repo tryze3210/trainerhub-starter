@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import {
   adminSubscriptionsApi,
   type AdminSubscriptionItem,
@@ -49,7 +50,7 @@ function getPeriodEnd(item: AdminSubscriptionItem): string | null | undefined {
 
 export function AdminSubscriptionOperationsDashboard() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   const [items, setItems] = useState<AdminSubscriptionItem[]>([]);
   const [overview, setOverview] = useState<AdminSubscriptionOverview | null>(null);
@@ -121,9 +122,9 @@ export function AdminSubscriptionOperationsDashboard() {
     return (
       <section className="page-shell stack">
         <div className="card empty-state">
-          <span className="eyebrow">Admin only</span>
+          <span className="eyebrow">Только администратор</span>
           <h1>Операции подписок недоступны</h1>
-          <p>Для управления subscription lifecycle нужна admin-role.</p>
+          <p>Для управления жизненным циклом подписок нужны права администратора.</p>
         </div>
       </section>
     );
@@ -132,7 +133,7 @@ export function AdminSubscriptionOperationsDashboard() {
   return (
     <section className="page-shell stack">
       <section className="hero card stack">
-        <span className="eyebrow">Subscription operations</span>
+        <span className="eyebrow">Операции подписок</span>
         <div className="row">
           <div>
             <h1>Операции подписок</h1>
@@ -146,7 +147,7 @@ export function AdminSubscriptionOperationsDashboard() {
               Обновить
             </button>
             <Link className="button ghost" href="/admin/operations">
-              Operations hub
+              Операционный центр
             </Link>
           </div>
         </div>
@@ -160,17 +161,17 @@ export function AdminSubscriptionOperationsDashboard() {
           <small>trial: {computed.trial}</small>
         </div>
         <div className="card stat-card">
-          <span className="muted">Active</span>
+          <span className="muted">Активные</span>
           <strong>{computed.active}</strong>
           <small>доступ должен быть активен</small>
         </div>
         <div className="card stat-card">
-          <span className="muted">Past due</span>
+          <span className="muted">Просрочены</span>
           <strong>{computed.pastDue}</strong>
           <small>требуют внимания</small>
         </div>
         <div className="card stat-card">
-          <span className="muted">MRR estimate</span>
+          <span className="muted">Оценка MRR</span>
           <strong>{money(computed.mrr as string | number | undefined, computed.currency)}</strong>
           <small>revenue: {money(computed.revenue as string | number | undefined, computed.currency)}</small>
         </div>
@@ -181,7 +182,7 @@ export function AdminSubscriptionOperationsDashboard() {
           <div className="row">
             <div>
               <h3>Фильтры</h3>
-              <p className="muted">Фокусируй очередь по статусу, пользователю, плану или id.</p>
+              <p className="muted">Фокусируй очередь по статусу, пользователю, плану или ID.</p>
             </div>
           </div>
           <div className="grid-3">
@@ -196,8 +197,8 @@ export function AdminSubscriptionOperationsDashboard() {
               </select>
             </label>
             <label className="stack compact">
-              <span className="muted">Search</span>
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="user / plan / id" />
+              <span className="muted">Поиск</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="пользователь / план / ID" />
             </label>
             <label className="stack compact">
               <span className="muted">Период</span>
@@ -213,13 +214,13 @@ export function AdminSubscriptionOperationsDashboard() {
         </div>
 
         <div className="card stack">
-          <h3>Lifecycle control</h3>
+          <h3>Управление жизненным циклом</h3>
           <p className="muted">
             Admin actions используют backend lifecycle policy и audit trail. Reconcile сначала запускай dry-run.
           </p>
           <label className="stack compact">
-            <span className="muted">Reason / audit note</span>
-            <input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="ops reason" />
+            <span className="muted">Причина / заметка аудита</span>
+            <input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="причина операции" />
           </label>
           <div className="inline" style={{ flexWrap: 'wrap' }}>
             <button
@@ -267,7 +268,7 @@ export function AdminSubscriptionOperationsDashboard() {
 
       <section className="grid-2">
         <div className="card stack">
-          <h3>Lifecycle policy</h3>
+          <h3>Политика жизненного цикла</h3>
           {policy?.statuses?.length ? (
             <div className="stack compact">
               {policy.statuses.slice(0, 8).map((status) => (
@@ -279,12 +280,12 @@ export function AdminSubscriptionOperationsDashboard() {
               ))}
             </div>
           ) : (
-            <p className="muted">Policy endpoint доступен после v8.46 lifecycle hardening.</p>
+            <p className="muted">Endpoint политики доступен после v8.46 lifecycle hardening.</p>
           )}
         </div>
 
         <div className="card stack">
-          <h3>Lifecycle issues</h3>
+          <h3>Проблемы жизненного цикла</h3>
           {summary?.issues?.length ? (
             <div className="stack compact">
               {summary.issues.slice(0, 8).map((issue) => (
@@ -296,7 +297,7 @@ export function AdminSubscriptionOperationsDashboard() {
               ))}
             </div>
           ) : (
-            <p className="muted">Активных lifecycle issues нет.</p>
+            <p className="muted">Активных проблем жизненного цикла нет.</p>
           )}
         </div>
       </section>
@@ -304,7 +305,7 @@ export function AdminSubscriptionOperationsDashboard() {
       <section className="card stack">
         <div className="row">
           <div>
-            <h3>Subscription queue</h3>
+            <h3>Очередь подписок</h3>
             <p className="muted">{loading ? 'Загрузка…' : `Найдено: ${items.length}`}</p>
           </div>
         </div>
@@ -329,15 +330,15 @@ export function AdminSubscriptionOperationsDashboard() {
 
               <div className="grid-3">
                 <div className="list-item">
-                  <span className="muted">User</span>
+                  <span className="muted">Пользователь</span>
                   <strong>{item.user_id || item.customer_id || '—'}</strong>
                 </div>
                 <div className="list-item">
-                  <span className="muted">Period end</span>
+                  <span className="muted">Конец периода</span>
                   <strong>{formatDate(getPeriodEnd(item))}</strong>
                 </div>
                 <div className="list-item">
-                  <span className="muted">Entitlements</span>
+                  <span className="muted">Доступы</span>
                   <strong>{item.entitlement_count ?? '—'}</strong>
                 </div>
               </div>
@@ -367,7 +368,7 @@ export function AdminSubscriptionOperationsDashboard() {
                     )
                   }
                 >
-                  Sync access
+                  Синхронизировать доступ
                 </button>
                 <Link className="button ghost" href={`/admin/subscriptions/${item.id}`}>
                   Detail

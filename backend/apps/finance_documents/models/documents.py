@@ -4,7 +4,11 @@ from django.db import models
 
 
 class TrainerFinanceProfile(models.Model):
-    trainer = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="finance_profile")
+    trainer = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="finance_profile",
+    )
     legal_name = models.CharField(max_length=255, blank=True)
     tax_number = models.CharField(max_length=64, blank=True)
     bank_name = models.CharField(max_length=255, blank=True)
@@ -43,7 +47,11 @@ class FinanceDocument(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="finance_documents")
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="finance_documents",
+    )
     document_type = models.CharField(max_length=32, choices=DOC_CHOICES)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     period_start = models.DateField()
@@ -56,6 +64,15 @@ class FinanceDocument(models.Model):
     payload = models.JSONField(default=dict, blank=True)
     rendered_html = models.TextField(blank=True)
     artifact_path = models.CharField(max_length=512, blank=True)
+    artifact_storage_key = models.CharField(max_length=500, blank=True, default="")
+    artifact_size_bytes = models.BigIntegerField(default=0)
+    artifact_etag = models.CharField(max_length=255, blank=True, default="")
+    artifact_content_type = models.CharField(
+        max_length=64,
+        blank=True,
+        default="application/pdf",
+    )
+    artifact_generated_at = models.DateTimeField(null=True, blank=True)
     finalized_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -63,7 +80,10 @@ class FinanceDocument(models.Model):
     class Meta:
         db_table = "finance_documents"
         indexes = [
-            models.Index(fields=["trainer", "document_type", "period_start", "period_end"]),
-            models.Index(fields=["status", "created_at"]),
+            models.Index(
+                fields=["trainer", "document_type", "period_start", "period_end"],
+                name="finance_doc_trainer_period_idx",
+            ),
+            models.Index(fields=["status", "created_at"], name="finance_doc_status_created_idx"),
         ]
         ordering = ["-created_at"]

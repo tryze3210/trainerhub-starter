@@ -31,6 +31,7 @@ class PayoutAdminSerializer(serializers.Serializer):
     currency = serializers.CharField()
     status = serializers.CharField()
     destination_masked = serializers.CharField(allow_blank=True)
+    payout_eligibility = serializers.DictField(required=False)
     requested_at = serializers.DateTimeField()
     approved_at = serializers.DateTimeField(allow_null=True)
     processed_at = serializers.DateTimeField(allow_null=True)

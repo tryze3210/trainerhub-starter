@@ -11,7 +11,7 @@ def test_production_launch_pack_contains_all_required_docs():
     payload = get_production_launch_pack()
 
     assert payload["version"] == "v120"
-    assert payload["project_version"] == "v120-production-launch-pack"
+    assert payload["project_version"] == "v167.0"
     assert payload["status"] == "ready"
     assert payload["missing_documents"] == []
     assert {document["key"] for document in payload["documents"]} == {

@@ -1,15 +1,28 @@
+from datetime import timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
+from django.core import mail
 from django.contrib.auth import get_user_model
+from django.test import override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountRoleAssignment
 from apps.audit.models import AuditEvent
 from apps.finance_documents.models import FinanceDocument
+from apps.finance_documents.models_extension import FinanceDocumentDelivery
+from apps.finance_documents.services.artifact_pipeline import FinanceDocumentArtifactPipeline
 from apps.finance_documents.services.commercial_documents import FinanceCommercialDocumentService
+from apps.finance_documents.services.email_delivery import FinanceDocumentEmailDeliveryService
+from apps.finance_documents.services.pdf_renderer import RenderedArtifact
+from apps.finance_documents.services.statements import TrainerStatementService
+from apps.finance_documents.services.storage import LocalArtifactStorage
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderType, PurchasedItemType
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
+from apps.payouts.models import BalanceEntry, TrainerWallet
+from apps.trainers.models import TrainerProfile
 
 
 def _user(email, role="customer"):
@@ -132,6 +145,149 @@ def test_v112_accountant_export_contains_finance_document_rows():
     assert str(order.id) in csv_body
     assert str(payment.id) in csv_body
     assert "invoice" in csv_body
+
+
+@pytest.mark.django_db
+def test_v112_trainer_statement_uses_real_payout_ledger_amounts():
+    trainer_user = _user("v112-statement-trainer@example.com", role="trainer")
+    trainer = TrainerProfile.objects.create(
+        user=trainer_user,
+        slug="v112-statement-trainer",
+        display_name="Statement Trainer",
+        status="active",
+    )
+    wallet = TrainerWallet.objects.create(trainer=trainer, currency="RUB")
+    BalanceEntry.objects.create(
+        wallet=wallet,
+        entry_type=BalanceEntry.EntryType.ACCRUAL,
+        direction="credit",
+        amount=Decimal("900.00"),
+        currency="RUB",
+        status="available",
+        source_type="payment",
+        source_id=uuid4(),
+    )
+    BalanceEntry.objects.create(
+        wallet=wallet,
+        entry_type=BalanceEntry.EntryType.REVERSAL,
+        direction="debit",
+        amount=Decimal("90.00"),
+        currency="RUB",
+        status="available",
+        source_type="payment_refund",
+        source_id=uuid4(),
+    )
+    BalanceEntry.objects.create(
+        wallet=wallet,
+        entry_type=BalanceEntry.EntryType.PAYOUT,
+        direction="debit",
+        amount=Decimal("300.00"),
+        currency="RUB",
+        status="paid",
+        source_type="payout_request",
+        source_id=uuid4(),
+    )
+
+    today = timezone.now().date()
+    document = TrainerStatementService().build_monthly_statement(
+        trainer=trainer_user,
+        period_start=today,
+        period_end=today,
+    )
+
+    assert document.document_type == FinanceDocument.DOC_STATEMENT
+    assert document.gross_amount == Decimal("900.00")
+    assert document.commission_amount == Decimal("90.00")
+    assert document.net_amount == Decimal("810.00")
+    assert document.payload["source"] == "payout_ledger"
+    assert document.payload["summary"] == {
+        "orders_count": 1,
+        "refunds_count": 1,
+        "payouts_count": 1,
+    }
+    assert document.payload["ledger"]["accrual_net_amount"] == "900.00"
+    assert document.payload["ledger"]["reversal_net_amount"] == "90.00"
+    assert document.payload["ledger"]["payout_paid_amount"] == "300.00"
+
+
+@pytest.mark.django_db
+def test_v112_statement_numbers_are_unique_for_batch_generation():
+    trainer_user = _user("v112-statement-numbers@example.com", role="trainer")
+    today = timezone.now().date()
+
+    first = TrainerStatementService().build_monthly_statement(
+        trainer=trainer_user,
+        period_start=today,
+        period_end=today,
+    )
+    second = TrainerStatementService().build_monthly_statement(
+        trainer=trainer_user,
+        period_start=today,
+        period_end=today,
+    )
+
+    assert first.document_number != second.document_number
+
+
+class _HTMLRenderer:
+    def render_html_to_pdf(self, *, html: str) -> RenderedArtifact:
+        return RenderedArtifact(
+            content=html.encode("utf-8"),
+            content_type="text/html; charset=utf-8",
+            extension="html",
+        )
+
+
+@pytest.mark.django_db
+def test_v112_finance_document_artifact_pipeline_stores_local_artifact(tmp_path):
+    trainer_user = _user("v112-artifact-trainer@example.com", role="trainer")
+    today = timezone.now().date()
+    document = TrainerStatementService().build_monthly_statement(
+        trainer=trainer_user,
+        period_start=today,
+        period_end=today,
+    )
+    storage = LocalArtifactStorage(root=tmp_path, base_url="/private-finance-documents/")
+
+    stored = FinanceDocumentArtifactPipeline(renderer=_HTMLRenderer(), storage=storage).build_and_store(document=document)
+
+    artifact_path = tmp_path / stored.artifact_storage_key
+    assert artifact_path.exists()
+    assert artifact_path.read_text(encoding="utf-8")
+    assert stored.artifact_path.startswith("/private-finance-documents/")
+    assert "example.invalid" not in stored.artifact_path
+    assert stored.artifact_content_type == "text/html; charset=utf-8"
+    download_url = storage.build_signed_download_url(
+        storage_key=stored.artifact_storage_key,
+        expires_in=timedelta(minutes=15),
+    )
+    assert download_url.startswith(
+        "/private-finance-documents/"
+    )
+
+
+@pytest.mark.django_db
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_v112_finance_document_email_delivery_uses_existing_templates():
+    trainer_user = _user("v112-email-trainer@example.com", role="trainer")
+    today = timezone.now().date()
+    document = TrainerStatementService().build_monthly_statement(
+        trainer=trainer_user,
+        period_start=today,
+        period_end=today,
+    )
+
+    delivery = FinanceDocumentEmailDeliveryService().send_document_ready(
+        document=document,
+        recipient_email=trainer_user.email,
+        download_url="https://files.example.test/document.pdf",
+        delivery_model=FinanceDocumentDelivery,
+    )
+
+    assert delivery.status == FinanceDocumentDelivery.STATUS_SENT
+    assert delivery.attempts == 1
+    assert len(mail.outbox) == 1
+    assert document.document_number in mail.outbox[0].subject
 
 
 @pytest.mark.django_db

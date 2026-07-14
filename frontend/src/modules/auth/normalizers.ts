@@ -27,12 +27,15 @@ export function normalizeAuthUser(payload: Record<string, unknown> | null | unde
   const firstName = typeof payload.first_name === 'string' ? payload.first_name : '';
   const lastName = typeof payload.last_name === 'string' ? payload.last_name : '';
   const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-  const activeRole = normalizeRole(payload.active_role || payload.role);
+  const isStaff = payload.is_staff === true;
+  const isSuperuser = payload.is_superuser === true;
+  const activeRole = isStaff || isSuperuser ? 'admin' : normalizeRole(payload.active_role || payload.role);
   const availableRoles = Array.isArray(payload.available_roles)
     ? payload.available_roles
         .filter((item): item is string => typeof item === 'string' && Boolean(item))
         .map((item) => normalizeRole(item))
     : [activeRole];
+  const normalizedRoles = isStaff || isSuperuser ? Array.from(new Set([...availableRoles, 'admin'])).sort() : availableRoles;
 
   return {
     id: String(payload.id || ''),
@@ -45,7 +48,9 @@ export function normalizeAuthUser(payload: Record<string, unknown> | null | unde
     timezone: typeof payload.timezone === 'string' ? payload.timezone : undefined,
     preferred_language: typeof payload.preferred_language === 'string' ? payload.preferred_language : undefined,
     active_role: activeRole,
-    available_roles: availableRoles.length ? availableRoles : [activeRole],
+    available_roles: normalizedRoles.length ? normalizedRoles : [activeRole],
+    is_staff: isStaff,
+    is_superuser: isSuperuser,
     settings: typeof payload.settings === 'object' && payload.settings ? (payload.settings as AuthUser['settings']) : undefined,
   };
 }

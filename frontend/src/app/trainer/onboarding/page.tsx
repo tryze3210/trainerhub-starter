@@ -1,5 +1,3 @@
-'use client';
-
 import { ProtectedPage } from '@/components/protected-page';
 import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
 import { TrainerOnboardingChecklist } from '@/modules/trainer-onboarding/components/trainer-onboarding-checklist';

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { adminAuditApi, downloadAdminAuditCsv } from '@/modules/admin-audit/api';
 import { adminEntityHref } from '@/modules/admin-entity-details/api';
 import type { AuditEvent, AuditEventContext, AuditRetentionSummary } from '@/modules/admin-audit/api';
@@ -119,7 +120,7 @@ function RetentionBucketList<T extends { count: number }>({
     <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
       <div className="mt-4 space-y-2">
-        {items.length === 0 ? <p className="text-sm text-slate-500">Нет старых audit events в этом разрезе.</p> : null}
+        {items.length === 0 ? <p className="text-sm text-slate-500">Нет старых событий аудита в этом разрезе.</p> : null}
         {items.map((item, index) => (
           <div
             key={`${getLabel(item)}-${index}`}
@@ -168,14 +169,14 @@ function AuditEventCard({ event }: { event: AuditEvent }) {
             href={`/admin/audit/${encodeURIComponent(event.id)}`}
             className="rounded-xl border border-slate-700 px-3 py-2 text-slate-200 hover:border-slate-500"
           >
-            Open audit event
+            Открыть audit event
           </Link>
           {targetHref ? (
             <Link
               href={targetHref}
               className="rounded-xl border border-slate-700 px-3 py-2 text-slate-200 hover:border-slate-500"
             >
-              Open target
+              Открыть target
             </Link>
           ) : null}
         </div>
@@ -183,23 +184,23 @@ function AuditEventCard({ event }: { event: AuditEvent }) {
 
       <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <dt className="text-slate-500">Created</dt>
+          <dt className="text-slate-500">Создано</dt>
           <dd className="text-slate-200">{formatDate(event.created_at)}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Actor</dt>
+          <dt className="text-slate-500">Оператор</dt>
           <dd className="text-slate-200">{event.actor_email || 'system / unknown actor'}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Reason</dt>
+          <dt className="text-slate-500">Причина</dt>
           <dd className="text-slate-200">{scalar(getReason(event))}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Request</dt>
+          <dt className="text-slate-500">Запрос</dt>
           <dd className="text-slate-200">{getRequestPath(event.context)}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Correlation</dt>
+          <dt className="text-slate-500">Корреляция</dt>
           <dd className="break-all text-slate-200">{correlationId || '—'}</dd>
         </div>
         <div>
@@ -210,7 +211,7 @@ function AuditEventCard({ event }: { event: AuditEvent }) {
 
       {contextJson ? (
         <details className="mt-5 rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-sm">
-          <summary className="cursor-pointer text-slate-300">Показать context snapshot</summary>
+          <summary className="cursor-pointer text-slate-300">Показать снимок контекста</summary>
           <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs text-slate-300">
             {contextJson}
           </pre>
@@ -222,7 +223,7 @@ function AuditEventCard({ event }: { event: AuditEvent }) {
 
 export default function AdminAuditPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [retentionSummary, setRetentionSummary] = useState<AuditRetentionSummary | null>(null);
@@ -355,8 +356,8 @@ export default function AdminAuditPage() {
 
   return (
     <ProtectedPage
-      title="Admin audit feed"
-      description="Audit trail for operational actions, reconciliation fixes and admin exports."
+      title="Журнал действий администратора"
+      description="Журнал аудита операционных действий, исправлений сверки и админских выгрузок."
     >
       {!isAdmin ? (
         <div className="rounded-2xl border border-amber-800 bg-amber-950/40 p-6 text-amber-100">
@@ -366,8 +367,8 @@ export default function AdminAuditPage() {
         <div className="space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Audit trail</p>
-              <h1 className="mt-2 text-3xl font-bold text-white">Admin audit feed</h1>
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Журнал аудита</p>
+              <h1 className="mt-2 text-3xl font-bold text-white">Журнал действий администратора</h1>
               <p className="mt-2 max-w-3xl text-slate-400">
                 Кто, когда и что сделал в операционном контуре: retry outbox, mark dead, release risk hold,
                 referral CSV export, reconciliation actions и ручной emit.
@@ -380,7 +381,7 @@ export default function AdminAuditPage() {
                 disabled={isExporting}
                 className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isExporting ? 'Export...' : 'Export CSV'}
+                {isExporting ? 'Export...' : 'Экспорт CSV'}
               </button>
               <button
                 type="button"
@@ -404,7 +405,7 @@ export default function AdminAuditPage() {
 
           <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Field label="Event type">
+              <Field label="Тип события">
                 <input
                   list="audit-event-presets"
                   value={eventType}
@@ -419,7 +420,7 @@ export default function AdminAuditPage() {
                 </datalist>
               </Field>
 
-              <Field label="Entity type">
+              <Field label="Тип сущности">
                 <input
                   list="audit-entity-presets"
                   value={entityType}
@@ -434,25 +435,25 @@ export default function AdminAuditPage() {
                 </datalist>
               </Field>
 
-              <Field label="Entity id">
+              <Field label="ID сущности">
                 <input
                   value={entityId}
                   onChange={(event) => setEntityId(event.target.value)}
-                  placeholder="UUID / external id"
+                  placeholder="UUID / внешний ID"
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
                 />
               </Field>
 
-              <Field label="Actor id">
+              <Field label="ID оператора">
                 <input
                   value={actorId}
                   onChange={(event) => setActorId(event.target.value)}
-                  placeholder="admin user UUID"
+                  placeholder="UUID администратора"
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
                 />
               </Field>
 
-              <Field label="Created from">
+              <Field label="Создано с">
                 <input
                   type="date"
                   value={createdFrom}
@@ -461,7 +462,7 @@ export default function AdminAuditPage() {
                 />
               </Field>
 
-              <Field label="Created to">
+              <Field label="Создано по">
                 <input
                   type="date"
                   value={createdTo}
@@ -470,16 +471,16 @@ export default function AdminAuditPage() {
                 />
               </Field>
 
-              <Field label="Search">
+              <Field label="Поиск">
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="email, path, correlation, reason"
+                  placeholder="email, путь, корреляция, причина"
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-400"
                 />
               </Field>
 
-              <Field label="Retention days">
+              <Field label="Дней хранения">
                 <select
                   value={retentionDays}
                   onChange={(event) => setRetentionDays(Number(event.target.value))}
@@ -493,7 +494,7 @@ export default function AdminAuditPage() {
                 </select>
               </Field>
 
-              <Field label="Limit">
+              <Field label="Лимит">
                 <select
                   value={limit}
                   onChange={(event) => setLimit(Number(event.target.value))}
@@ -536,8 +537,8 @@ export default function AdminAuditPage() {
           <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Retention planning</p>
-                <h2 className="mt-1 text-xl font-semibold text-white">Audit retention summary</h2>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">План хранения</p>
+                <h2 className="mt-1 text-xl font-semibold text-white">Сводка хранения аудита</h2>
                 <p className="mt-2 max-w-3xl text-sm text-slate-400">
                   Read-only snapshot: сколько audit events старше выбранного срока попадёт под будущую retention policy.
                   Этот блок ничего не удаляет.
@@ -549,7 +550,7 @@ export default function AdminAuditPage() {
                 disabled={isRetentionLoading}
                 className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isRetentionLoading ? 'Loading...' : 'Refresh retention'}
+                {isRetentionLoading ? 'Загрузка...' : 'Обновить retention'}
               </button>
             </div>
 
@@ -557,22 +558,22 @@ export default function AdminAuditPage() {
               <div className="mt-5 space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <StatCard
-                    title="Older than"
+                    title="Старше чем"
                     value={`${retentionSummary.older_than_days} days`}
                     hint={`cutoff: ${formatDate(retentionSummary.cutoff)}`}
                   />
                   <StatCard
-                    title="Matching events"
+                    title="Подходящие события"
                     value={retentionSummary.total_matching_events.toLocaleString('ru-RU')}
-                    hint="по текущему фильтру без limit"
+                    hint="по текущему фильтру без лимита"
                   />
                   <StatCard
-                    title="Stale events"
+                    title="Устаревшие события"
                     value={retentionSummary.stale_events.toLocaleString('ru-RU')}
-                    hint="кандидаты для будущей cleanup policy"
+                    hint="кандидаты для будущей политики очистки"
                   />
                   <StatCard
-                    title="Oldest event"
+                    title="Самое старое событие"
                     value={formatDate(retentionSummary.oldest_created_at)}
                     hint={`newest stale: ${formatDate(retentionSummary.newest_created_at)}`}
                   />
@@ -580,12 +581,12 @@ export default function AdminAuditPage() {
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <RetentionBucketList
-                    title="Stale events by event type"
+                    title="Устаревшие события по типу события"
                     items={retentionSummary.by_event_type}
                     getLabel={(item) => ('event_type' in item ? item.event_type || 'unknown' : 'unknown')}
                   />
                   <RetentionBucketList
-                    title="Stale events by entity type"
+                    title="Устаревшие события по типу сущности"
                     items={retentionSummary.by_entity_type}
                     getLabel={(item) => ('entity_type' in item ? item.entity_type || 'unknown' : 'unknown')}
                   />
@@ -594,21 +595,21 @@ export default function AdminAuditPage() {
                 <p className="text-xs text-slate-500">{retentionSummary.note}</p>
               </div>
             ) : (
-              <p className="mt-5 text-sm text-slate-500">Retention summary ещё не загружен.</p>
+              <p className="mt-5 text-sm text-slate-500">Сводка хранения ещё не загружена.</p>
             )}
           </section>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <StatCard title="Loaded events" value={events.length} hint="по текущему фильтру" />
-            <StatCard title="Limit" value={limit} hint="backend hard-cap: 500" />
+            <StatCard title="Загружено событий" value={events.length} hint="по текущему фильтру" />
+            <StatCard title="Лимит" value={limit} hint="жесткий лимит backend: 500" />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-white">Actions</h2>
+              <h2 className="text-lg font-semibold text-white">Действия</h2>
               <div className="mt-4 space-y-2">
                 {stats.topActions.length === 0 ? (
-                  <p className="text-sm text-slate-500">Пока нет audit events.</p>
+                  <p className="text-sm text-slate-500">Пока нет событий аудита.</p>
                 ) : null}
                 {stats.topActions.map(([action, count]) => (
                   <div key={action} className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2">
@@ -620,10 +621,10 @@ export default function AdminAuditPage() {
             </section>
 
             <section className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-white">Entity types</h2>
+              <h2 className="text-lg font-semibold text-white">Типы сущностей</h2>
               <div className="mt-4 space-y-2">
                 {stats.topEntities.length === 0 ? (
-                  <p className="text-sm text-slate-500">Пока нет entity buckets.</p>
+                  <p className="text-sm text-slate-500">Пока нет групп сущностей.</p>
                 ) : null}
                 {stats.topEntities.map(([entity, count]) => (
                   <div key={entity} className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2">
@@ -644,7 +645,7 @@ export default function AdminAuditPage() {
 
             {!isLoading && events.length === 0 ? (
               <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-slate-400">
-                Audit events по текущему фильтру не найдены.
+                Событие аудитаs по текущему фильтру не найдены.
               </div>
             ) : null}
 

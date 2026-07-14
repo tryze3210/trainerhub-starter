@@ -5,6 +5,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
+from django.conf import settings
 from django.core.management import get_commands
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -20,6 +21,7 @@ from apps.access_control.permissions import (
 
 
 _STATUS_RANK = {'ok': 0, 'warning': 1, 'degraded': 2, 'critical': 3}
+LEGACY_CONTRACT_VERSIONS = {'public_marketplace': 'v118'}
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,13 @@ class PermissionContract:
 
 @dataclass(frozen=True)
 class FileContract:
+    key: str
+    path: str
+    description: str
+
+
+@dataclass(frozen=True)
+class ExecutableFileContract:
     key: str
     path: str
     description: str
@@ -211,6 +220,18 @@ FILE_CONTRACTS = [
     FileContract('production_launch_pack_v120_test', 'backend/tests/test_production_launch_pack_v120.py', 'Production launch pack regression test exists.'),
 ]
 
+EXECUTABLE_FILE_CONTRACTS = [
+    ExecutableFileContract('backend_quality_executable', 'scripts/ci/backend_quality.sh', 'Backend quality script is directly executable.'),
+    ExecutableFileContract('frontend_build_executable', 'scripts/ci/frontend_build.sh', 'Frontend build script is directly executable.'),
+    ExecutableFileContract('launch_gate_executable', 'scripts/ci/launch_gate.sh', 'Launch gate script is directly executable.'),
+    ExecutableFileContract('production_gate_executable', 'scripts/ci/production_gate.sh', 'Production gate script is directly executable.'),
+    ExecutableFileContract('backend_contracts_executable', 'scripts/test/run_backend_contracts.sh', 'Backend contracts runner is directly executable.'),
+    ExecutableFileContract('integration_stack_executable', 'scripts/test/run_integration_stack.sh', 'Integration stack runner is directly executable.'),
+    ExecutableFileContract('backend_check_executable', 'scripts/quality/backend_check.sh', 'Backend quality check script is directly executable.'),
+    ExecutableFileContract('frontend_check_executable', 'scripts/quality/frontend_check.sh', 'Frontend quality check script is directly executable.'),
+    ExecutableFileContract('full_check_executable', 'scripts/quality/full_check.sh', 'Full quality check script is directly executable.'),
+]
+
 
 SMOKE_COMMANDS = [
     {'key': 'django_check', 'title': 'Django system checks', 'command': 'cd backend && python manage.py check'},
@@ -326,11 +347,241 @@ def _check_file(contract: FileContract, *, repo_root: Path) -> dict[str, Any]:
     return _check(contract.key, 'files', contract.path, description=contract.description)
 
 
+def _check_executable_file(contract: ExecutableFileContract, *, repo_root: Path) -> dict[str, Any]:
+    path = repo_root / contract.path
+    if not path.exists():
+        return _check(contract.key, 'executable_files', contract.path, 'critical', detail='Required executable file is missing.', description=contract.description)
+    if not path.is_file():
+        return _check(contract.key, 'executable_files', contract.path, 'critical', detail='Path is not a file.', description=contract.description)
+    if not path.stat().st_mode & 0o111:
+        return _check(contract.key, 'executable_files', contract.path, 'degraded', detail='File exists but is not executable.', description=contract.description)
+    return _check(contract.key, 'executable_files', contract.path, description=contract.description)
+
+
 def _check_management_command() -> dict[str, Any]:
     commands = get_commands()
     if 'check_production_readiness' not in commands:
         return _check('check_production_readiness', 'management_commands', 'check_production_readiness', 'critical', detail='Management command is not registered.')
     return _check('check_production_readiness', 'management_commands', 'check_production_readiness', app=commands['check_production_readiness'])
+
+
+def _check_payment_safety() -> dict[str, Any]:
+    if not bool(getattr(settings, 'IS_PRODUCTION', False)):
+        return _check(
+            'payment_production_guards',
+            'payment_safety',
+            'Mock payment and unverified return guards',
+            detail='Production payment safety guards are evaluated when IS_PRODUCTION=True.',
+        )
+
+    unsafe_flags = []
+    if bool(getattr(settings, 'PAYMENTS_ALLOW_MOCK_PROVIDER', False)):
+        unsafe_flags.append('PAYMENTS_ALLOW_MOCK_PROVIDER')
+    if bool(getattr(settings, 'PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN', False)):
+        unsafe_flags.append('PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN')
+    if unsafe_flags:
+        return _check(
+            'payment_production_guards',
+            'payment_safety',
+            'Mock payment and unverified return guards',
+            'critical',
+            detail='Disable unsafe payment flags before accepting production traffic.',
+            unsafe_flags=unsafe_flags,
+        )
+    return _check(
+        'payment_production_guards',
+        'payment_safety',
+        'Mock payment and unverified return guards',
+        detail='Mock checkout and unverified provider-return mutations are disabled.',
+    )
+
+
+def _check_email_safety() -> dict[str, Any]:
+    if not bool(getattr(settings, 'IS_PRODUCTION', False)):
+        return _check(
+            'email_production_config',
+            'email_safety',
+            'Transactional email configuration',
+            detail='Production email configuration is evaluated when IS_PRODUCTION=True.',
+        )
+
+    backend = str(getattr(settings, 'EMAIL_BACKEND', '') or '')
+    from_email = str(getattr(settings, 'DEFAULT_FROM_EMAIL', '') or '')
+    host = str(getattr(settings, 'EMAIL_HOST', '') or '')
+    unsafe = []
+    if any(marker in backend for marker in ('console', 'locmem', 'dummy')):
+        unsafe.append('EMAIL_BACKEND')
+    if not from_email or 'localhost' in from_email or '@example.' in from_email:
+        unsafe.append('DEFAULT_FROM_EMAIL')
+    if 'smtp' in backend and (not host or host == 'localhost'):
+        unsafe.append('EMAIL_HOST')
+    if unsafe:
+        return _check(
+            'email_production_config',
+            'email_safety',
+            'Transactional email configuration',
+            'critical',
+            detail='Configure a real transactional email backend before accepting production traffic.',
+            unsafe_flags=unsafe,
+        )
+    return _check(
+        'email_production_config',
+        'email_safety',
+        'Transactional email configuration',
+        detail='Transactional email backend and sender are production-ready.',
+    )
+
+
+def _check_payout_legal_eligibility_gate() -> dict[str, Any]:
+    if not bool(getattr(settings, 'IS_PRODUCTION', False)):
+        return _check(
+            'payout_legal_eligibility_gate',
+            'payout_safety',
+            'Payout legal eligibility gate',
+            detail='Payout legal eligibility enforcement is evaluated when IS_PRODUCTION=True.',
+        )
+
+    if not bool(getattr(settings, 'PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY', False)):
+        return _check(
+            'payout_legal_eligibility_gate',
+            'payout_safety',
+            'Payout legal eligibility gate',
+            'critical',
+            detail='Enable PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY before allowing production payouts.',
+            unsafe_flags=['PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY'],
+        )
+
+    return _check(
+        'payout_legal_eligibility_gate',
+        'payout_safety',
+        'Payout legal eligibility gate',
+        detail='Payout requests require approved KYC, payout profile data and an active trainer agreement.',
+    )
+
+
+def _rate_per_minute(rate: str) -> float | None:
+    try:
+        count_text, period_text = str(rate or '').split('/', 1)
+        count = float(count_text)
+    except (TypeError, ValueError):
+        return None
+    period = period_text.strip().lower()
+    if period.startswith('s'):
+        return count * 60
+    if period.startswith('m'):
+        return count
+    if period.startswith('h'):
+        return count / 60
+    if period.startswith('d'):
+        return count / 1440
+    return None
+
+
+def _check_auth_scoped_throttle(*, key: str, rate_key: str, title: str, max_production_per_minute: float, traffic_label: str) -> dict[str, Any]:
+    rates = dict(getattr(settings, 'REST_FRAMEWORK', {}).get('DEFAULT_THROTTLE_RATES', {}) or {})
+    rate = str(rates.get(rate_key) or '')
+    per_minute = _rate_per_minute(rate)
+    if per_minute is None:
+        return _check(
+            key,
+            'auth_safety',
+            title,
+            'critical',
+            detail=f'Configure REST_FRAMEWORK.DEFAULT_THROTTLE_RATES["{rate_key}"] before accepting {traffic_label}.',
+            configured_rate=rate,
+        )
+
+    if bool(getattr(settings, 'IS_PRODUCTION', False)) and per_minute > max_production_per_minute:
+        return _check(
+            key,
+            'auth_safety',
+            title,
+            'critical',
+            detail=f'{title} is too permissive for production.',
+            configured_rate=rate,
+            max_recommended_per_minute=max_production_per_minute,
+        )
+
+    return _check(
+        key,
+        'auth_safety',
+        title,
+        detail=f'{title} is configured.',
+        configured_rate=rate,
+        per_minute=per_minute,
+    )
+
+
+def _check_auth_login_throttle() -> dict[str, Any]:
+    return _check_auth_scoped_throttle(
+        key='auth_login_throttle',
+        rate_key='auth_login',
+        title='Login endpoint throttle',
+        max_production_per_minute=30,
+        traffic_label='login traffic',
+    )
+
+
+def _check_auth_register_throttle() -> dict[str, Any]:
+    return _check_auth_scoped_throttle(
+        key='auth_register_throttle',
+        rate_key='auth_register',
+        title='Registration endpoint throttle',
+        max_production_per_minute=1,
+        traffic_label='registration traffic',
+    )
+
+
+def _check_auth_refresh_throttle() -> dict[str, Any]:
+    return _check_auth_scoped_throttle(
+        key='auth_refresh_throttle',
+        rate_key='auth_refresh',
+        title='Refresh endpoint throttle',
+        max_production_per_minute=120,
+        traffic_label='refresh traffic',
+    )
+
+
+def _check_production_cache_backend() -> dict[str, Any]:
+    cache_config = dict(getattr(settings, 'CACHES', {}).get('default', {}) or {})
+    backend = str(cache_config.get('BACKEND') or '')
+    location = str(cache_config.get('LOCATION') or '')
+    if not bool(getattr(settings, 'IS_PRODUCTION', False)):
+        return _check(
+            'production_cache_backend',
+            'auth_safety',
+            'Shared cache backend',
+            detail='Production cache backend is evaluated when IS_PRODUCTION=True.',
+            backend=backend,
+        )
+
+    unsafe_markers = ('locmem', 'dummy', 'filebased', 'database')
+    if not backend or any(marker in backend.lower() for marker in unsafe_markers):
+        return _check(
+            'production_cache_backend',
+            'auth_safety',
+            'Shared cache backend',
+            'critical',
+            detail='Configure a shared cache backend before accepting production traffic.',
+            backend=backend,
+        )
+    if not location:
+        return _check(
+            'production_cache_backend',
+            'auth_safety',
+            'Shared cache backend',
+            'critical',
+            detail='Production cache backend is missing LOCATION.',
+            backend=backend,
+        )
+
+    return _check(
+        'production_cache_backend',
+        'auth_safety',
+        'Shared cache backend',
+        detail='Production cache backend is shared and configured.',
+        backend=backend,
+    )
 
 
 def _summarize(checks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -374,7 +625,15 @@ def get_platform_production_readiness(
     checks.extend(_check_symbol(contract) for contract in SYMBOL_CONTRACTS)
     checks.extend(_check_permissions(contract) for contract in PERMISSION_CONTRACTS)
     checks.extend(_check_file(contract, repo_root=repo_root) for contract in FILE_CONTRACTS)
+    checks.extend(_check_executable_file(contract, repo_root=repo_root) for contract in EXECUTABLE_FILE_CONTRACTS)
     checks.append(_check_management_command())
+    checks.append(_check_payment_safety())
+    checks.append(_check_email_safety())
+    checks.append(_check_payout_legal_eligibility_gate())
+    checks.append(_check_auth_login_throttle())
+    checks.append(_check_auth_register_throttle())
+    checks.append(_check_auth_refresh_throttle())
+    checks.append(_check_production_cache_backend())
 
     summary = _summarize(checks)
     status = _worst_status([str(check.get('status') or 'critical') for check in checks])
@@ -412,7 +671,7 @@ def get_platform_production_readiness(
             'next_step': 'v120 Production Launch Pack',
         },
         'production_launch_pack': {
-            'project_version': 'v120-production-launch-pack',
+            'project_version': 'v167.0',
             'docs': 'docs/launch/production/',
             'api': '/api/v1/ops/admin/production-launch-pack/',
             'ship_condition': 'Production gate green, production readiness ok, staging validation complete.',

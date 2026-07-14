@@ -36,7 +36,8 @@ class MeLegalDocumentsView(generics.ListAPIView):
     serializer_class = LegalDocumentTemplateSerializer
 
     def get_queryset(self):
-        return LegalDocumentTemplate.objects.filter(is_active=True).order_by('doc_type', '-published_at')
+        document_ids = [document.id for document in LegalAcceptanceService.active_current_documents()]
+        return LegalDocumentTemplate.objects.filter(id__in=document_ids).order_by('doc_type', '-published_at')
 
 
 class AcceptLegalDocumentView(APIView):
@@ -45,13 +46,16 @@ class AcceptLegalDocumentView(APIView):
     def post(self, request, document_id):
         document = LegalDocumentTemplate.objects.get(id=document_id, is_active=True)
         actor_type = 'trainer' if request.query_params.get('actor') == 'trainer' else 'user'
-        acceptance = LegalAcceptanceService.accept_document(
-            user=request.user,
-            actor_type=actor_type,
-            document=document,
-            ip_address=request.META.get('REMOTE_ADDR'),
-            user_agent=request.META.get('HTTP_USER_AGENT', ''),
-        )
+        try:
+            acceptance = LegalAcceptanceService.accept_document(
+                user=request.user,
+                actor_type=actor_type,
+                document=document,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         compliance = LegalAcceptanceService.compliance_status(user=request.user, actor_type=actor_type)
         return Response(
             {
@@ -111,13 +115,32 @@ class AdminKYCReviewView(APIView):
         profile = TrainerKYCProfile.objects.get(id=profile_id)
         decision = request.data.get('decision')
         if decision == 'approve':
+            missing = [
+                field
+                for field in ('full_name', 'country', 'tax_id', 'legal_address', 'payout_legal_entity_name')
+                if not getattr(profile, field)
+            ]
+            if missing:
+                return Response(
+                    {'detail': 'KYC profile is incomplete.', 'missing_fields': missing},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             profile.status = TrainerKYCProfile.STATUS_APPROVED
             profile.rejection_reason = ''
         elif decision == 'reject':
+            rejection_reason = request.data.get('rejection_reason', '').strip()
+            if not rejection_reason:
+                return Response(
+                    {'detail': 'rejection_reason is required when rejecting KYC.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             profile.status = TrainerKYCProfile.STATUS_REJECTED
-            profile.rejection_reason = request.data.get('rejection_reason', '')
+            profile.rejection_reason = rejection_reason
         else:
-            profile.status = TrainerKYCProfile.STATUS_PENDING
+            return Response(
+                {'detail': 'decision must be approve or reject.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         profile.reviewed_by = request.user
         profile.reviewed_at = timezone.now()
         profile.save(update_fields=['status', 'rejection_reason', 'reviewed_by', 'reviewed_at', 'updated_at'])

@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 const route = (path) => `${API_BASE_URL}${path}`;
 const root = path.resolve(__dirname, '..', '..');
 
@@ -44,6 +44,7 @@ function assertNoFrontendFragment(fragment, reason) {
   assert.equal(route('/trainers/'), `${API_BASE_URL}/trainers/`);
   assert.equal(route('/trainers/demo-trainer/'), `${API_BASE_URL}/trainers/demo-trainer/`);
   assert.equal(route('/orders/checkout/'), `${API_BASE_URL}/orders/checkout/`);
+  assert.equal(route('/platform-settings/checkout-payment-providers/'), `${API_BASE_URL}/platform-settings/checkout-payment-providers/`);
   assert.equal(route('/payments-webhooks/receive/'), `${API_BASE_URL}/payments-webhooks/receive/`);
   assert.equal(route('/trainers/me/revenue/summary/'), `${API_BASE_URL}/trainers/me/revenue/summary/`);
   assert.equal(route('/trainers/me/revenue/transactions/'), `${API_BASE_URL}/trainers/me/revenue/transactions/`);

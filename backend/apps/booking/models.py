@@ -5,7 +5,11 @@ from django.db import models
 
 class BookingProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    trainer = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_profile")
+    trainer = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_profile",
+    )
     timezone = models.CharField(max_length=64, default="Europe/Berlin")
     session_buffer_minutes = models.PositiveIntegerField(default=15)
     min_notice_hours = models.PositiveIntegerField(default=12)
@@ -17,7 +21,11 @@ class BookingProfile(models.Model):
 
 class AvailabilityRule(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="availability_rules")
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="availability_rules",
+    )
     weekday = models.PositiveSmallIntegerField()
     start_minute = models.PositiveIntegerField()
     end_minute = models.PositiveIntegerField()
@@ -29,7 +37,11 @@ class AvailabilityRule(models.Model):
 
 class AvailabilityException(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="availability_exceptions")
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="availability_exceptions",
+    )
     date = models.DateField()
     is_blocked = models.BooleanField(default=True)
     start_minute = models.PositiveIntegerField(null=True, blank=True)
@@ -51,19 +63,36 @@ class BookingSlot(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_slots")
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_slots",
+    )
     starts_at = models.DateTimeField(db_index=True)
     ends_at = models.DateTimeField()
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_OPEN, db_index=True)
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_OPEN,
+        db_index=True,
+    )
     capacity = models.PositiveIntegerField(default=1)
     source = models.CharField(max_length=32, default="generated")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [models.Index(fields=["trainer", "starts_at", "status"])]
+        indexes = [
+            models.Index(
+                fields=["trainer", "starts_at", "status"],
+                name="booking_boo_trainer_f096eb_idx",
+            )
+        ]
         constraints = [
-            models.UniqueConstraint(fields=["trainer", "starts_at"], name="uniq_booking_slot_per_trainer_start")
+            models.UniqueConstraint(
+                fields=["trainer", "starts_at"],
+                name="uniq_booking_slot_per_trainer_start",
+            )
         ]
 
 
@@ -81,9 +110,22 @@ class SessionReservation(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     slot = models.ForeignKey(BookingSlot, on_delete=models.PROTECT, related_name="reservations")
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="session_reservations_as_trainer")
-    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="session_reservations_as_customer")
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="session_reservations_as_trainer",
+    )
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="session_reservations_as_customer",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True,
+    )
     title = models.CharField(max_length=255)
     notes = models.TextField(blank=True)
     external_ref = models.CharField(max_length=128, blank=True)
@@ -93,10 +135,19 @@ class SessionReservation(models.Model):
 
 class BookingEvent(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    reservation = models.ForeignKey(SessionReservation, on_delete=models.CASCADE, related_name="events")
+    reservation = models.ForeignKey(
+        SessionReservation,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
     event_type = models.CharField(max_length=64)
     payload = models.JSONField(default=dict, blank=True)
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -111,20 +162,51 @@ class BookingWaitlistEntry(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    slot = models.ForeignKey(BookingSlot, on_delete=models.CASCADE, related_name="waitlist_entries")
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_waitlist_as_trainer")
-    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_waitlist_as_customer")
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_WAITING, db_index=True)
+    slot = models.ForeignKey(
+        BookingSlot,
+        on_delete=models.CASCADE,
+        related_name="waitlist_entries",
+    )
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_waitlist_as_trainer",
+    )
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_waitlist_as_customer",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_WAITING,
+        db_index=True,
+    )
     title = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True)
-    promoted_reservation = models.ForeignKey(SessionReservation, on_delete=models.SET_NULL, null=True, blank=True, related_name="waitlist_source")
+    promoted_reservation = models.ForeignKey(
+        SessionReservation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="waitlist_source",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [models.Index(fields=["slot", "status", "created_at"])]
+        indexes = [
+            models.Index(
+                fields=["slot", "status", "created_at"],
+                name="booking_wai_slot_id_e2fa8d_idx",
+            )
+        ]
         constraints = [
-            models.UniqueConstraint(fields=["slot", "customer", "status"], name="uniq_waiting_customer_per_slot")
+            models.UniqueConstraint(
+                fields=["slot", "customer", "status"],
+                name="uniq_waiting_customer_per_slot",
+            )
         ]
 
 
@@ -154,13 +236,34 @@ class BookingAttendance(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    reservation = models.OneToOneField(SessionReservation, on_delete=models.CASCADE, related_name="attendance")
-    trainer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_attendance_as_trainer")
-    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="booking_attendance_as_customer")
+    reservation = models.OneToOneField(
+        SessionReservation,
+        on_delete=models.CASCADE,
+        related_name="attendance",
+    )
+    trainer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_attendance_as_trainer",
+    )
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_attendance_as_customer",
+    )
     checkin_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     external_identifier = models.CharField(max_length=128, blank=True, db_index=True)
-    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default=STATUS_EXPECTED, db_index=True)
-    checkin_method = models.CharField(max_length=24, choices=METHOD_CHOICES, default=METHOD_MANUAL)
+    status = models.CharField(
+        max_length=24,
+        choices=STATUS_CHOICES,
+        default=STATUS_EXPECTED,
+        db_index=True,
+    )
+    checkin_method = models.CharField(
+        max_length=24,
+        choices=METHOD_CHOICES,
+        default=METHOD_MANUAL,
+    )
     checked_in_at = models.DateTimeField(null=True, blank=True)
     checked_out_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.PositiveIntegerField(default=0)
@@ -170,6 +273,9 @@ class BookingAttendance(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["trainer", "status", "checked_in_at"], name="booking_att_trainer_status_idx"),
+            models.Index(
+                fields=["trainer", "status", "checked_in_at"],
+                name="booking_att_trainer_status_idx",
+            ),
             models.Index(fields=["customer", "created_at"], name="booking_att_customer_idx"),
         ]

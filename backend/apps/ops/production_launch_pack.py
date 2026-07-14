@@ -6,7 +6,7 @@ from typing import Any
 
 
 PRODUCTION_LAUNCH_VERSION = "v120"
-PROJECT_VERSION = "v120-production-launch-pack"
+PROJECT_VERSION = "v167.0"
 
 
 DOCUMENTS = [

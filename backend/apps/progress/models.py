@@ -1,10 +1,14 @@
 from django.conf import settings
 from django.db import models
-from apps.common.db.models import TimeStampedModel
+from apps.common.models import TimeStampedModel
 
 
 class VideoProgress(TimeStampedModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='video_progress_records')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='video_progress_records',
+    )
     video_id = models.CharField(max_length=64)
     watched_seconds = models.PositiveIntegerField(default=0)
     duration_seconds = models.PositiveIntegerField(default=0)
@@ -15,8 +19,18 @@ class VideoProgress(TimeStampedModel):
 
     class Meta:
         db_table = 'progress_video_progress'
-        indexes = [models.Index(fields=['user', 'video_id'])]
-        constraints = [models.UniqueConstraint(fields=['user', 'video_id'], name='uniq_user_video_progress')]
+        indexes = [
+            models.Index(
+                fields=['user', 'video_id'],
+                name='progress_vi_user_id_642528_idx',
+            )
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'video_id'],
+                name='uniq_user_video_progress',
+            )
+        ]
 
 
 class LessonProgress(TimeStampedModel):
@@ -24,17 +38,35 @@ class LessonProgress(TimeStampedModel):
         PROGRAM = 'program', 'Program'
         COURSE = 'course', 'Course'
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lesson_progress_records')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='lesson_progress_records',
+    )
     lesson_id = models.CharField(max_length=64)
     program_id = models.CharField(max_length=64)
-    content_type = models.CharField(max_length=32, choices=ContentType.choices, default=ContentType.PROGRAM)
+    content_type = models.CharField(
+        max_length=32,
+        choices=ContentType.choices,
+        default=ContentType.PROGRAM,
+    )
     is_completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'progress_lesson_progress'
-        indexes = [models.Index(fields=['user', 'content_type', 'program_id', 'is_completed'])]
-        constraints = [models.UniqueConstraint(fields=['user', 'lesson_id'], name='uniq_user_lesson_progress')]
+        indexes = [
+            models.Index(
+                fields=['user', 'content_type', 'program_id', 'is_completed'],
+                name='progress_le_user_id_977ed3_idx',
+            )
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'lesson_id'],
+                name='uniq_user_lesson_progress',
+            )
+        ]
 
 
 class ProgramProgress(TimeStampedModel):
@@ -42,9 +74,17 @@ class ProgramProgress(TimeStampedModel):
         PROGRAM = 'program', 'Program'
         COURSE = 'course', 'Course'
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='program_progress_records')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='program_progress_records',
+    )
     program_id = models.CharField(max_length=64)
-    content_type = models.CharField(max_length=32, choices=ContentType.choices, default=ContentType.PROGRAM)
+    content_type = models.CharField(
+        max_length=32,
+        choices=ContentType.choices,
+        default=ContentType.PROGRAM,
+    )
     total_lessons = models.PositiveIntegerField(default=0)
     completed_lessons = models.PositiveIntegerField(default=0)
     completion_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -54,5 +94,15 @@ class ProgramProgress(TimeStampedModel):
 
     class Meta:
         db_table = 'progress_program_progress'
-        indexes = [models.Index(fields=['user', 'content_type', 'program_id'])]
-        constraints = [models.UniqueConstraint(fields=['user', 'program_id'], name='uniq_user_program_progress')]
+        indexes = [
+            models.Index(
+                fields=['user', 'content_type', 'program_id'],
+                name='progress_pr_user_id_3df7b9_idx',
+            )
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'program_id'],
+                name='uniq_user_program_progress',
+            )
+        ]

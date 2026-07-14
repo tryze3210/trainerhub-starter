@@ -170,6 +170,7 @@ export async function downloadReferralAdminCsv(
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: 'no-store',
+    credentials: 'include',
   });
 
   if (!response.ok) {

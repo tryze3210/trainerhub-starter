@@ -12,8 +12,8 @@ export default async function AdminSubscriptionDetailRoute({ params }: { params:
 
   return (
     <ProtectedPage
-      title="Admin subscription detail"
-      description="Подробная lifecycle-карточка подписки и ручные операции доступа."
+      title="Детали подписки"
+      description="Подробная карточка жизненного цикла подписки и ручные операции доступа."
     >
       <AdminSubscriptionDetailPage subscriptionId={subscriptionId} />
     </ProtectedPage>

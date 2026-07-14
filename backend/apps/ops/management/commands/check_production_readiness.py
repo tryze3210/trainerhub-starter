@@ -20,6 +20,7 @@ class Command(BaseCommand):
         parser.add_argument('--json', action='store_true', dest='as_json', help='Print machine-readable JSON output.')
         parser.add_argument('--no-commands', action='store_true', help='Omit smoke and management commands from the output.')
         parser.add_argument('--no-recommendations', action='store_true', help='Omit recommendations from the output.')
+        parser.add_argument('--summary-only', action='store_true', help='Print only the readiness summary.')
         parser.add_argument(
             '--fail-on-degraded',
             action='store_true',
@@ -44,6 +45,10 @@ class Command(BaseCommand):
                 f"degraded={summary['degraded_count']} "
                 f"critical={summary['critical_count']}"
             )
+            if options['summary_only']:
+                if options['fail_on_degraded'] and payload['status'] in {'degraded', 'critical'}:
+                    raise SystemExit(1)
+                return
             for check in payload['checks']:
                 marker = '✓' if check.get('status') == 'ok' else '!'
                 self.stdout.write(

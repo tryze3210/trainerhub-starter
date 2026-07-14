@@ -29,7 +29,7 @@ def test_public_marketplace_payload_contains_seo_pricing_reviews_and_checkout_ct
 def test_production_readiness_tracks_public_marketplace_v118():
     readiness_source = (ROOT / 'apps' / 'ops' / 'production_readiness.py').read_text()
 
-    assert "'version': 'v118'" in readiness_source
+    assert "LEGACY_CONTRACT_VERSIONS = {'public_marketplace': 'v118'}" in readiness_source
     assert 'public_marketplace_home' in readiness_source
     assert 'public_marketplace_content_landing' in readiness_source
     assert 'public_marketplace_trainer_landing' in readiness_source

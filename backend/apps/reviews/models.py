@@ -41,10 +41,19 @@ class Review(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['target_type', 'target_id', 'status']),
-            models.Index(fields=['author_user_id', 'target_type', 'target_id']),
-            models.Index(fields=['trainer_id', 'status']),
-            models.Index(fields=['status', 'created_at']),
-            models.Index(fields=['trainer_reply_by_id', 'trainer_replied_at']),
+            models.Index(
+                fields=['target_type', 'target_id', 'status'],
+                name='reviews_rev_target__c64500_idx',
+            ),
+            models.Index(
+                fields=['author_user_id', 'target_type', 'target_id'],
+                name='reviews_rev_author__7ed6c2_idx',
+            ),
+            models.Index(fields=['trainer_id', 'status'], name='reviews_rev_trainer_1f5706_idx'),
+            models.Index(fields=['status', 'created_at'], name='reviews_rev_status_c24b9b_idx'),
+            models.Index(
+                fields=['trainer_reply_by_id', 'trainer_replied_at'],
+                name='reviews_replie_30f28a_idx',
+            ),
         ]
         ordering = ['-created_at']

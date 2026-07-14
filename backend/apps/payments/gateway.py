@@ -1,53 +1,20 @@
 from __future__ import annotations
 
 import os
-from copy import deepcopy
 from urllib.parse import urlencode
 
 from django.conf import settings
 
 from apps.payments.models import PaymentProvider
-from apps.platform_settings.models import PlatformSettings
+from apps.platform_settings.selectors import get_payment_provider_settings
 
 
-DEFAULT_PROVIDER_SETTINGS = {
-    'default_provider': 'mock',
-    'providers': [
-        {
-            'provider': 'mock',
-            'display_name': 'Mock checkout',
-            'is_enabled': True,
-            'environment': 'dev',
-            'public_key': '',
-            'shop_id': '',
-            'webhook_secret_masked': '',
-            'return_url_override': '',
-            'notes': 'Always available for local development.',
-        },
-        {
-            'provider': 'cloudpayments',
-            'display_name': 'CloudPayments',
-            'is_enabled': False,
-            'environment': 'test',
-            'public_key': '',
-            'shop_id': '',
-            'webhook_secret_masked': '',
-            'return_url_override': '',
-            'notes': '',
-        },
-        {
-            'provider': 'yookassa',
-            'display_name': 'YooKassa',
-            'is_enabled': False,
-            'environment': 'test',
-            'public_key': '',
-            'shop_id': '',
-            'webhook_secret_masked': '',
-            'return_url_override': '',
-            'notes': '',
-        },
-    ],
-}
+def mock_payments_allowed() -> bool:
+    return bool(getattr(settings, 'PAYMENTS_ALLOW_MOCK_PROVIDER', False))
+
+
+def unverified_provider_return_allowed() -> bool:
+    return bool(getattr(settings, 'PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN', False))
 
 
 class PaymentGatewayAdapter:
@@ -67,23 +34,7 @@ class PaymentGatewayAdapter:
         return f'http://{host}:8000'
 
     def _read_provider_settings(self) -> dict:
-        payload = deepcopy(DEFAULT_PROVIDER_SETTINGS)
-        settings_obj = PlatformSettings.objects.order_by('created_at').first()
-        if not settings_obj:
-            return payload
-        stored = ((settings_obj.homepage_config or {}).get('payments') or {})
-        if stored.get('default_provider'):
-            payload['default_provider'] = stored['default_provider']
-        provider_map = {item['provider']: item for item in payload['providers']}
-        for item in stored.get('providers', []):
-            provider = item.get('provider')
-            if not provider:
-                continue
-            if provider not in provider_map:
-                provider_map[provider] = {'provider': provider}
-            provider_map[provider].update(item)
-        payload['providers'] = list(provider_map.values())
-        return payload
+        return get_payment_provider_settings()
 
     def _provider_config(self, provider: str) -> dict:
         payload = self._read_provider_settings()
@@ -114,6 +65,9 @@ class PaymentGatewayAdapter:
 
     def create_checkout(self, *, order, payment):
         provider = payment.provider or PaymentProvider.MOCK
+        if provider == PaymentProvider.MOCK and not mock_payments_allowed():
+            raise ValueError('Mock payment provider is disabled for this environment.')
+
         provider_config = self._provider_config(provider)
         if not provider_config.get('is_enabled', provider == PaymentProvider.MOCK):
             raise ValueError(f'Payment provider "{provider}" is disabled in platform settings.')

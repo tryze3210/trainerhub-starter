@@ -11,7 +11,7 @@ def test_launch_candidate_pack_contains_release_contract_sections():
     payload = get_launch_candidate_pack()
 
     assert payload["version"] == "v119"
-    assert payload["project_version"] == "v120-production-launch-pack"
+    assert payload["project_version"] == "v167.0"
     assert payload["scope"] == "launch candidate"
     assert payload["status"] == "ok"
     assert payload["release_notes"]
@@ -22,7 +22,7 @@ def test_launch_candidate_pack_contains_release_contract_sections():
 
 
 def test_project_version_is_read_from_version_file():
-    assert get_project_version(repo_root=ROOT) == "v120-production-launch-pack"
+    assert get_project_version(repo_root=ROOT) == "v167.0"
 
 
 def test_launch_candidate_required_artifacts_exist():

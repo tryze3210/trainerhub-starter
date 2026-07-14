@@ -39,11 +39,11 @@ function stringify(value: unknown) {
 
 function issueActionLabel(issue: TrainerApplicationReadinessIssue) {
   if (issue.code.startsWith('approved_without_') || issue.code === 'approved_profile_not_dashboard_ready') {
-    return 'Sync access';
+    return 'Синхронизировать доступ';
   }
-  if (issue.code === 'stale_trainer_application_review') return 'Review now';
-  if (issue.code === 'review_queue_incomplete_application') return 'Request changes';
-  return 'Open queue item';
+  if (issue.code === 'stale_trainer_application_review') return 'Проверить сейчас';
+  if (issue.code === 'review_queue_incomplete_application') return 'Запросить правки';
+  return 'Открыть элемент очереди';
 }
 
 function ReadinessMetric({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
@@ -71,9 +71,9 @@ function ReadinessPanel({
       <section className="card stack" style={{ gap: 12 }}>
         <div className="row">
           <div>
-            <span className="badge secondary">Readiness</span>
-            <h2 className="title-md" style={{ marginTop: 8 }}>Application readiness</h2>
-            <p className="muted">Backend readiness endpoint пока не вернул данные.</p>
+            <span className="badge secondary">Готовность</span>
+            <h2 className="title-md" style={{ marginTop: 8 }}>Готовность заявки</h2>
+            <p className="muted">Сервер пока не вернул данные готовности.</p>
           </div>
           <button className="button secondary" type="button" onClick={onRefresh}>Обновить</button>
         </div>
@@ -90,26 +90,26 @@ function ReadinessPanel({
     <section className="card stack" style={{ gap: 16 }}>
       <div className="row" style={{ alignItems: 'flex-start' }}>
         <div>
-          <span className={`badge ${badgeTone(readiness.status)}`}>readiness: {readiness.status}</span>
-          <h2 className="title-md" style={{ marginTop: 8 }}>Application readiness</h2>
+          <span className={`badge ${badgeTone(readiness.status)}`}>готовность: {readiness.status}</span>
+          <h2 className="title-md" style={{ marginTop: 8 }}>Готовность заявки</h2>
           <p className="muted">
-            Проверяет approved access gaps, stale reviews, incomplete applications и dashboard unlock. Generated: {formatDateTime(readiness.generated_at)}.
+            Проверяет разрывы доступа после одобрения, просроченные проверки, неполные заявки и открытие кабинета. Сформировано: {formatDateTime(readiness.generated_at)}.
           </p>
         </div>
-        <button className="button secondary" type="button" onClick={onRefresh}>Обновить readiness</button>
+        <button className="button secondary" type="button" onClick={onRefresh}>Обновить готовность</button>
       </div>
 
       <div className="grid-4">
-        <ReadinessMetric label="Applications" value={summary.total_applications} />
-        <ReadinessMetric label="Review queue" value={summary.review_queue_count} />
-        <ReadinessMetric label="Dashboard ready" value={`${summary.dashboard_ready_count}/${summary.approved_count}`} tone={summary.approved_count !== summary.dashboard_ready_count ? 'warning' : undefined} />
-        <ReadinessMetric label="Issues" value={`${summary.issue_count} total`} tone={critical ? 'danger' : warning ? 'warning' : undefined} />
+        <ReadinessMetric label="Заявки" value={summary.total_applications} />
+        <ReadinessMetric label="Очередь проверки" value={summary.review_queue_count} />
+        <ReadinessMetric label="Кабинет готов" value={`${summary.dashboard_ready_count}/${summary.approved_count}`} tone={summary.approved_count !== summary.dashboard_ready_count ? 'warning' : undefined} />
+        <ReadinessMetric label="Проблемы" value={`${summary.issue_count} всего`} tone={critical ? 'danger' : warning ? 'warning' : undefined} />
       </div>
 
       <div className="grid-3">
-        <ReadinessMetric label="Critical" value={critical} tone={critical ? 'danger' : undefined} />
-        <ReadinessMetric label="Warning" value={warning} tone={warning ? 'warning' : undefined} />
-        <ReadinessMetric label="Info" value={info} />
+        <ReadinessMetric label="Критично" value={critical} tone={critical ? 'danger' : undefined} />
+        <ReadinessMetric label="Предупреждения" value={warning} tone={warning ? 'warning' : undefined} />
+        <ReadinessMetric label="Инфо" value={info} />
       </div>
 
       {readiness.recommendations.length ? (
@@ -132,8 +132,8 @@ function ReadinessPanel({
 
       <div className="stack" style={{ gap: 10 }}>
         <div className="row">
-          <h3 className="title-sm">Readiness issues</h3>
-          <span className="muted">{readiness.issues.length} shown</span>
+          <h3 className="title-sm">Проблемы готовности</h3>
+          <span className="muted">{readiness.issues.length} показано</span>
         </div>
         {readiness.issues.map((issue, index) => {
           const applicationId = issue.application_id || issue.application?.id || '';
@@ -147,8 +147,8 @@ function ReadinessPanel({
                   <p className="muted" style={{ margin: 0 }}>{issue.message}</p>
                 </div>
                 <div className="stack" style={{ gap: 4, alignItems: 'flex-end' }}>
-                  <span className="muted">{issue.user_email || issue.application?.user.email || 'user n/a'}</span>
-                  <span className="badge secondary">{issue.application_status || issue.application?.status || 'status n/a'}</span>
+                  <span className="muted">{issue.user_email || issue.application?.user.email || 'пользователь н/д'}</span>
+                  <span className="badge secondary">{issue.application_status || issue.application?.status || 'статус н/д'}</span>
                 </div>
               </div>
               {issue.remediation ? <div className="warning-banner">{issue.remediation}</div> : null}
@@ -163,13 +163,13 @@ function ReadinessPanel({
                   >
                     {issueActionLabel(issue)}
                   </button>
-                  <span className="muted">application {applicationId}</span>
+                  <span className="muted">заявка {applicationId}</span>
                 </div>
               ) : null}
             </article>
           );
         })}
-        {readiness.issues.length === 0 ? <div className="success-banner">Readiness gaps не найдены.</div> : null}
+        {readiness.issues.length === 0 ? <div className="success-banner">Проблем готовности не найдено.</div> : null}
       </div>
     </section>
   );
@@ -216,7 +216,7 @@ export function AdminTrainerApplicationsDashboard() {
       setError('');
       const response = await adminTrainerApplicationsApi.review(id, {
         decision,
-        reviewer_note: reviewNote[id] || (decision === 'approve' ? 'Approved from admin trainer onboarding queue.' : ''),
+        reviewer_note: reviewNote[id] || (decision === 'approve' ? 'Одобрено из админской очереди заявок тренеров.' : ''),
       });
       setMessage(`Заявка ${response.application.user.email} обновлена: ${response.application.status}`);
       await load();
@@ -234,7 +234,7 @@ export function AdminTrainerApplicationsDashboard() {
       setMessage('');
       setError('');
       const response = await adminTrainerApplicationsApi.syncAccess(applicationId);
-      setMessage(`Access sync выполнен для ${response.application.user.email}`);
+      setMessage(`Синхронизация доступа выполнена для ${response.application.user.email}`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось синхронизировать доступ');
@@ -253,8 +253,8 @@ export function AdminTrainerApplicationsDashboard() {
     return Array.from(counts.entries()).sort(([left], [right]) => left.localeCompare(right));
   }, [applications]);
 
-  if (loading && applications.length === 0 && !readiness) return <LoadingCard text="Загружаем trainer applications" />;
-  if (error && applications.length === 0 && !readiness) return <ErrorCard text={`Trainer applications недоступны: ${error}`} />;
+  if (loading && applications.length === 0 && !readiness) return <LoadingCard text="Загружаем заявки тренеров" />;
+  if (error && applications.length === 0 && !readiness) return <ErrorCard text={`Заявки тренеров недоступны: ${error}`} />;
 
   return (
     <div className="stack" style={{ gap: 24 }}>
@@ -263,9 +263,9 @@ export function AdminTrainerApplicationsDashboard() {
       <section className="card stack" style={{ gap: 16 }}>
         <div className="row">
           <div>
-            <span className="badge secondary">Admin moderation</span>
-            <h2 className="title-md" style={{ marginTop: 10 }}>Trainer applications</h2>
-            <p className="muted">Approve выдаёт trainer role, создаёт/sync profile и открывает trainer dashboard.</p>
+            <span className="badge secondary">Модерация заявок</span>
+            <h2 className="title-md" style={{ marginTop: 10 }}>Заявки тренеров</h2>
+            <p className="muted">Одобрение выдаёт роль тренера, создаёт или синхронизирует профиль и открывает кабинет тренера.</p>
           </div>
           <button className="button secondary" type="button" onClick={() => void load()} disabled={loading}>
             Обновить
@@ -274,16 +274,16 @@ export function AdminTrainerApplicationsDashboard() {
 
         <div className="grid-3">
           <label className="form-group">
-            <span className="label">Status</span>
+            <span className="label">Статус</span>
             <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
               {statusFilters.map((item) => (
-                <option key={item || 'all'} value={item}>{item || 'all'}</option>
+                <option key={item || 'all'} value={item}>{item || 'Все'}</option>
               ))}
             </select>
           </label>
           <label className="form-group">
-            <span className="label">Search</span>
-            <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="email / brand / city" />
+            <span className="label">Поиск</span>
+            <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="email / бренд / город" />
           </label>
           <div className="form-group" style={{ justifyContent: 'flex-end' }}>
             <button className="button" type="button" onClick={() => void load()}>
@@ -314,41 +314,41 @@ export function AdminTrainerApplicationsDashboard() {
                 <div>
                   <span className={`badge ${badgeTone(application.status)}`}>{application.status}</span>
                   <h3 className="title-md" style={{ marginTop: 8 }}>{application.brand_name || application.legal_name || application.user.email}</h3>
-                  <p className="muted">{application.user.email} · {application.city || 'city n/a'} · {application.experience_years || 0} years</p>
+                  <p className="muted">{application.user.email} · {application.city || 'город н/д'} · {application.experience_years || 0} лет</p>
                 </div>
                 <div className="stack" style={{ gap: 6, alignItems: 'flex-end' }}>
-                  <span className="badge secondary">role: {application.user.role}</span>
-                  <span className="badge secondary">profile: {application.profile?.status || 'missing'}</span>
-                  <span className={`badge ${application.reviewable ? 'success' : 'secondary'}`}>reviewable: {String(application.reviewable)}</span>
+                  <span className="badge secondary">роль: {application.user.role}</span>
+                  <span className="badge secondary">профиль: {application.profile?.status || 'нет'}</span>
+                  <span className={`badge ${application.reviewable ? 'success' : 'secondary'}`}>можно проверить: {String(application.reviewable)}</span>
                 </div>
               </div>
 
-              <p>{application.bio || 'No bio yet.'}</p>
+              <p>{application.bio || 'Био пока нет.'}</p>
               <div className="inline">
                 {(application.specialties || []).map((specialty) => (
                   <span key={specialty} className="badge secondary">{specialty}</span>
                 ))}
               </div>
 
-              {application.reviewer_note ? <div className="warning-banner">Last note: {application.reviewer_note}</div> : null}
+              {application.reviewer_note ? <div className="warning-banner">Последняя заметка: {application.reviewer_note}</div> : null}
 
               <label className="form-group">
-                <span className="label">Reviewer note</span>
+                <span className="label">Комментарий проверяющего</span>
                 <textarea
                   className="textarea"
                   rows={3}
                   value={reviewNote[id] || ''}
                   onChange={(event) => setReviewNote((prev) => ({ ...prev, [id]: event.target.value }))}
-                  placeholder="Обязателен для reject/request changes"
+                  placeholder="Обязателен для отклонения/запроса правок"
                 />
               </label>
 
               <div className="inline">
-                <button className="button" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'approve')}>Approve</button>
-                <button className="button secondary" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'under_review')}>Under review</button>
-                <button className="button secondary" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'request_changes')}>Request changes</button>
-                <button className="button danger" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'reject')}>Reject</button>
-                <button className="button secondary" type="button" disabled={isBusy || application.status !== 'approved'} onClick={() => void syncAccess(application)}>Sync access</button>
+                <button className="button" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'approve')}>Одобрить</button>
+                <button className="button secondary" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'under_review')}>На проверку</button>
+                <button className="button secondary" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'request_changes')}>Запросить правки</button>
+                <button className="button danger" type="button" disabled={isBusy || !id} onClick={() => void review(application, 'reject')}>Отклонить</button>
+                <button className="button secondary" type="button" disabled={isBusy || application.status !== 'approved'} onClick={() => void syncAccess(application)}>Синхронизировать доступ</button>
               </div>
             </article>
           );

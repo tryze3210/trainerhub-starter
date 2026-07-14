@@ -55,7 +55,7 @@ export type TrainerOnboardingStep = {
 };
 
 export type TrainerOnboardingState = {
-  user: {
+  user?: {
     id: string;
     email: string;
     role: string;

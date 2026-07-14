@@ -47,3 +47,13 @@ def test_v91_domain_notification_triggers_create_business_events_idempotently():
     assert Notification.objects.filter(user=user, metadata__event_key=f'entitlement:{entitlement.id}:granted').count() == 1
     assert NotificationDelivery.objects.filter(user=user, type=NotificationType.PAYMENT_SUCCEEDED).count() == 1
     assert NotificationDelivery.objects.filter(user=user, type=NotificationType.ACCESS_GRANTED).count() == 1
+
+
+def test_v91_pending_email_sweep_is_scheduled_in_celery_beat():
+    from config.celery import app
+
+    schedule = app.conf.beat_schedule
+    assert schedule['trainerhub-notifications-sweep-pending-email']['task'] == (
+        'apps.notifications.tasks.sweep_pending_email_notifications'
+    )
+    assert schedule['trainerhub-notifications-sweep-pending-email']['options']['queue'] == 'email'

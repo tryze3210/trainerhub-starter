@@ -67,12 +67,29 @@ class MyPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     def request_payout(self, request):
         serializer = CreatePayoutRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        payout = PayoutService.request_payout(
-            trainer_id=self._trainer_id(),
-            amount=serializer.validated_data["amount"],
-            destination_masked=serializer.validated_data["destination_masked"],
-            request=request,
-        )
+        try:
+            payout = PayoutService.request_payout(
+                trainer_id=self._trainer_id(),
+                amount=serializer.validated_data["amount"],
+                destination_masked=serializer.validated_data["destination_masked"],
+                request=request,
+            )
+        except ValidationError as exc:
+            if "block_reason" in getattr(exc, "detail", {}):
+                AuditService.log(
+                    actor=request.user,
+                    request=request,
+                    event_type="payout.eligibility_blocked",
+                    entity_type="trainer",
+                    entity_id=str(self._trainer_id()),
+                    context={
+                        "action": "request",
+                        "trainer_id": str(self._trainer_id()),
+                        "amount": str(serializer.validated_data["amount"]),
+                        "block_reason": str(exc.detail.get("block_reason", "")),
+                    },
+                )
+            raise
         balance = get_balance_for_trainer(self._trainer_id()) or payout.wallet
         return Response(
             {
@@ -110,11 +127,33 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
                 reason=reason,
                 external_reference=external_reference,
             )
-        except ValidationError:
+        except ValidationError as exc:
+            self._log_eligibility_block(request=request, payout=payout, action=action, error=exc)
             raise
         except Exception as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(PayoutRequestDetailSerializer(updated).data)
+
+    @staticmethod
+    def _log_eligibility_block(*, request, payout: PayoutRequest, action: str, error: ValidationError) -> None:
+        detail = getattr(error, "detail", {})
+        if "block_reason" not in detail:
+            return
+        AuditService.log(
+            actor=request.user,
+            request=request,
+            event_type="payout.eligibility_blocked",
+            entity_type="payout_request",
+            entity_id=str(payout.id),
+            context={
+                "action": action,
+                "payout_id": str(payout.id),
+                "trainer_id": str(payout.trainer.user_id),
+                "amount": str(payout.amount),
+                "status": PayoutService._canonical_status(payout.status),
+                "block_reason": str(detail.get("block_reason", "")),
+            },
+        )
 
     @action(methods=["get"], detail=False, url_path="overview")
     def overview(self, request):
@@ -215,6 +254,12 @@ class AdminPayoutViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
                 )
                 results.append({"id": str(updated.id), "ok": True, "status": PayoutService._canonical_status(updated.status)})
             except ValidationError as exc:
+                self._log_eligibility_block(
+                    request=request,
+                    payout=payout,
+                    action=serializer.validated_data["action"],
+                    error=exc,
+                )
                 results.append({"id": payout_id, "ok": False, "error": exc.detail})
         return Response({"results": results})
 

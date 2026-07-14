@@ -10,6 +10,8 @@ export type AuthUser = {
   preferred_language?: string;
   active_role: string;
   available_roles: string[];
+  is_staff?: boolean;
+  is_superuser?: boolean;
   settings?: {
     marketing_emails_enabled?: boolean;
     product_updates_enabled?: boolean;
@@ -239,6 +241,18 @@ export type CheckoutResponse = {
     external_checkout_url?: string;
     provider_payload?: Record<string, unknown>;
   };
+};
+
+export type PublicCheckoutPaymentProvider = {
+  provider: string;
+  display_name?: string;
+  environment?: string;
+  public_key?: string;
+};
+
+export type PublicCheckoutPaymentSettings = {
+  default_provider?: string;
+  providers: PublicCheckoutPaymentProvider[];
 };
 
 export type PayoutBalance = {

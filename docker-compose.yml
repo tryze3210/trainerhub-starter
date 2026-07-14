@@ -32,9 +32,10 @@ services:
       dockerfile: deploy/backend/Dockerfile
     restart: unless-stopped
     command: ["/app/deploy/backend/entrypoint.sh"]
-    env_file: .env.example
+    env_file: ${TRAINERHUB_ENV_FILE:-.env}
     environment:
-      DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,9 +50,10 @@ services:
       dockerfile: deploy/backend/Dockerfile
     restart: unless-stopped
     command: ["/app/deploy/backend/celery-worker.sh"]
-    env_file: .env.example
+    env_file: ${TRAINERHUB_ENV_FILE:-.env}
     environment:
-      DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,9 +66,10 @@ services:
       dockerfile: deploy/backend/Dockerfile
     restart: unless-stopped
     command: ["/app/deploy/backend/celery-beat.sh"]
-    env_file: .env.example
+    env_file: ${TRAINERHUB_ENV_FILE:-.env}
     environment:
-      DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,9 +82,10 @@ services:
       dockerfile: deploy/backend/Dockerfile
     restart: unless-stopped
     command: ["celery", "-A", "config.celery_app", "flower", "--port=5555"]
-    env_file: .env.example
+    env_file: ${TRAINERHUB_ENV_FILE:-.env}
     environment:
-      DATABASE_URL: postgresql://trainerhub:trainerhub@postgres:5432/trainerhub
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,8 +98,11 @@ services:
     build:
       context: .
       dockerfile: deploy/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api/v1
+        NEXT_PUBLIC_API_BASE: /api/v1
     restart: unless-stopped
-    env_file: .env.example
+    env_file: ${TRAINERHUB_ENV_FILE:-.env}
     environment:
       NEXT_PUBLIC_API_BASE_URL: /api/v1
       NEXT_PUBLIC_API_BASE: /api/v1

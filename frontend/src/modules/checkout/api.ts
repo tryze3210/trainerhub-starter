@@ -1,6 +1,6 @@
 import { apiRequest, normalizeListResponse } from '@/lib/api-client';
 
-import type { CheckoutResponse, Order } from '@/types/api';
+import type { CheckoutResponse, Order, PublicCheckoutPaymentSettings } from '@/types/api';
 
 type CheckoutOneTimePayload = {
   item_type: string;
@@ -8,7 +8,7 @@ type CheckoutOneTimePayload = {
   title?: string;
   amount?: string;
   currency?: string;
-  provider?: string;
+  provider: string;
   idempotency_key?: string;
 };
 
@@ -30,9 +30,12 @@ export const checkoutApi = {
       body: JSON.stringify({
         mode: 'one_time',
         currency: payload.currency || 'RUB',
-        provider: payload.provider || 'mock',
         ...payload,
       }),
     });
+  },
+
+  getPaymentSettings: (): Promise<PublicCheckoutPaymentSettings> => {
+    return apiRequest<PublicCheckoutPaymentSettings>('/platform-settings/checkout-payment-providers/');
   },
 };

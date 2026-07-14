@@ -2,12 +2,14 @@ import json
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.access_control.permissions import IsAdminSupportFinanceReadonly, IsAdminOrSupport
 from apps.audit.services import AuditService
 from apps.payments.api.serializers import AdminPaymentSerializer, PaymentRefundSerializer, PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
+from apps.payments.gateway import mock_payments_allowed, unverified_provider_return_allowed
 from apps.payments.models import Payment, PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payments.webhook_security import PaymentWebhookPayloadError, PaymentWebhookSecurity, PaymentWebhookSignatureError
@@ -21,14 +23,20 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     def get_queryset(self):
         return Payment.objects.filter(order__user=self.request.user).order_by('-created_at')
 
+    def _assert_mock_payments_allowed(self):
+        if not mock_payments_allowed():
+            raise PermissionDenied('Mock payment actions are disabled for this environment.')
+
     @action(detail=True, methods=['post'], url_path='confirm-mock')
     def confirm_mock(self, request, pk=None):
+        self._assert_mock_payments_allowed()
         payment = self.get_object()
         updated = PaymentService.mark_succeeded(payment=payment, provider_payload={**(payment.provider_payload or {}), 'confirmed_via': 'mock_ui'})
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='cancel-mock')
     def cancel_mock(self, request, pk=None):
+        self._assert_mock_payments_allowed()
         payment = self.get_object()
         updated = PaymentService.mark_cancelled(payment=payment, provider_payload={**(payment.provider_payload or {}), 'cancelled_via': 'mock_ui'})
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
@@ -36,6 +44,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 
     @action(detail=True, methods=['post'], url_path='refund-mock')
     def refund_mock(self, request, pk=None):
+        self._assert_mock_payments_allowed()
         payment = self.get_object()
         serializer = PaymentRefundSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -51,6 +60,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 
     @action(detail=True, methods=['post'], url_path='dispute-mock')
     def dispute_mock(self, request, pk=None):
+        self._assert_mock_payments_allowed()
         payment = self.get_object()
         updated = PaymentService.mark_disputed(
             payment=payment,
@@ -60,6 +70,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 
     @action(detail=True, methods=['post'], url_path='chargeback-lost-mock')
     def chargeback_lost_mock(self, request, pk=None):
+        self._assert_mock_payments_allowed()
         payment = self.get_object()
         updated = PaymentService.mark_chargeback_lost(
             payment=payment,
@@ -69,6 +80,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 
     @action(detail=True, methods=['post'], url_path='chargeback-won-mock')
     def chargeback_won_mock(self, request, pk=None):
+        self._assert_mock_payments_allowed()
         payment = self.get_object()
         updated = PaymentService.mark_chargeback_won(
             payment=payment,
@@ -82,6 +94,8 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         status_value = (request.query_params.get('status') or '').strip().lower()
         if not payment_id:
             return Response({'detail': 'payment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if status_value and not unverified_provider_return_allowed():
+            raise PermissionDenied('Unverified payment return status changes are disabled for this environment.')
         payment = Payment.objects.get(pk=payment_id)
         if status_value in {'success', 'succeeded', 'paid'}:
             payment = PaymentService.mark_succeeded(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})

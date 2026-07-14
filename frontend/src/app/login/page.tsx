@@ -7,12 +7,13 @@ import { useEffect, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
 import { authApi } from '@/lib/api';
 import { persistTokens } from '@/lib/auth';
+import { isAdminUser } from '@/lib/authz';
 
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPathFromQuery = searchParams.get('next') || '';
-  const { isAuthenticated, refreshSession } = useAuthSession();
+  const { user, isAuthenticated, refreshSession } = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,9 +21,9 @@ function LoginPageContent() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace(nextPathFromQuery || '/cabinet');
+      router.replace(nextPathFromQuery || (isAdminUser(user) ? '/admin' : user?.active_role === 'trainer' ? '/trainer/dashboard' : '/cabinet'));
     }
-  }, [isAuthenticated, nextPathFromQuery, router]);
+  }, [isAuthenticated, nextPathFromQuery, router, user]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,7 +33,13 @@ function LoginPageContent() {
       const payload = await authApi.login({ email, password });
       persistTokens(payload.access_token, payload.refresh_token);
       await refreshSession();
-      const nextPath = nextPathFromQuery || (payload.user.active_role === 'trainer' ? '/trainer/dashboard' : '/cabinet');
+      const nextPath =
+        nextPathFromQuery ||
+        (isAdminUser(payload.user)
+          ? '/admin'
+          : payload.user.active_role === 'trainer'
+            ? '/trainer/dashboard'
+            : '/cabinet');
       router.push(nextPath);
       router.refresh();
     } catch (err) {

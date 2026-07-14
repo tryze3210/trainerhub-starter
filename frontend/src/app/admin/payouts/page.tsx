@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   description: 'Admin payout operations: requests, transitions, risk holds, projection and reconciliation.',
 };
 
-export default function AdminPayoutsPage() {
+export default function AdminВыплатыPage() {
   return (
     <ProtectedPage
-      title="Admin payouts"
-      description="Операционный центр выплат: approve, processing, mark-paid, reject, risk holds и reconciliation."
+      title="Выплаты администратора"
+      description="Операционный центр выплат: одобрение, обработка, отметка оплаты, отклонение, риск-холды и сверка."
     >
       <AdminPayoutOperationsDashboard />
     </ProtectedPage>

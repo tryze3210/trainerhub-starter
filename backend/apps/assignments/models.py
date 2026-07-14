@@ -37,15 +37,25 @@ class Assignment(TimeStampedModel):
     content_id = models.CharField(max_length=80, db_index=True)
     lesson_id = models.CharField(max_length=80, blank=True)
     due_at = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=32, choices=AssignmentStatus.choices, default=AssignmentStatus.DRAFT)
+    status = models.CharField(
+        max_length=32,
+        choices=AssignmentStatus.choices,
+        default=AssignmentStatus.DRAFT,
+    )
     metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "assignments_assignment"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["content_type", "content_id", "status"], name="asg_target_stat_idx"),
-            models.Index(fields=["trainer", "status"], name="asg_trainer_stat_idx"),
+            models.Index(
+                fields=["content_type", "content_id", "status"],
+                name="assignments_target_status_idx",
+            ),
+            models.Index(
+                fields=["trainer", "status"],
+                name="assignments_trainer_status_idx",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -66,7 +76,11 @@ class AssignmentSubmission(TimeStampedModel):
     )
     answer_text = models.TextField(blank=True)
     attachments = models.JSONField(default=list, blank=True)
-    status = models.CharField(max_length=32, choices=SubmissionStatus.choices, default=SubmissionStatus.SUBMITTED)
+    status = models.CharField(
+        max_length=32,
+        choices=SubmissionStatus.choices,
+        default=SubmissionStatus.SUBMITTED,
+    )
     submitted_at = models.DateTimeField()
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(

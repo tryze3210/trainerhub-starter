@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { reviewsApi, type Review, type ReviewTrustCenter } from '@/modules/reviews/api';
 
 function formatDate(value?: string | null) {
@@ -20,7 +21,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export default function AdminReviewsPage() {
+export default function AdminОтзывыPage() {
   const { user } = useAuthSession();
   const [items, setItems] = useState<Review[]>([]);
   const [overview, setOverview] = useState<ReviewTrustCenter | null>(null);
@@ -28,7 +29,7 @@ export default function AdminReviewsPage() {
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   async function load() {
     try {
@@ -64,26 +65,26 @@ export default function AdminReviewsPage() {
   }
 
   return (
-    <ProtectedPage title="Review moderation" description="Раздел модерации доступен только администраторам.">
+    <ProtectedPage title="Модерация отзывов" description="Раздел модерации доступен только администраторам.">
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="row" style={{ alignItems: 'flex-start' }}>
             <div className="stack" style={{ gap: 10 }}>
-              <span className="badge secondary">Trust & Quality</span>
+              <span className="badge secondary">Доверие и качество</span>
               <h1>Отзывы и качество платформы</h1>
-              <p className="lead">Модерация проверенных отзывов, контроль низких оценок и trust-состояния marketplace.</p>
+              <p className="lead">Модерация проверенных отзывов, контроль низких оценок и состояния доверия маркетплейса.</p>
             </div>
             <button className="button secondary" onClick={() => void load()}>Обновить</button>
           </div>
 
           {overview ? (
             <div className="grid-4">
-              <Metric label="Pending" value={overview.pending_count} />
-              <Metric label="Published" value={overview.published_count} />
-              <Metric label="Verified purchase" value={overview.verified_purchase_count} />
-              <Metric label="Avg rating" value={overview.average_rating} />
+              <Metric label="Ожидают проверки" value={overview.pending_count} />
+              <Metric label="Опубликовано" value={overview.published_count} />
+              <Metric label="Проверенная покупка" value={overview.verified_purchase_count} />
+              <Metric label="Средний рейтинг" value={overview.average_rating} />
             </div>
           ) : null}
 
@@ -92,11 +93,11 @@ export default function AdminReviewsPage() {
               <div className="form-group">
                 <label className="label" htmlFor="review-status">Статус очереди</label>
                 <select id="review-status" className="select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  <option value="pending">Pending</option>
-                  <option value="published">Published</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="flagged">Flagged</option>
-                  <option value="all">All</option>
+                  <option value="pending">Ожидает проверки</option>
+                  <option value="published">Опубликован</option>
+                  <option value="rejected">Отклонено</option>
+                  <option value="flagged">С флагом</option>
+                  <option value="all">Все</option>
                 </select>
               </div>
               <div className="form-group">
@@ -118,7 +119,7 @@ export default function AdminReviewsPage() {
                     <div className="row">
                       <strong>{item.title}</strong>
                       <div className="inline">
-                        {item.verified_purchase ? <span className="badge success">verified</span> : null}
+                        {item.verified_purchase ? <span className="badge success">проверено</span> : null}
                         <span className="badge warning">{item.status}</span>
                       </div>
                     </div>
@@ -139,7 +140,7 @@ export default function AdminReviewsPage() {
                         Flag
                       </button>
                       <button className="button secondary" disabled={busyId === item.id} onClick={() => void moderate(item.id, 'reject')}>
-                        Reject
+                        Отклонить
                       </button>
                     </div>
                   </div>

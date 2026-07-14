@@ -24,11 +24,11 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RefreshSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField()
+    refresh_token = serializers.CharField(required=False, allow_blank=True)
 
 
 class LogoutSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField()
+    refresh_token = serializers.CharField(required=False, allow_blank=True)
 
 
 class AuthSettingsSerializer(serializers.Serializer):
@@ -50,6 +50,8 @@ class AuthUserSerializer(serializers.Serializer):
     preferred_language = serializers.CharField(required=False)
     active_role = serializers.CharField()
     available_roles = serializers.ListField(child=serializers.CharField())
+    is_staff = serializers.BooleanField(required=False)
+    is_superuser = serializers.BooleanField(required=False)
     settings = AuthSettingsSerializer(required=False)
     access_token = serializers.CharField(required=False)
     refresh_token = serializers.CharField(required=False)

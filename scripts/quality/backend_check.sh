@@ -14,8 +14,10 @@ fi
 
 cd "$ROOT_DIR/backend"
 
+export DATABASE_URL="${QUALITY_DATABASE_URL:-}"
+
 "$PYTHON_BIN" manage.py check
 "$PYTHON_BIN" manage.py makemigrations --check --dry-run
-pytest
-flake8 .
-mypy .
+"$PYTHON_BIN" -m pytest
+"$PYTHON_BIN" -m flake8 .
+"$PYTHON_BIN" -m mypy .

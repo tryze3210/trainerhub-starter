@@ -1,5 +1,3 @@
-'use client';
-
 import { TrainerDashboardShell } from '@/modules/trainer-dashboard/components/trainer-dashboard-shell';
 import { TrainerSalesDashboard } from '@/modules/trainer-sales/components/trainer-sales-dashboard';
 

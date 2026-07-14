@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { adminEntityHref } from '@/modules/admin-entity-details/api';
 import { adminOperationsApi } from '@/modules/admin-operations/api';
 import type {
@@ -55,7 +56,7 @@ function statusLabel(status?: OperationsStatus) {
   if (!status) return 'Missing';
   if (status === 'ok') return 'OK';
   if (status === 'degraded') return 'Degraded';
-  if (status === 'critical') return 'Critical';
+  if (status === 'critical') return 'Критично';
   if (status === 'missing') return 'Missing';
   if (status === 'unavailable') return 'Unavailable';
   return status;
@@ -149,11 +150,11 @@ function SectionCard({ title, description, section }: { title: string; descripti
       </div>
       <div className="grid-2">
         <div>
-          <h3>Issues</h3>
+          <h3>Проблемы</h3>
           <IssueList issues={section?.issues} />
         </div>
         <div>
-          <h3>Counts</h3>
+          <h3>Количество</h3>
           <KeyValueGrid data={section?.counts} />
         </div>
       </div>
@@ -164,11 +165,11 @@ function SectionCard({ title, description, section }: { title: string; descripti
 type OperationRunner = (title: string, action: () => Promise<unknown>) => void;
 
 function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMessage[]; busy: boolean; onAction: OperationRunner }) {
-  if (!rows?.length) return <EmptyState>Нет failed/dead outbox-сообщений.</EmptyState>;
+  if (!rows?.length) return <EmptyState>Нет проблемных outbox-сообщений.</EmptyState>;
   return (
     <div className="card" id="outbox">
-      <h2>Recent outbox problems</h2>
-      <p>Retry возвращает сообщение в обработку, Dead помечает его как необрабатываемое.</p>
+      <h2>Последние проблемы outbox</h2>
+      <p>Повтор возвращает сообщение в обработку, а dead-letter исключает его из обработки.</p>
       <div className="stack">
         {rows.map((row) => (
           <div className="card compact shadow-none" key={row.id}>
@@ -176,7 +177,7 @@ function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMe
               <div>
                 <strong>{row.event_type || row.topic || 'event'}</strong>
                 <small>
-                  {row.status} · attempts: {row.attempts ?? 0} · {formatDate(row.updated_at)}
+                  {row.status} · попытки: {row.attempts ?? 0} · {formatDate(row.updated_at)}
                 </small>
                 {row.last_error ? <small>{row.last_error}</small> : null}
                 <small>
@@ -185,14 +186,14 @@ function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMe
               </div>
               <div className="inline">
                 <Link className="btn secondary sm" href={adminEntityHref('outbox_message', row.id)}>
-                  Open
+                  Открыть
                 </Link>
                 <button
                   className="btn sm"
                   disabled={busy}
                   onClick={() => onAction(`Retry outbox ${row.id}`, () => adminOperationsApi.retryOutboxMessage(row.id))}
                 >
-                  Retry
+                  Повторить
                 </button>
                 <button
                   className="btn danger sm"
@@ -203,7 +204,7 @@ function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMe
                     onAction(`Mark outbox ${row.id} dead`, () => adminOperationsApi.markOutboxDead(row.id, reason));
                   }}
                 >
-                  Dead
+                  Dead-letter
                 </button>
               </div>
             </div>
@@ -215,10 +216,10 @@ function OutboxTable({ rows, busy, onAction }: { rows?: OperationsRecentOutboxMe
 }
 
 function WebhookTable({ rows }: { rows?: OperationsRecentWebhookEvent[] }) {
-  if (!rows?.length) return <EmptyState>Нет проблемных webhook-событий.</EmptyState>;
+  if (!rows?.length) return <EmptyState>Нет проблемных событий вебхуков.</EmptyState>;
   return (
     <div className="card" id="webhooks">
-      <h2>Recent webhook problems</h2>
+      <h2>Последние проблемы вебхуков</h2>
       <div className="stack">
         {rows.map((row) => (
           <div className="card compact shadow-none" key={row.id}>
@@ -233,11 +234,11 @@ function WebhookTable({ rows }: { rows?: OperationsRecentWebhookEvent[] }) {
               <div className="inline">
                 {row.payment_id ? (
                   <Link className="btn secondary sm" href={adminEntityHref('payment', row.payment_id)}>
-                    Payment
+                    Платеж
                   </Link>
                 ) : null}
                 <Link className="btn secondary sm" href={adminEntityHref('payment_webhook', row.id)}>
-                  Open
+                  Открыть
                 </Link>
               </div>
             </div>
@@ -249,10 +250,10 @@ function WebhookTable({ rows }: { rows?: OperationsRecentWebhookEvent[] }) {
 }
 
 function RiskPaymentsTable({ rows }: { rows?: OperationsRecentRiskPayment[] }) {
-  if (!rows?.length) return <EmptyState>Нет refund/dispute/chargeback платежей.</EmptyState>;
+  if (!rows?.length) return <EmptyState>Нет платежей с возвратами, спорами или chargeback.</EmptyState>;
   return (
     <div className="card" id="payment-risk">
-      <h2>Recent payment risk</h2>
+      <h2>Последние платежные риски</h2>
       <div className="stack">
         {rows.map((row) => (
           <div className="card compact shadow-none" key={row.id}>
@@ -266,11 +267,11 @@ function RiskPaymentsTable({ rows }: { rows?: OperationsRecentRiskPayment[] }) {
               <div className="inline">
                 {row.order_id ? (
                   <Link className="btn secondary sm" href={adminEntityHref('order', row.order_id)}>
-                    Order
+                    Заказ
                   </Link>
                 ) : null}
                 <Link className="btn secondary sm" href={adminEntityHref('payment', row.id)}>
-                  Open
+                  Открыть
                 </Link>
               </div>
             </div>
@@ -286,10 +287,10 @@ function canReleaseRiskHold(row: OperationsRecentLedgerEntry) {
 }
 
 function RiskLedgerTable({ rows, busy, onAction }: { rows?: OperationsRecentLedgerEntry[]; busy: boolean; onAction: OperationRunner }) {
-  if (!rows?.length) return <EmptyState>Нет risk/reversal ledger-записей.</EmptyState>;
+  if (!rows?.length) return <EmptyState>Нет риск- или reversal-записей реестра.</EmptyState>;
   return (
     <div className="card" id="payout-risk">
-      <h2>Recent payout risk ledger</h2>
+      <h2>Последние риски реестра выплат</h2>
       <div className="stack">
         {rows.map((row) => (
           <div className="card compact shadow-none" key={row.id}>
@@ -302,12 +303,12 @@ function RiskLedgerTable({ rows, busy, onAction }: { rows?: OperationsRecentLedg
                   {row.direction || 'direction'} · {row.source_type || 'source'} · {formatDate(row.created_at)}
                 </small>
                 <small>
-                  trainer {row.trainer_id || '—'} · source {row.source_id || '—'}
+                  тренер {row.trainer_id || '—'} · источник {row.source_id || '—'}
                 </small>
               </div>
               <div className="inline">
                 <Link className="btn secondary sm" href={adminEntityHref('balance_entry', row.id)}>
-                  Open
+                  Открыть
                 </Link>
                 {canReleaseRiskHold(row) ? (
                   <button
@@ -319,7 +320,7 @@ function RiskLedgerTable({ rows, busy, onAction }: { rows?: OperationsRecentLedg
                       onAction(`Release risk hold ${row.source_id}`, () => adminOperationsApi.releaseRiskHold(String(row.source_id), reason));
                     }}
                   >
-                    Release hold
+                    Снять холд
                   </button>
                 ) : null}
               </div>
@@ -332,28 +333,28 @@ function RiskLedgerTable({ rows, busy, onAction }: { rows?: OperationsRecentLedg
 }
 
 function ModerationCasesTable({ rows }: { rows?: OperationsRecentModerationCase[] }) {
-  if (!rows?.length) return <EmptyState>Нет payment risk moderation cases.</EmptyState>;
+  if (!rows?.length) return <EmptyState>Нет кейсов модерации платежных рисков.</EmptyState>;
   return (
     <div className="card" id="moderation-risk">
-      <h2>Payment risk cases</h2>
+      <h2>Кейсы платежных рисков</h2>
       <div className="stack">
         {rows.map((row) => (
           <div className="card compact shadow-none" key={row.id}>
             <div className="row">
               <div>
-                <strong>{row.title || 'Risk case'}</strong>
+                <strong>{row.title || 'Риск-кейс'}</strong>
                 <small>
-                  {row.status || 'status'} · priority {row.priority ?? 0} · {formatDate(row.updated_at)}
+                  {row.status || 'статус'} · приоритет {row.priority ?? 0} · {formatDate(row.updated_at)}
                 </small>
               </div>
               <div className="inline">
                 {row.target_type && row.target_id ? (
                   <Link className="btn secondary sm" href={adminEntityHref(row.target_type, row.target_id)}>
-                    Target
+                    Цель
                   </Link>
                 ) : null}
                 <Link className="btn secondary sm" href={adminEntityHref('moderation_case', row.id)}>
-                  Open
+                  Открыть
                 </Link>
               </div>
             </div>
@@ -384,8 +385,8 @@ function QuickActions({ actions, busy, onAction }: { actions?: OperationsHubActi
 
   return (
     <div className="card">
-      <h2>Quick actions</h2>
-      <p>Безопасные действия оператора. Destructive reconciliation repair остаётся в dedicated workflow с confirm token.</p>
+      <h2>Быстрые действия</h2>
+      <p>Безопасные действия оператора. Разрушающее исправление сверки остается в отдельном сценарии с токеном подтверждения.</p>
       <div className="grid-2">
         {visibleActions.map((action) => (
           <div className="card compact shadow-none" key={action.key}>
@@ -398,7 +399,7 @@ function QuickActions({ actions, busy, onAction }: { actions?: OperationsHubActi
                 </small>
               </div>
               <button className="btn sm" disabled={busy} onClick={() => run(action)}>
-                Run
+                Запустить
               </button>
             </div>
           </div>
@@ -421,22 +422,22 @@ function ReconciliationPanel({ payload }: { payload: OperationsHubPayload | null
     <div className="card" id="reconciliation">
       <div className="row" style={{ alignItems: 'flex-start' }}>
         <div>
-          <h2>Reconciliation command center</h2>
-          <p>Snapshot health, scheduled capture, alerts и normalized issue registry в одном блоке.</p>
+          <h2>Центр сверки</h2>
+          <p>Снимок состояния, запланированный capture, алерты и нормализованный реестр проблем в одном блоке.</p>
         </div>
         <StatusBadge status={reconciliation?.status || 'missing'} />
       </div>
 
       <div className="grid-4">
-        <StatCard title="Total issues" value={scalar(headline.current_total_issues ?? payload?.summary.reconciliation_total_issues)} hint="latest snapshot" />
-        <StatCard title="Critical" value={scalar(headline.current_critical_count ?? payload?.summary.reconciliation_critical_count)} hint="critical issues" />
-        <StatCard title="Repairable" value={scalar(payload?.summary.reconciliation_repairable_issues)} hint="issue registry" />
-        <StatCard title="Alerts" value={scalar(payload?.summary.reconciliation_alert_count)} hint={alerts.has_alerts ? 'requires attention' : 'no active alerts'} badge={<StatusBadge status={alerts.has_alerts ? 'critical' : 'ok'} />} />
+        <StatCard title="Всего проблем" value={scalar(headline.current_total_issues ?? payload?.summary.reconciliation_total_issues)} hint="последний снимок" />
+        <StatCard title="Критично" value={scalar(headline.current_critical_count ?? payload?.summary.reconciliation_critical_count)} hint="критичные проблемы" />
+        <StatCard title="Можно исправить" value={scalar(payload?.summary.reconciliation_repairable_issues)} hint="реестр проблем" />
+        <StatCard title="Алерты" value={scalar(payload?.summary.reconciliation_alert_count)} hint={alerts.has_alerts ? 'требует внимания' : 'активных алертов нет'} badge={<StatusBadge status={alerts.has_alerts ? 'critical' : 'ok'} />} />
       </div>
 
       <div className="grid-2" style={{ marginTop: 16 }}>
         <div className="card compact shadow-none">
-          <h3>Scheduled snapshot</h3>
+          <h3>Запланированный снимок</h3>
           <KeyValueGrid
             data={{
               status: schedule.status,
@@ -447,7 +448,7 @@ function ReconciliationPanel({ payload }: { payload: OperationsHubPayload | null
           />
         </div>
         <div className="card compact shadow-none">
-          <h3>Latest direction</h3>
+          <h3>Последнее направление</h3>
           <KeyValueGrid
             data={{
               latest_snapshot_id: payload?.summary.latest_reconciliation_snapshot_id,
@@ -460,9 +461,9 @@ function ReconciliationPanel({ payload }: { payload: OperationsHubPayload | null
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <h3>Top normalized issues</h3>
+        <h3>Топ нормализованных проблем</h3>
         {!issues.length ? (
-          <EmptyState>Нет normalized reconciliation issues.</EmptyState>
+          <EmptyState>Нет нормализованных проблем сверки.</EmptyState>
         ) : (
           <div className="stack">
             {issues.slice(0, 10).map((issue) => {
@@ -478,7 +479,7 @@ function ReconciliationPanel({ payload }: { payload: OperationsHubPayload | null
                     </div>
                     <div className="inline">
                       <SeverityBadge severity={String(issue.severity || 'warning')} />
-                      {issue.repairable ? <span className="badge success">repairable</span> : <span className="badge secondary">manual</span>}
+                      {issue.repairable ? <span className="badge success">можно исправить</span> : <span className="badge secondary">вручную</span>}
                     </div>
                   </div>
                 </div>
@@ -491,9 +492,9 @@ function ReconciliationPanel({ payload }: { payload: OperationsHubPayload | null
   );
 }
 
-export default function AdminOperationsPage() {
+export default function AdminОперацииPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [hub, setHub] = useState<OperationsHubPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
@@ -507,7 +508,7 @@ export default function AdminOperationsPage() {
       setMsg('');
       setHub(await adminOperationsApi.getHub({ snapshot_limit: 30, issue_limit: 20 }));
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить operations hub');
+      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить центр операций');
     } finally {
       setLoading(false);
     }
@@ -553,10 +554,10 @@ export default function AdminOperationsPage() {
     const paymentRisk =
       numberValue(payments?.counts?.disputed) + numberValue(payments?.counts?.charged_back) + numberValue(payments?.counts?.refunded);
     return {
-      operationsCritical: numberValue(summary.operations_critical_count),
-      operationsWarnings: numberValue(summary.operations_warning_count),
-      reconciliationIssues: numberValue(summary.reconciliation_total_issues),
-      reconciliationCritical: numberValue(summary.reconciliation_critical_count),
+      operationsКритично: numberValue(summary.operations_critical_count),
+      operationsПредупрежденияs: numberValue(summary.operations_warning_count),
+      reconciliationПроблемы: numberValue(summary.reconciliation_total_issues),
+      reconciliationКритично: numberValue(summary.reconciliation_critical_count),
       outboxProblems,
       webhookProblems,
       paymentRisk,
@@ -566,44 +567,44 @@ export default function AdminOperationsPage() {
 
   return (
     <ProtectedPage
-      title="Admin operations"
-      description="Unified command center для async infra, payment risk, payouts, moderation и reconciliation health."
+      title="Операции администратора"
+      description="Единый командный центр для async-инфраструктуры, платежных рисков, выплат, модерации и состояния сверки."
     >
       {!isAdmin ? (
         <div className="container page">
-          <div className="card error">У текущей сессии нет admin-role.</div>
+          <div className="card error">У текущей сессии нет роли администратора.</div>
         </div>
       ) : (
         <div className="container page stack">
           <div className="card hero">
             <div className="row" style={{ alignItems: 'flex-start' }}>
               <div>
-                <span className="badge secondary">Operations hub</span>
-                <h1>Admin operations command center</h1>
+                <span className="badge secondary">Операционный центр</span>
+                <h1>Центр операций администратора</h1>
                 <p>
-                  Единая панель для outbox/webhooks, payment risk, payout holds, moderation и reconciliation snapshot health.
+                  Единая панель для outbox, вебхуков, платежных рисков, холдов выплат, модерации и состояния снимков сверки.
                 </p>
-                <small>Generated at: {formatDate(hub?.generated_at)}</small>
+                <small>Сформировано: {formatDate(hub?.generated_at)}</small>
               </div>
               <div className="inline">
                 <StatusBadge status={hub?.status || 'missing'} />
                 <button className="btn secondary" disabled={loading} onClick={() => void load()}>
-                  {loading ? 'Loading…' : 'Refresh'}
+                  {loading ? 'Загрузка...' : 'Обновить'}
                 </button>
               </div>
             </div>
 
             <div className="grid-4" style={{ marginTop: 20 }}>
-              <StatCard title="Ops critical" value={topStats.operationsCritical} hint="operations dashboard" badge={<StatusBadge status={topStats.operationsCritical ? 'critical' : 'ok'} />} />
-              <StatCard title="Ops warnings" value={topStats.operationsWarnings} hint="warnings" />
-              <StatCard title="Reconciliation issues" value={topStats.reconciliationIssues} hint={`${topStats.reconciliationCritical} critical`} badge={<StatusBadge status={topStats.reconciliationCritical ? 'critical' : 'ok'} />} />
-              <StatCard title="Locked payout risk" value={money(topStats.lockedTotal)} hint="trainer wallet holds" />
+              <StatCard title="Критичные операции" value={topStats.operationsКритично} hint="операционная панель" badge={<StatusBadge status={topStats.operationsКритично ? 'critical' : 'ok'} />} />
+              <StatCard title="Предупреждения операций" value={topStats.operationsПредупрежденияs} hint="предупреждения" />
+              <StatCard title="Проблемы сверки" value={topStats.reconciliationПроблемы} hint={`${topStats.reconciliationКритично} критично`} badge={<StatusBadge status={topStats.reconciliationКритично ? 'critical' : 'ok'} />} />
+              <StatCard title="Заблокированный риск выплат" value={money(topStats.lockedTotal)} hint="холды кошельков тренеров" />
             </div>
 
             <div className="grid-3" style={{ marginTop: 20 }}>
-              <StatCard title="Outbox problems" value={topStats.outboxProblems} hint="failed/dead/stuck" />
-              <StatCard title="Webhook problems" value={topStats.webhookProblems} hint="failed/rejected/stuck" />
-              <StatCard title="Payment risk" value={topStats.paymentRisk} hint="disputes/chargebacks/refunds" />
+              <StatCard title="Проблемы outbox" value={topStats.outboxProblems} hint="ошибка / dead / зависло" />
+              <StatCard title="Проблемы вебхуков" value={topStats.webhookProblems} hint="ошибка / отклонено / зависло" />
+              <StatCard title="Платежные риски" value={topStats.paymentRisk} hint="споры / chargeback / возвраты" />
             </div>
           </div>
 
@@ -613,7 +614,7 @@ export default function AdminOperationsPage() {
           <QuickActions actions={hub?.quick_actions} busy={Boolean(actionLoading)} onAction={runAction} />
 
           <div className="card">
-            <h2>Navigation</h2>
+            <h2>Навигация</h2>
             <div className="grid-3">
               {(hub?.navigation || []).map((item) => (
                 <Link className="card compact shadow-none" href={item.href} key={item.key}>
@@ -628,16 +629,16 @@ export default function AdminOperationsPage() {
           <ReconciliationPanel payload={hub} />
 
           <div className="grid-2">
-            <SectionCard title="Outbox" description="Async event dispatch health and stuck/dead messages." section={outbox} />
-            <SectionCard title="Webhooks" description="Payment provider webhook intake and processing health." section={webhooks} />
+            <SectionCard title="Outbox" description="Состояние отправки async-событий и зависшие/необрабатываемые сообщения." section={outbox} />
+            <SectionCard title="Вебхуки" description="Прием вебхуков платежного провайдера и состояние обработки." section={webhooks} />
           </div>
 
           <OutboxTable rows={outbox?.recent_problem_messages} busy={Boolean(actionLoading)} onAction={runAction} />
           <WebhookTable rows={webhooks?.recent_problem_events} />
 
           <div className="grid-2">
-            <SectionCard title="Payments" description="Refund, dispute, chargeback and failed payment risk." section={payments} />
-            <SectionCard title="Payouts" description="Trainer wallet holds, payout queue and risk ledger state." section={payouts} />
+            <SectionCard title="Платежи" description="Возвраты, споры, chargeback и риски неуспешных платежей." section={payments} />
+            <SectionCard title="Выплаты" description="Холды кошельков тренеров, очередь выплат и состояние риск-реестра." section={payouts} />
           </div>
 
           <RiskPaymentsTable rows={payments?.recent_risk_payments} />

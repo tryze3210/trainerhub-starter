@@ -1,5 +1,3 @@
-'use client';
-
 const ACCESS_TOKEN_KEY = 'trainerhub.access_token';
 const REFRESH_TOKEN_KEY = 'trainerhub.refresh_token';
 
@@ -8,21 +6,22 @@ function hasWindow() {
 }
 
 export function getAccessToken(): string | null {
-  return hasWindow() ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  return null;
 }
 
 export function getRefreshToken(): string | null {
-  return hasWindow() ? window.localStorage.getItem(REFRESH_TOKEN_KEY) : null;
+  return null;
 }
 
 export function hasTokens(): boolean {
-  return Boolean(getAccessToken() && getRefreshToken());
+  return hasWindow();
 }
 
 export function persistTokens(accessToken: string, refreshToken: string) {
   if (!hasWindow()) return;
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  void accessToken;
+  void refreshToken;
+  clearTokens();
 }
 
 export function clearTokens() {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { privateApi } from '@/lib/api';
 import type { AdminMarketplaceHealth, AuditEvent } from '@/types/api';
 
@@ -54,14 +55,14 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
         <small className="muted">{event.entity_type} · {event.entity_id}</small>
         <small className="muted">{event.actor_email || event.actor_id || 'system'} · {formatDate(event.created_at)}</small>
       </div>
-      <span className="badge secondary">audit</span>
+      <span className="badge secondary">аудит</span>
     </div>
   );
 }
 
 export default function AdminMarketplaceCommandCenterPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [days, setDays] = useState(30);
   const [health, setHealth] = useState<AdminMarketplaceHealth | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
@@ -95,25 +96,25 @@ export default function AdminMarketplaceCommandCenterPage() {
   }, [isAdmin, days]);
 
   return (
-    <ProtectedPage title="Marketplace command center" description="Единый health cockpit: модерация, выплаты, платежи, аналитика и audit trail.">
+    <ProtectedPage title="Центр маркетплейса" description="Единый центр состояния: модерация, выплаты, платежи, аналитика и журнал аудита.">
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="card dark">
             <div className="row" style={{ alignItems: 'flex-start' }}>
               <div className="stack" style={{ gap: 12 }}>
-                <span className="badge secondary">Marketplace core v6.11</span>
-                <h1 className="title-lg">Admin Marketplace Command Center</h1>
+                <span className="badge secondary">Ядро маркетплейса v6.11</span>
+                <h1 className="title-lg">Центр управления маркетплейсом</h1>
                 <p className="lead">
                   Один экран для владельца платформы: здоровье бизнеса, очереди модерации, выплаты, failed payments и последние admin-actions.
                 </p>
                 <div className="inline" style={{ flexWrap: 'wrap' }}>
-                  <Link href="/admin" className="button ghost">Admin cockpit</Link>
-                  <Link href="/admin/moderation" className="button secondary">Moderation</Link>
-                  <Link href="/admin/payouts" className="button secondary">Payouts</Link>
-                  <Link href="/admin/analytics" className="button secondary">Analytics</Link>
-                  <Link href="/admin/operations" className="button secondary">Operations</Link>
+                  <Link href="/admin" className="button ghost">Главная админки</Link>
+                  <Link href="/admin/moderation" className="button secondary">Модерация</Link>
+                  <Link href="/admin/payouts" className="button secondary">Выплаты</Link>
+                  <Link href="/admin/analytics" className="button secondary">Аналитика</Link>
+                  <Link href="/admin/operations" className="button secondary">Операции</Link>
                 </div>
               </div>
               <div className="stack" style={{ gap: 12, minWidth: 220 }}>
@@ -125,34 +126,34 @@ export default function AdminMarketplaceCommandCenterPage() {
                   <option value={90}>90 дней</option>
                   <option value={365}>365 дней</option>
                 </select>
-                <button type="button" className="button" disabled={loading} onClick={() => void load()}>{loading ? 'Обновление...' : 'Refresh'}</button>
+                <button type="button" className="button" disabled={loading} onClick={() => void load()}>{loading ? 'Обновление...' : 'Обновить'}</button>
               </div>
             </div>
           </div>
 
           {msg ? <div className="card error">{msg}</div> : null}
-          {!health ? <div className="card">Загрузка marketplace health...</div> : null}
+          {!health ? <div className="card">Загрузка состояния маркетплейса...</div> : null}
 
           {health && summary ? (
             <>
               <div className="grid-4">
-                <KpiCard label="Revenue" value={money(summary.revenue)} hint={`${summary.paid_orders} paid orders`} />
-                <KpiCard label="Open moderation" value={summary.open_moderation_cases} hint={`${summary.active_risk_flags} active risk flags`} tone={summary.active_risk_flags ? 'warning' : undefined} />
-                <KpiCard label="Payout exposure" value={money(summary.pending_payout_amount)} hint={`${summary.pending_payout_count} requests`} tone={summary.payout_reconciliation_issues ? 'warning' : undefined} />
-                <KpiCard label="Failed payments" value={summary.failed_payments} hint={`${days}d window`} tone={summary.failed_payments ? 'warning' : undefined} />
+                <KpiCard label="Выручка" value={money(summary.revenue)} hint={`${summary.paid_orders} paid orders`} />
+                <KpiCard label="Открытая модерация" value={summary.open_moderation_cases} hint={`${summary.active_risk_flags} активных риск-флагов`} tone={summary.active_risk_flags ? 'warning' : undefined} />
+                <KpiCard label="Ожидает выплат" value={money(summary.pending_payout_amount)} hint={`${summary.pending_payout_count} requests`} tone={summary.payout_reconciliation_issues ? 'warning' : undefined} />
+                <KpiCard label="Ошибки оплат" value={summary.failed_payments} hint={`${days}d window`} tone={summary.failed_payments ? 'warning' : undefined} />
               </div>
 
               <div className="grid-4">
-                <KpiCard label="Trainer applications" value={summary.under_review_applications} hint="under review" />
-                <KpiCard label="Approved trainers" value={summary.approved_trainers} />
-                <KpiCard label="Pending reviews" value={summary.pending_reviews} tone={summary.pending_reviews ? 'warning' : undefined} />
-                <KpiCard label="Reconciliation issues" value={summary.payout_reconciliation_issues} tone={summary.payout_reconciliation_issues ? 'warning' : undefined} />
+                <KpiCard label="Заявки тренеров" value={summary.under_review_applications} hint="на проверке" />
+                <KpiCard label="Одобренные тренеры" value={summary.approved_trainers} />
+                <KpiCard label="Отзывы на проверке" value={summary.pending_reviews} tone={summary.pending_reviews ? 'warning' : undefined} />
+                <KpiCard label="Проблемы сверки" value={summary.payout_reconciliation_issues} tone={summary.payout_reconciliation_issues ? 'warning' : undefined} />
               </div>
 
               <div className="grid-2">
                 <div className={topAlerts.length ? 'card warning' : 'card'}>
                   <div className="row">
-                    <h2 className="title-md">Health alerts</h2>
+                    <h2 className="title-md">Предупреждения системы</h2>
                     <span className={statusBadge(health.overall_status)}>{health.overall_status}</span>
                   </div>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
@@ -171,7 +172,7 @@ export default function AdminMarketplaceCommandCenterPage() {
 
                 <div className="card">
                   <div className="row">
-                    <h2 className="title-md">System sections</h2>
+                    <h2 className="title-md">Разделы системы</h2>
                     <small className="muted">Generated: {formatDate(health.generated_at)}</small>
                   </div>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
@@ -196,7 +197,7 @@ export default function AdminMarketplaceCommandCenterPage() {
 
               <div className="grid-3">
                 <div className="card">
-                  <h2 className="title-md">Moderation queues</h2>
+                  <h2 className="title-md">Очереди модерации</h2>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                     {(health.moderation.queues || []).length === 0 ? <p className="muted">Очередей нет.</p> : null}
                     {(health.moderation.queues || []).map((queue) => (
@@ -209,7 +210,7 @@ export default function AdminMarketplaceCommandCenterPage() {
                 </div>
 
                 <div className="card">
-                  <h2 className="title-md">Trainer onboarding</h2>
+                  <h2 className="title-md">Онбординг тренеров</h2>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                     {(health.trainer_onboarding.status_counts || []).map((row) => (
                       <div className="list-item" key={row.status}>
@@ -217,14 +218,14 @@ export default function AdminMarketplaceCommandCenterPage() {
                         <strong>{row.count}</strong>
                       </div>
                     ))}
-                    <div className="list-item"><span className="muted">submitted_without_case</span><strong>{asNumber(health.trainer_onboarding.submitted_without_case)}</strong></div>
-                    <div className="list-item"><span className="muted">approved_without_role</span><strong>{asNumber(health.trainer_onboarding.approved_without_role)}</strong></div>
-                    <div className="list-item"><span className="muted">approved_without_profile</span><strong>{asNumber(health.trainer_onboarding.approved_without_profile)}</strong></div>
+                    <div className="list-item"><span className="muted">Отправлено без кейса</span><strong>{asNumber(health.trainer_onboarding.submitted_without_case)}</strong></div>
+                    <div className="list-item"><span className="muted">Одобрено без роли</span><strong>{asNumber(health.trainer_onboarding.approved_without_role)}</strong></div>
+                    <div className="list-item"><span className="muted">Одобрено без профиля</span><strong>{asNumber(health.trainer_onboarding.approved_without_profile)}</strong></div>
                   </div>
                 </div>
 
                 <div className="card">
-                  <h2 className="title-md">Payments</h2>
+                  <h2 className="title-md">Платежи</h2>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                     {(health.payments.statuses || []).map((row) => (
                       <div className="list-item" key={row.status}>
@@ -239,19 +240,19 @@ export default function AdminMarketplaceCommandCenterPage() {
               <div className="grid-2">
                 <div className="card">
                   <div className="row">
-                    <h2 className="title-md">Latest audit events</h2>
-                    <Link href="/admin/operations" className="button ghost">Maintenance</Link>
+                    <h2 className="title-md">Последние события аудита</h2>
+                    <Link href="/admin/operations" className="button ghost">Обслуживание</Link>
                   </div>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                    {latestAudit.length === 0 ? <p className="muted">Audit events пока нет.</p> : null}
+                    {latestAudit.length === 0 ? <p className="muted">Событий аудита пока нет.</p> : null}
                     {latestAudit.map((event) => <AuditEventRow event={event} key={event.id} />)}
                   </div>
                 </div>
 
                 <div className="card">
-                  <h2 className="title-md">Action counts</h2>
+                  <h2 className="title-md">Счетчики действий</h2>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                    {(health.audit.action_counts || []).length === 0 ? <p className="muted">Нет action counters.</p> : null}
+                    {(health.audit.action_counts || []).length === 0 ? <p className="muted">Счетчиков действий пока нет.</p> : null}
                     {(health.audit.action_counts || []).map((row) => (
                       <div className="list-item" key={row.event_type}>
                         <span className="muted">{row.event_type}</span>

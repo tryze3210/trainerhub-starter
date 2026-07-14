@@ -226,10 +226,11 @@ def resend_notification_delivery(*, operator, delivery_id: str, reason: str, req
 
 
 def _entitlement_for_operator(*, operator, entitlement_id: str) -> Entitlement:
-    queryset = scope_entitlements_for_user(Entitlement.objects.select_related("user"), operator)
-    entitlement = queryset.filter(pk=entitlement_id).first()
+    entitlement = Entitlement.objects.select_related("user").filter(pk=entitlement_id).first()
     if not entitlement:
-        raise SupportConsoleAccessDenied("Entitlement is outside the operator tenant scope or does not exist.")
+        raise SupportConsoleTargetNotFound("Entitlement was not found.")
+    if not _operator_can_view_user(operator=operator, target_user=entitlement.user):
+        raise SupportConsoleAccessDenied("Entitlement is outside the operator tenant scope.")
     return entitlement
 
 
@@ -269,7 +270,9 @@ def fix_entitlement(
             entitlement = _entitlement_for_operator(operator=operator, entitlement_id=entitlement_id)
         else:
             target = resolve_support_user(user_id=user_id, email=email)
-            queryset = scope_entitlements_for_user(Entitlement.objects.filter(user=target), operator)
+            if not _operator_can_view_user(operator=operator, target_user=target):
+                raise SupportConsoleAccessDenied("User is outside the operator tenant scope.")
+            queryset = Entitlement.objects.filter(user=target)
             entitlement = queryset.filter(target_type=target_type, target_id=str(target_id), status=EntitlementStatus.ACTIVE).first()
             if not entitlement:
                 raise SupportConsoleTargetNotFound("Active entitlement was not found.")

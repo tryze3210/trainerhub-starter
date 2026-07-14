@@ -146,6 +146,7 @@ export async function downloadAdminAuditCsv(params?: AuditEventFilters): Promise
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: 'no-store',
+    credentials: 'include',
   });
 
   if (!response.ok) {

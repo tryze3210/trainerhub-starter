@@ -1,4 +1,5 @@
 from decimal import Decimal
+from uuid import UUID
 
 from django.db import transaction
 from django.utils import timezone
@@ -9,6 +10,14 @@ from apps.content.selectors import get_lesson_detail, get_program_detail, get_vi
 from apps.entitlements.access_audit import AccessControlAuditService
 from apps.progress.models import LessonProgress, ProgramProgress, VideoProgress
 from apps.trainer_cms.models import CourseLessonDraft, TrainerCourseDraft
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(str(value))
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def _resolve_lesson_context(*, user, lesson_id: str, content_type: str = '', program_id: str = '') -> dict:
@@ -31,7 +40,9 @@ def _resolve_lesson_context(*, user, lesson_id: str, content_type: str = '', pro
             ),
         }
 
-    published_lesson = PublishedLesson.objects.select_related('program').filter(source_draft_id=lesson_id).first()
+    published_lesson = None
+    if _is_uuid(lesson_id):
+        published_lesson = PublishedLesson.objects.select_related('program').filter(source_draft_id=lesson_id).first()
     if published_lesson is None:
         published_lesson = PublishedLesson.objects.select_related('program').filter(id=lesson_id).first() if str(lesson_id).isdigit() else None
     if published_lesson is not None:

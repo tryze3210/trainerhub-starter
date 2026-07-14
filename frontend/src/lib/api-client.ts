@@ -45,11 +45,8 @@ export async function parseResponse<T>(response: Response): Promise<T> {
 
 async function refreshAccessToken(): Promise<boolean> {
   const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    return false;
-  }
-
   const variants = [
+    {},
     { refresh: refreshToken },
     { refresh_token: refreshToken },
   ];
@@ -60,6 +57,7 @@ async function refreshAccessToken(): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       cache: 'no-store',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -106,6 +104,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     ...rest,
     headers: requestHeaders,
     cache: 'no-store',
+    credentials: rest.credentials ?? 'include',
   });
 
   if (response.status === 401 && auth && retryOnAuthError) {

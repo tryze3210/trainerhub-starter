@@ -11,7 +11,7 @@ from apps.commerce.services import CommerceFinalizationService
 from apps.events.services import DomainEventService, emit_event
 from apps.notifications.domain.triggers import DomainNotificationTriggers
 from apps.orders.models import OrderStatus
-from apps.payments.gateway import PaymentGatewayAdapter
+from apps.payments.gateway import PaymentGatewayAdapter, mock_payments_allowed
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWebhookEvent
 from apps.payments.webhook_security import NormalizedWebhookPayload, PaymentWebhookSecurity
 from apps.payouts.models import BalanceEntry
@@ -81,6 +81,9 @@ class PaymentService:
 
     @staticmethod
     def create_checkout_payment(*, order, provider: str = PaymentProvider.MOCK) -> Payment:
+        if provider == PaymentProvider.MOCK and not mock_payments_allowed():
+            raise ValueError('Mock payment provider is disabled for this environment.')
+
         existing = (
             Payment.objects.filter(order=order, provider=provider, status__in=[PaymentStatus.CREATED, PaymentStatus.PENDING])
             .order_by('-created_at')
@@ -90,18 +93,20 @@ class PaymentService:
             PaymentService._emit_payment_event(event_type='payment.checkout_reused', payment=existing)
             return existing
 
-        payment = Payment.objects.create(
-            order=order,
-            provider=provider,
-            status=PaymentStatus.PENDING,
-            amount=order.total_amount,
-            currency=order.currency,
-        )
-        gateway_payload = PaymentGatewayAdapter().create_checkout(order=order, payment=payment)
-        payment.external_payment_id = gateway_payload['external_payment_id']
-        payment.external_checkout_url = gateway_payload['checkout_url']
-        payment.provider_payload = gateway_payload['payload']
-        payment.save(update_fields=['external_payment_id', 'external_checkout_url', 'provider_payload', 'updated_at'])
+        with transaction.atomic():
+            payment = Payment.objects.create(
+                order=order,
+                provider=provider,
+                status=PaymentStatus.PENDING,
+                amount=order.total_amount,
+                currency=order.currency,
+            )
+            gateway_payload = PaymentGatewayAdapter().create_checkout(order=order, payment=payment)
+            payment.external_payment_id = gateway_payload['external_payment_id']
+            payment.external_checkout_url = gateway_payload['checkout_url']
+            payment.provider_payload = gateway_payload['payload']
+            payment.save(update_fields=['external_payment_id', 'external_checkout_url', 'provider_payload', 'updated_at'])
+
         PaymentService._emit_payment_event(
             event_type='payment.checkout_created',
             payment=payment,
@@ -606,7 +611,11 @@ class PaymentService:
             }
             payment.save(update_fields=['status', 'provider_payload', 'updated_at'])
 
-            order.status = OrderStatus.COMPLETED if order.completed_at else OrderStatus.PAID
+            original_order_status = (payment.provider_payload or {}).get('previous_order_status')
+            if original_order_status in {OrderStatus.PAID, OrderStatus.COMPLETED}:
+                order.status = original_order_status
+            else:
+                order.status = OrderStatus.COMPLETED if order.completed_at else OrderStatus.PAID
             order.save(update_fields=['status', 'updated_at'])
 
             cls._emit_order_payment_event(

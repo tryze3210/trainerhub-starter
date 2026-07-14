@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { DSCard, DSSection, DSSkeleton, DSStatCard, DSStatusDot } from '@/design-system';
 import {
   adminPayoutsApi,
@@ -153,6 +154,7 @@ function Section({ title, description, children }: { title: string; description?
 }
 
 function actionAllowed(payout: AdminPayoutRequest, action: PayoutAction) {
+  if (action !== 'reject' && payout.payout_eligibility && !payout.payout_eligibility.is_eligible) return false;
   if (action === 'approve') return payout.status === 'pending' || payout.status === 'requested';
   if (action === 'processing') return payout.status === 'approved';
   if (action === 'paid') return payout.status === 'processing' || payout.status === 'approved';
@@ -161,19 +163,48 @@ function actionAllowed(payout: AdminPayoutRequest, action: PayoutAction) {
 }
 
 function actionLabel(action: PayoutAction) {
-  if (action === 'approve') return 'Approve';
+  if (action === 'approve') return 'Одобрить';
   if (action === 'processing') return 'Processing';
   if (action === 'paid') return 'Mark paid';
-  return 'Reject';
+  return 'Отклонить';
 }
 
 function nextHint(payout: AdminPayoutRequest) {
+  if (payout.payout_eligibility && !payout.payout_eligibility.is_eligible) {
+    return `Заблокировано: ${eligibilityReasonText(payout.payout_eligibility.block_reason)}. Можно отклонить.`;
+  }
   if (payout.status === 'pending' || payout.status === 'requested') return 'Следующий шаг: approve или reject.';
   if (payout.status === 'approved') return 'Следующий шаг: processing или mark-paid.';
   if (payout.status === 'processing') return 'Следующий шаг: mark-paid.';
   if (payout.status === 'paid') return 'Финальный статус: выплата закрыта.';
   if (payout.status === 'rejected') return payout.rejected_reason || 'Финальный статус: отклонена.';
   return 'Проверь статус вручную.';
+}
+
+function eligibilityReasonText(reason: string | undefined) {
+  if (!reason) return 'ограничений нет';
+  const labels: Record<string, string> = {
+    kyc_profile_missing: 'нет анкеты KYC',
+    kyc_not_approved: 'KYC не одобрен',
+    payout_profile_incomplete: 'не заполнены юридические данные',
+    active_trainer_agreement_missing: 'нет активного договора',
+  };
+  return reason
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => labels[item] || item)
+    .join(', ');
+}
+
+function eligibilityLabel(payout: AdminPayoutRequest) {
+  if (!payout.payout_eligibility) return 'Не проверено';
+  return payout.payout_eligibility.is_eligible ? 'Готов' : 'Заблокировано';
+}
+
+function eligibilityTone(payout: AdminPayoutRequest) {
+  if (!payout.payout_eligibility) return 'border-slate-200 bg-slate-50 text-slate-700';
+  return payout.payout_eligibility.is_eligible ? toneClass('healthy') : toneClass('critical');
 }
 
 function issuesFromSnapshot(snapshot: PayoutAdminOpsReconciliationSnapshot | null): PayoutReconciliationIssue[] {
@@ -190,7 +221,7 @@ function bucketCount(buckets: PayoutAdminOpsSummaryResponse['payout_buckets'] | 
 
 export function AdminPayoutOperationsDashboard() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   const [state, setState] = useState<DashboardState>({
     overview: null,
@@ -213,7 +244,7 @@ export function AdminPayoutOperationsDashboard() {
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
   const [externalReference, setExternalReference] = useState('');
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectReason, setОтклонитьReason] = useState('');
   const [releaseReason, setReleaseReason] = useState('manual_admin_release');
   const [repairBatchSize, setRepairBatchSize] = useState(25);
   const [selected, setSelected] = useState<string[]>([]);
@@ -322,7 +353,7 @@ export function AdminPayoutOperationsDashboard() {
   const lastRepairRun = state.repairAudits[0] ?? null;
   const lastRepairContext = lastRepairRun ? auditBusinessContext(lastRepairRun) : {};
   const lastRepairSummary = lastRepairRun
-    ? `fixed ${stringify(lastRepairContext.repaired_count)}, manual ${stringify(lastRepairContext.manual_review_count)}`
+    ? `исправлено ${stringify(lastRepairContext.repaired_count)}, manual ${stringify(lastRepairContext.manual_review_count)}`
     : 'repair execution has not run yet';
   const payoutHealthStatus = failedPayouts > 0 ? 'critical' : pendingPayouts > 0 ? 'degraded' : 'healthy';
   const integrityHealthStatus = criticalIntegrityIssues > 0 ? 'critical' : integrityIssueCount > 0 ? 'degraded' : 'healthy';
@@ -331,7 +362,7 @@ export function AdminPayoutOperationsDashboard() {
   const riskHoldHealthStatus = (state.riskSummary?.shortfall_count ?? 0) > 0 ? 'critical' : (state.riskSummary?.active_hold_count ?? 0) > 0 ? 'degraded' : 'healthy';
   const healthIndicators = [
     {
-      label: 'Payout queue',
+      label: 'Очередь выплат',
       status: payoutHealthStatus,
       detail: `${pendingPayouts} pending, ${failedPayouts} failed/rejected`,
     },
@@ -341,7 +372,7 @@ export function AdminPayoutOperationsDashboard() {
       detail: `${integrityIssueCount} issues, ${criticalIntegrityIssues} critical`,
     },
     {
-      label: 'Repair readiness',
+      label: 'Исправление readiness',
       status: repairHealthStatus,
       detail: lastRepairRun ? `last run ${dateTime(lastRepairRun.created_at)} · ${lastRepairSummary}` : `${repairPreviewActions.length} preview actions`,
     },
@@ -351,20 +382,24 @@ export function AdminPayoutOperationsDashboard() {
       detail: `${state.projection?.projected_messages ?? 0} projected, ${state.projection?.failed_messages ?? 0} failed`,
     },
     {
-      label: 'Risk holds',
+      label: 'Риск-холды',
       status: riskHoldHealthStatus,
       detail: `${state.riskSummary?.active_hold_count ?? 0} active, ${state.riskSummary?.shortfall_count ?? 0} shortfalls`,
     },
   ];
 
   const repairIssueIds = (result: PayoutRepairExecutionResult) =>
-    [result.payout_id ? `payout:${result.payout_id}` : '', result.wallet_id ? `wallet:${result.wallet_id}` : '', result.ledger_entry_id ? `ledger:${result.ledger_entry_id}` : '']
+    [result.payout_id ? `payout:${result.payout_id}` : '', result.wallet_id ? `кошелек:${result.wallet_id}` : '', result.ledger_entry_id ? `ledger:${result.ledger_entry_id}` : '']
       .filter(Boolean)
       .join(' · ') || '—';
 
   const runAction = async (payout: AdminPayoutRequest, action: PayoutAction) => {
+    if (action !== 'reject' && payout.payout_eligibility && !payout.payout_eligibility.is_eligible) {
+      setMessage(`Выплата заблокирована: ${eligibilityReasonText(payout.payout_eligibility.block_reason)}.`);
+      return;
+    }
     if (action === 'reject' && !rejectReason.trim()) {
-      setMessage('Reject reason обязателен для отклонения payout request.');
+      setMessage('Отклонить reason обязателен для отклонения payout request.');
       return;
     }
     setBusy(`${action}:${payout.id}`);
@@ -389,7 +424,13 @@ export function AdminPayoutOperationsDashboard() {
       return;
     }
     if (action === 'reject' && !rejectReason.trim()) {
-      setMessage('Reject reason обязателен для bulk reject.');
+      setMessage('Отклонить reason обязателен для bulk reject.');
+      return;
+    }
+    const selectedPayouts = state.payouts.filter((payout) => selected.includes(payout.id));
+    const blockedPayouts = selectedPayouts.filter((payout) => payout.payout_eligibility && !payout.payout_eligibility.is_eligible);
+    if (action !== 'reject' && blockedPayouts.length) {
+      setMessage(`Bulk ${actionLabel(action)} заблокирован: ${blockedPayouts.length} выплат не прошли юридическую проверку.`);
       return;
     }
     setBusy(`bulk:${action}`);
@@ -457,7 +498,7 @@ export function AdminPayoutOperationsDashboard() {
         payoutIntegrity,
         lastRepairExecution: result,
       }));
-      setMessage(`Repair execution: fixed ${result.summary?.repaired_count ?? 0}, manual review ${result.summary?.manual_review_count ?? 0}.`);
+      setMessage(`Исправление execution: исправлено ${result.summary?.repaired_count ?? 0}, ручная проверка ${result.summary?.manual_review_count ?? 0}.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Payout repair execution не выполнен');
     } finally {
@@ -513,9 +554,9 @@ export function AdminPayoutOperationsDashboard() {
         adminAuditApi.listEvents(PAYOUT_RECONCILIATION_EXPORT_AUDIT_FILTERS),
       ]);
       setState((current) => ({ ...current, payoutExportAudits: mergeAuditEvents(payoutExportAudits, reconciliationExportAudits) }));
-      setMessage(`Reconciliation report ${format.toUpperCase()} export запущен и записан в audit trail.`);
+      setMessage(`Сверка report ${format.toUpperCase()} export запущен и записан в audit trail.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : `Reconciliation report ${format.toUpperCase()} export не выполнен`);
+      setMessage(error instanceof Error ? error.message : `Сверка report ${format.toUpperCase()} export не выполнен`);
     } finally {
       setBusy(null);
     }
@@ -529,9 +570,9 @@ export function AdminPayoutOperationsDashboard() {
       if (format === 'xlsx') await adminPayoutsApi.exportAdminOpsRepairAuditXlsx(opsFilters);
       const repairAudits = await adminAuditApi.listEvents(PAYOUT_REPAIR_AUDIT_FILTERS);
       setState((current) => ({ ...current, repairAudits }));
-      setMessage(`Repair audit ${format.toUpperCase()} export запущен.`);
+      setMessage(`Исправление audit ${format.toUpperCase()} export запущен.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : `Repair audit ${format.toUpperCase()} export не выполнен`);
+      setMessage(error instanceof Error ? error.message : `Исправление audit ${format.toUpperCase()} export не выполнен`);
     } finally {
       setBusy(null);
     }
@@ -542,23 +583,23 @@ export function AdminPayoutOperationsDashboard() {
   };
 
   if (!isAdmin) {
-    return <DSCard tone="warning">У текущей сессии нет admin-role.</DSCard>;
+    return <DSCard tone="warning">У текущей сессии нет прав администратора.</DSCard>;
   }
 
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">Admin finance operations</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">Финансовые операции администратора</p>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-3xl font-semibold text-slate-950">Операции выплат</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Approve / processing / mark-paid / reject, payout ops summary, CSV exports, risk holds, projection и reconciliation snapshot.
+              Одобрение, перевод в обработку, отметка оплаты, отклонение, сводка выплат, CSV-выгрузки, риск-холды, проекции и снимок сверки.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/admin/operations">
-              Operations hub
+              Операционный центр
             </Link>
             <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60" onClick={() => void load()} disabled={loading}>
               Обновить
@@ -569,7 +610,7 @@ export function AdminPayoutOperationsDashboard() {
         {loading && state.payouts.length === 0 ? <div className="mt-4"><DSSkeleton lines={4} /></div> : null}
       </div>
 
-      <Section title="Фильтры и meta" description="Эти фильтры применяются к payout queue, ops summary, reconciliation snapshot и CSV exports.">
+      <Section title="Фильтры и метаданные" description="Эти фильтры применяются к очереди выплат, операционной сводке, снимку сверки и CSV-выгрузкам.">
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-7">
           <label className="text-sm font-medium text-slate-700">
             Статус
@@ -582,7 +623,7 @@ export function AdminPayoutOperationsDashboard() {
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Currency
+            Валюта
             <select className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={currencyFilter} onChange={(event) => setCurrencyFilter(event.target.value)}>
               {CURRENCY_OPTIONS.map((currency) => (
                 <option key={currency} value={currency}>
@@ -592,42 +633,42 @@ export function AdminPayoutOperationsDashboard() {
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Trainer id
-            <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={trainerFilter} onChange={(event) => setTrainerFilter(event.target.value)} placeholder="user_id или trainer profile id" />
+            ID тренера
+            <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={trainerFilter} onChange={(event) => setTrainerFilter(event.target.value)} placeholder="ID пользователя или ID профиля тренера" />
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Created from
+            Создано с
             <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" type="date" value={createdFrom} onChange={(event) => setCreatedFrom(event.target.value)} />
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Created to
+            Создано по
             <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" type="date" value={createdTo} onChange={(event) => setCreatedTo(event.target.value)} />
           </label>
           <label className="text-sm font-medium text-slate-700">
-            External reference
+            Внешняя ссылка
             <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={externalReference} onChange={(event) => setExternalReference(event.target.value)} placeholder="bank-batch-042" />
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Repair batch
+            Исправление batch
             <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" min={1} max={100} type="number" value={repairBatchSize} onChange={(event) => setRepairBatchSize(Math.max(1, Math.min(Number(event.target.value || 25), 100)))} />
           </label>
         </div>
       </Section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Total payout requests" value={String(state.adminOps?.summary.total_payout_requests ?? state.payouts.length)} hint="Под текущими фильтрами" />
-        <MetricCard label="Active exposure" value={money(state.adminOps?.summary.active_payout_amount ?? state.overview?.ops.pending_exposure_amount, currencyFilter)} hint={`${state.adminOps?.summary.active_payout_count ?? state.overview?.ops.pending_exposure_count ?? 0} active requests`} status="approved" />
-        <MetricCard label="Wallet available" value={money(state.adminOps?.wallet_totals?.available_amount ?? state.overview?.balances.available_amount, currencyFilter)} hint="Trainer wallet available" status="healthy" />
-        <MetricCard label="Reconciliation" value={state.adminOpsReconciliation?.summary?.status ?? state.adminOps?.reconciliation?.status ?? state.reconciliation?.status ?? '—'} hint={`${state.adminOpsReconciliation?.summary?.issue_count ?? state.adminOps?.reconciliation?.issue_count ?? state.reconciliation?.issue_count ?? 0} issues`} status={state.adminOpsReconciliation?.summary?.status ?? state.reconciliation?.status} />
+        <MetricCard label="Всего заявок на выплаты" value={String(state.adminOps?.summary.total_payout_requests ?? state.payouts.length)} hint="Под текущими фильтрами" />
+        <MetricCard label="Активный риск" value={money(state.adminOps?.summary.active_payout_amount ?? state.overview?.ops.pending_exposure_amount, currencyFilter)} hint={`${state.adminOps?.summary.active_payout_count ?? state.overview?.ops.pending_exposure_count ?? 0} активных заявок`} status="approved" />
+        <MetricCard label="Доступно в кошельках" value={money(state.adminOps?.wallet_totals?.available_amount ?? state.overview?.balances.available_amount, currencyFilter)} hint="Доступно в кошельках тренеров" status="healthy" />
+        <MetricCard label="Сверка" value={state.adminOpsReconciliation?.summary?.status ?? state.adminOps?.reconciliation?.status ?? state.reconciliation?.status ?? '—'} hint={`${state.adminOpsReconciliation?.summary?.issue_count ?? state.adminOps?.reconciliation?.issue_count ?? state.reconciliation?.issue_count ?? 0} проблем`} status={state.adminOpsReconciliation?.summary?.status ?? state.reconciliation?.status} />
       </div>
 
-      <Section title="Ops Dashboard" description="Production-readiness view for payout operations health.">
+      <Section title="Операционная панель" description="Сводка готовности и состояния операций выплат.">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard label="Total payouts" value={String(totalPayouts)} hint="All payout requests under filters" />
-          <MetricCard label="Pending payouts" value={String(pendingPayouts)} hint="requested + pending" status={pendingPayouts ? 'degraded' : 'healthy'} />
-          <MetricCard label="Failed payouts" value={String(failedPayouts)} hint="failed + rejected" status={failedPayouts ? 'critical' : 'healthy'} />
-          <MetricCard label="Integrity issues" value={String(integrityIssueCount)} hint={`${criticalIntegrityIssues} critical`} status={integrityHealthStatus} />
-          <MetricCard label="Last repair run" value={lastRepairRun ? dateTime(lastRepairRun.created_at) : '—'} hint={lastRepairSummary} status={repairHealthStatus} />
+          <MetricCard label="Всего выплат" value={String(totalPayouts)} hint="Все заявки на выплаты под фильтрами" />
+          <MetricCard label="Ожидают выплаты" value={String(pendingPayouts)} hint="запрошено + ожидает" status={pendingPayouts ? 'degraded' : 'healthy'} />
+          <MetricCard label="Ошибки выплат" value={String(failedPayouts)} hint="ошибка + отклонено" status={failedPayouts ? 'critical' : 'healthy'} />
+          <MetricCard label="Проблемы целостности" value={String(integrityIssueCount)} hint={`${criticalIntegrityIssues} критично`} status={integrityHealthStatus} />
+          <MetricCard label="Последнее исправление" value={lastRepairRun ? dateTime(lastRepairRun.created_at) : '—'} hint={lastRepairSummary} status={repairHealthStatus} />
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {healthIndicators.map((item) => (
@@ -636,19 +677,19 @@ export function AdminPayoutOperationsDashboard() {
         </div>
       </Section>
 
-      <Section title="Payout admin-ops summary" description="Read-only финансовая сводка из /payouts/admin-ops/summary/.">
+      <Section title="Операционная сводка выплат" description="Финансовая сводка только для чтения из /payouts/admin-ops/summary/.">
         <div className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-900">Wallet totals</h3>
+            <h3 className="font-semibold text-slate-900">Итоги кошельков</h3>
             <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Available</dt><dd>{money(state.adminOps?.wallet_totals?.available_amount, currencyFilter)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Pending</dt><dd>{money(state.adminOps?.wallet_totals?.pending_amount, currencyFilter)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Locked/reserved</dt><dd>{money(state.adminOps?.wallet_totals?.locked_amount ?? state.adminOps?.wallet_totals?.reserved_amount, currencyFilter)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Trainers</dt><dd>{state.adminOps?.wallet_totals?.trainers_count ?? '—'}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Доступно</dt><dd>{money(state.adminOps?.wallet_totals?.available_amount, currencyFilter)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Ожидает</dt><dd>{money(state.adminOps?.wallet_totals?.pending_amount, currencyFilter)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Заблокировано/зарезервировано</dt><dd>{money(state.adminOps?.wallet_totals?.locked_amount ?? state.adminOps?.wallet_totals?.reserved_amount, currencyFilter)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Тренеры</dt><dd>{state.adminOps?.wallet_totals?.trainers_count ?? '—'}</dd></div>
             </dl>
           </div>
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-900">Status buckets</h3>
+            <h3 className="font-semibold text-slate-900">Статусы</h3>
             <div className="mt-3 space-y-2 text-sm">
               {payoutBuckets.slice(0, 6).map((bucket, index) => (
                 <div className="flex items-center justify-between gap-3" key={`${bucket.status || 'bucket'}:${index}`}>
@@ -656,11 +697,11 @@ export function AdminPayoutOperationsDashboard() {
                   <span>{bucket.count} · {money(bucket.amount, bucket.currency || currencyFilter)}</span>
                 </div>
               ))}
-              {!payoutBuckets.length ? <p className="text-slate-500">Buckets отсутствуют.</p> : null}
+              {!payoutBuckets.length ? <p className="text-slate-500">Группы отсутствуют.</p> : null}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-900">Ledger buckets</h3>
+            <h3 className="font-semibold text-slate-900">Группы реестра</h3>
             <div className="mt-3 space-y-2 text-sm">
               {ledgerBuckets.slice(0, 6).map((bucket, index) => (
                 <div className="flex items-center justify-between gap-3" key={`${bucket.entry_type || 'ledger'}:${bucket.direction || 'direction'}:${index}`}>
@@ -668,40 +709,40 @@ export function AdminPayoutOperationsDashboard() {
                   <span>{bucket.count} · {money(bucket.amount, bucket.currency || currencyFilter)}</span>
                 </div>
               ))}
-              {!ledgerBuckets.length ? <p className="text-slate-500">Ledger buckets отсутствуют.</p> : null}
+              {!ledgerBuckets.length ? <p className="text-slate-500">Группы реестра отсутствуют.</p> : null}
             </div>
           </div>
         </div>
       </Section>
 
-      <Section title="Exports" description="Выгрузки используют текущие фильтры и audit-логируются backend-слоем.">
+      <Section title="Выгрузки" description="Выгрузки используют текущие фильтры и логируются в аудите backend-слоем.">
         <div className="flex flex-wrap gap-3">
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runCsvExport('requests')} disabled={!!busy}>
-            Export payout requests CSV
+            Экспорт заявок на выплаты CSV
           </button>
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runCsvExport('ledger')} disabled={!!busy}>
-            Export payout ledger CSV
+            Экспорт реестра выплат CSV
           </button>
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationExport('csv')} disabled={!!busy}>
-            Export reconciliation CSV
+            Экспорт сверки CSV
           </button>
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationExport('xlsx')} disabled={!!busy}>
-            Export reconciliation XLSX
+            Экспорт сверки XLSX
           </button>
         </div>
       </Section>
 
-      <Section title="Recent payout exports" description="Последние audit events по payout exports. Используется общий admin audit trail, поэтому видны actor, фильтры и размер выгрузки.">
+      <Section title="Последние выгрузки выплат" description="Последние события аудита по выгрузкам выплат. Используется общий журнал аудита администратора, поэтому видны оператор, фильтры и размер выгрузки.">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Created</th>
-                <th className="px-3 py-2">Actor</th>
-                <th className="px-3 py-2">Export</th>
-                <th className="px-3 py-2">Rows</th>
-                <th className="px-3 py-2">Details</th>
-                <th className="px-3 py-2">Filters</th>
+                <th className="px-3 py-2">Создано</th>
+                <th className="px-3 py-2">Оператор</th>
+                <th className="px-3 py-2">Выгрузка</th>
+                <th className="px-3 py-2">Строки</th>
+                <th className="px-3 py-2">Детали</th>
+                <th className="px-3 py-2">Фильтры</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -724,17 +765,17 @@ export function AdminPayoutOperationsDashboard() {
               ))}
             </tbody>
           </table>
-          {!state.payoutExportAudits.length ? <p className="p-4 text-sm text-slate-500">Payout export audit events пока отсутствуют.</p> : null}
+          {!state.payoutExportAudits.length ? <p className="p-4 text-sm text-slate-500">События аудита экспорта выплат пока отсутствуют.</p> : null}
         </div>
       </Section>
 
-      <Section title="Ops controls" description="Все действия идут через backend state-machine и пишут audit events.">
+      <Section title="Операционные действия" description="Все действия идут через backend state-machine и пишут события аудита.">
         <div className="flex flex-wrap gap-2">
-          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runProjectOutbox()} disabled={!!busy}>Project outbox</button>
-          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationRepair(true)} disabled={!!busy}>Dry-run repair</button>
-          <button className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60" onClick={() => void runReconciliationRepair(false)} disabled={!!busy}>Apply repair</button>
+          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runProjectOutbox()} disabled={!!busy}>Собрать outbox</button>
+          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runReconciliationRepair(true)} disabled={!!busy}>Проверить исправление</button>
+          <button className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60" onClick={() => void runReconciliationRepair(false)} disabled={!!busy}>Применить исправление</button>
           <button className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100 disabled:opacity-60" onClick={() => void executeRepair()} disabled={!!busy || !repairPreviewActions.length}>
-            Execute payout repair
+            Выполнить исправление выплат
           </button>
         </div>
         <p className="mt-3 text-sm text-slate-600">
@@ -742,35 +783,36 @@ export function AdminPayoutOperationsDashboard() {
         </p>
       </Section>
 
-      <Section title="Bulk actions" description="Bulk reject требует reason. External reference попадёт в transition payload.">
+      <Section title="Массовые действия" description="Массовое отклонение требует причину. Внешняя ссылка попадет в payload перехода статуса.">
         <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
           <label className="text-sm font-medium text-slate-700">
-            Reject reason
-            <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="Неверные реквизиты" />
+            Причина отклонения
+            <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" value={rejectReason} onChange={(event) => setОтклонитьReason(event.target.value)} placeholder="Неверные реквизиты" />
           </label>
           <div className="flex flex-wrap items-end gap-2">
-            <span className="w-full text-sm text-slate-600">Выбрано payout requests: {selected.length}</span>
-            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('approve')} disabled={!selected.length || !!busy}>Approve selected</button>
-            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('processing')} disabled={!selected.length || !!busy}>Processing selected</button>
-            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('paid')} disabled={!selected.length || !!busy}>Paid selected</button>
-            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('reject')} disabled={!selected.length || !!busy}>Reject selected</button>
+            <span className="w-full text-sm text-slate-600">Выбрано заявки на выплаты: {selected.length}</span>
+            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('approve')} disabled={!selected.length || !!busy}>Одобрить выбранные</button>
+            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('processing')} disabled={!selected.length || !!busy}>В обработку выбранные</button>
+            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('paid')} disabled={!selected.length || !!busy}>Отметить выбранные оплаченными</button>
+            <button className="rounded-xl border px-3 py-2 text-sm disabled:opacity-60" onClick={() => void runBulk('reject')} disabled={!selected.length || !!busy}>Отклонить выбранные</button>
           </div>
         </div>
       </Section>
 
-      <Section title="Payout queue" description="Текущая очередь выплат и state-machine actions.">
+      <Section title="Очередь выплат" description="Текущая очередь выплат и действия state-machine.">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Select</th>
-                <th className="px-3 py-2">Created</th>
-                <th className="px-3 py-2">Trainer</th>
-                <th className="px-3 py-2">Amount</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Destination</th>
-                <th className="px-3 py-2">Next</th>
-                <th className="px-3 py-2">Actions</th>
+                <th className="px-3 py-2">Выбор</th>
+                <th className="px-3 py-2">Создано</th>
+                <th className="px-3 py-2">Тренер</th>
+                <th className="px-3 py-2">Сумма</th>
+                <th className="px-3 py-2">Статус</th>
+                <th className="px-3 py-2">Готовность</th>
+                <th className="px-3 py-2">Получатель</th>
+                <th className="px-3 py-2">Далее</th>
+                <th className="px-3 py-2">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -781,6 +823,12 @@ export function AdminPayoutOperationsDashboard() {
                   <td className="px-3 py-2">{payout.trainer_id || '—'}</td>
                   <td className="px-3 py-2">{money(payout.amount, payout.currency)}</td>
                   <td className="px-3 py-2"><span className={`rounded-full border px-2 py-1 text-xs ${toneClass(payout.status)}`}>{payout.status}</span></td>
+                  <td className="px-3 py-2">
+                    <span className={`rounded-full border px-2 py-1 text-xs ${eligibilityTone(payout)}`}>{eligibilityLabel(payout)}</span>
+                    {payout.payout_eligibility && !payout.payout_eligibility.is_eligible ? (
+                      <div className="mt-1 max-w-xs text-xs text-slate-500">{eligibilityReasonText(payout.payout_eligibility.block_reason)}</div>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2">{payout.destination_masked || '—'}</td>
                   <td className="px-3 py-2 text-slate-600">{nextHint(payout)}</td>
                   <td className="px-3 py-2">
@@ -790,18 +838,18 @@ export function AdminPayoutOperationsDashboard() {
                           {actionLabel(action)}
                         </button>
                       ))}
-                      <Link className="rounded-lg border px-2 py-1 text-xs" href={`/admin/payouts/${payout.id}`}>Detail</Link>
+                      <Link className="rounded-lg border px-2 py-1 text-xs" href={`/admin/payouts/${payout.id}`}>Детали</Link>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {!state.payouts.length ? <p className="p-4 text-sm text-slate-500">Нет payout requests под выбранный фильтр.</p> : null}
+          {!state.payouts.length ? <p className="p-4 text-sm text-slate-500">Нет заявок на выплаты под выбранный фильтр.</p> : null}
         </div>
       </Section>
 
-      <Section title="Recent admin-ops payout requests" description="Последние заявки из /payouts/admin-ops/summary/.">
+      <Section title="Последние заявки на выплаты" description="Последние заявки из /payouts/admin-ops/summary/.">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {adminOpsRecent.slice(0, 6).map((payout) => (
             <div className="rounded-2xl border border-slate-200 p-4" key={`ops:${payout.id}`}>
@@ -809,17 +857,23 @@ export function AdminPayoutOperationsDashboard() {
                 <span className={`rounded-full border px-2 py-1 text-xs ${toneClass(payout.status)}`}>{payout.status}</span>
                 <span className="font-semibold">{money(payout.amount, payout.currency)}</span>
               </div>
+              <p className="mt-2">
+                <span className={`rounded-full border px-2 py-1 text-xs ${eligibilityTone(payout)}`}>{eligibilityLabel(payout)}</span>
+              </p>
+              {payout.payout_eligibility && !payout.payout_eligibility.is_eligible ? (
+                <p className="mt-2 text-sm text-rose-700">{eligibilityReasonText(payout.payout_eligibility.block_reason)}</p>
+              ) : null}
               <p className="mt-2 text-xs text-slate-500">{payout.id}</p>
-              <p className="mt-1 text-sm text-slate-600">trainer: {payout.trainer_id || '—'} · {dateTime(payout.created_at || payout.requested_at)}</p>
+              <p className="mt-1 text-sm text-slate-600">тренер: {payout.trainer_id || '—'} · {dateTime(payout.created_at || payout.requested_at)}</p>
             </div>
           ))}
-          {!adminOpsRecent.length ? <p className="text-sm text-slate-500">Admin-ops summary не вернул recent requests.</p> : null}
+          {!adminOpsRecent.length ? <p className="text-sm text-slate-500">Операционная сводка не вернула последние заявки.</p> : null}
         </div>
       </Section>
 
-      <Section title="Risk holds" description={`Active amount: ${money(state.riskSummary?.active_hold_amount, currencyFilter)} · active count: ${state.riskSummary?.active_hold_count ?? 0}`}>
+      <Section title="Риск-холды" description={`Активная сумма: ${money(state.riskSummary?.active_hold_amount, currencyFilter)} · активных холдов: ${state.riskSummary?.active_hold_count ?? 0}`}>
         <label className="mb-3 block text-sm font-medium text-slate-700">
-          Release reason
+          Причина снятия холда
           <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 md:w-96" value={releaseReason} onChange={(event) => setReleaseReason(event.target.value)} />
         </label>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -829,37 +883,37 @@ export function AdminPayoutOperationsDashboard() {
                 <span className={`rounded-full border px-2 py-1 text-xs ${toneClass(hold.status)}`}>{hold.status}</span>
                 <span className="font-semibold">{money(hold.active_amount ?? hold.amount, hold.currency)}</span>
               </div>
-              <p className="mt-2 text-xs text-slate-500">payment: {hold.payment_id || '—'}</p>
-              <p className="mt-1 text-xs text-slate-500">trainer: {hold.trainer_id || '—'}</p>
+              <p className="mt-2 text-xs text-slate-500">платеж: {hold.payment_id || '—'}</p>
+              <p className="mt-1 text-xs text-slate-500">тренер: {hold.trainer_id || '—'}</p>
               <button className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:opacity-50" onClick={() => void releaseHold(hold)} disabled={!hold.payment_id || busy === `hold:${hold.id}`}>
-                Release
+                Снять холд
               </button>
             </div>
           ))}
-          {!state.riskHolds.length ? <p className="text-sm text-slate-500">Active risk holds не найдены.</p> : null}
+          {!state.riskHolds.length ? <p className="text-sm text-slate-500">Активные риск-холды не найдены.</p> : null}
         </div>
       </Section>
 
-      <Section title="Integrity Issues" description="Read-only диагностика payout requests, wallets и ledger без repair actions.">
+      <Section title="Проблемы целостности" description="Диагностика заявок на выплаты, кошельков и реестра только для чтения, без исправляющих действий.">
         <div className="mb-4 grid gap-4 md:grid-cols-4">
-          <MetricCard label="Integrity status" value={state.payoutIntegrity?.summary?.status || '—'} hint={`${state.payoutIntegrity?.summary?.issue_count ?? 0} issues`} status={state.payoutIntegrity?.summary?.status} />
-          <MetricCard label="Wallets scanned" value={String(state.payoutIntegrity?.summary?.wallet_count ?? 0)} hint="TrainerWallet rows" />
-          <MetricCard label="Payouts scanned" value={String(state.payoutIntegrity?.summary?.payouts_scanned ?? 0)} hint="Filtered PayoutRequest rows" />
-          <MetricCard label="Ledger scanned" value={String(state.payoutIntegrity?.summary?.ledger_entries_scanned ?? 0)} hint="Filtered BalanceEntry rows" />
+          <MetricCard label="Статус целостности" value={state.payoutIntegrity?.summary?.status || '—'} hint={`${state.payoutIntegrity?.summary?.issue_count ?? 0} проблем`} status={state.payoutIntegrity?.summary?.status} />
+          <MetricCard label="Проверено кошельков" value={String(state.payoutIntegrity?.summary?.wallet_count ?? 0)} hint="Записи кошельков тренеров" />
+          <MetricCard label="Проверено выплат" value={String(state.payoutIntegrity?.summary?.payouts_scanned ?? 0)} hint="Отфильтрованные заявки на выплаты" />
+          <MetricCard label="Проверено реестра" value={String(state.payoutIntegrity?.summary?.ledger_entries_scanned ?? 0)} hint="Отфильтрованные записи баланса" />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-medium text-slate-900">Issue severities</h3>
+            <h3 className="font-medium text-slate-900">Критичность проблем</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {integritySeverities.map(([severity, count]) => (
                 <span className={`rounded-full border px-3 py-1 text-xs ${toneClass(severity)}`} key={severity}>{severity}: {count}</span>
               ))}
-              {!integritySeverities.length ? <span className="text-sm text-slate-500">Severity buckets отсутствуют.</span> : null}
+              {!integritySeverities.length ? <span className="text-sm text-slate-500">Группы критичности отсутствуют.</span> : null}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-medium text-slate-900">Issue codes</h3>
+            <h3 className="font-medium text-slate-900">Коды проблем</h3>
             <div className="mt-3 grid gap-2 text-sm text-slate-700">
               {integrityIssueCodes.slice(0, 8).map(([code, count]) => (
                 <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2" key={code}>
@@ -867,7 +921,7 @@ export function AdminPayoutOperationsDashboard() {
                   <span className="font-semibold">{count}</span>
                 </div>
               ))}
-              {!integrityIssueCodes.length ? <span className="text-sm text-slate-500">Issue codes отсутствуют.</span> : null}
+              {!integrityIssueCodes.length ? <span className="text-sm text-slate-500">Коды проблем отсутствуют.</span> : null}
             </div>
           </div>
         </div>
@@ -876,11 +930,11 @@ export function AdminPayoutOperationsDashboard() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Severity</th>
-                <th className="px-3 py-2">Code</th>
-                <th className="px-3 py-2">Entity</th>
-                <th className="px-3 py-2">Amount</th>
-                <th className="px-3 py-2">Message</th>
+                <th className="px-3 py-2">Критичность</th>
+                <th className="px-3 py-2">Код</th>
+                <th className="px-3 py-2">Сущность</th>
+                <th className="px-3 py-2">Сумма</th>
+                <th className="px-3 py-2">Сообщение</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -889,36 +943,36 @@ export function AdminPayoutOperationsDashboard() {
                   <td className="px-3 py-2"><span className={`rounded-full border px-2 py-1 text-xs ${toneClass(issue.severity)}`}>{issue.severity}</span></td>
                   <td className="px-3 py-2 font-mono text-xs">{issue.code}</td>
                   <td className="px-3 py-2 text-xs text-slate-600">
-                    <div>trainer: {stringify(issue.trainer_id)}</div>
+                    <div>тренер: {stringify(issue.trainer_id)}</div>
                     <div>payout: {stringify(issue.payout_id)}</div>
-                    <div>wallet: {stringify(issue.wallet_id)}</div>
+                    <div>кошелек: {stringify(issue.wallet_id)}</div>
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-600">
-                    <div>amount: {stringify(issue.amount ?? issue.payout_amount ?? issue.reserve_amount)}</div>
+                    <div>сумма: {stringify(issue.amount ?? issue.payout_amount ?? issue.reserve_amount)}</div>
                     <div>delta: {stringify(issue.delta)}</div>
-                    <div>currency: {stringify(issue.currency)}</div>
+                    <div>валюта: {stringify(issue.currency)}</div>
                   </td>
                   <td className="max-w-xl px-3 py-2 text-slate-700">{issue.message || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {!integrityIssues.length ? <p className="p-4 text-sm text-slate-500">Payout integrity issues отсутствуют.</p> : null}
+          {!integrityIssues.length ? <p className="p-4 text-sm text-slate-500">Проблемы целостности выплат отсутствуют.</p> : null}
         </div>
-        <p className="mt-3 text-xs text-slate-500">{state.payoutIntegrity?.actions?.note || 'Integrity endpoint is read-only.'}</p>
+        <p className="mt-3 text-xs text-slate-500">{state.payoutIntegrity?.actions?.note || 'Проверка целостности работает только на чтение.'}</p>
       </Section>
 
-      <Section title="Repair Preview" description="Dry-run план deterministic repair: какие действия будут применены, сколько auto-repairable и сколько уйдёт в manual review.">
+      <Section title="Предпросмотр исправления" description="Пробный план детерминированного исправления: какие действия будут применены, сколько проблем можно исправить автоматически и сколько уйдет на ручную проверку.">
         <div className="mb-4 grid gap-4 md:grid-cols-4">
-          <MetricCard label="Preview status" value={state.repairPreview?.summary?.status || '—'} hint={`${state.repairPreview?.summary?.issue_count ?? 0} integrity issues`} status={state.repairPreview?.summary?.status} />
-          <MetricCard label="Preview actions" value={String(state.repairPreview?.summary?.preview_count ?? 0)} hint={`batch size ${repairBatchSize}`} />
-          <MetricCard label="Auto repairable" value={String(state.repairPreview?.summary?.auto_repairable_count ?? 0)} hint="Eligible deterministic actions" status="healthy" />
-          <MetricCard label="Manual review" value={String(state.repairPreview?.summary?.manual_review_count ?? 0)} hint={state.repairPreview?.summary?.has_more ? 'More issues after this batch' : 'Current batch'} status={state.repairPreview?.summary?.manual_review_count ? 'critical' : 'healthy'} />
+          <MetricCard label="Статус предпросмотра" value={state.repairPreview?.summary?.status || '—'} hint={`${state.repairPreview?.summary?.issue_count ?? 0} проблем целостности`} status={state.repairPreview?.summary?.status} />
+          <MetricCard label="Действия предпросмотра" value={String(state.repairPreview?.summary?.preview_count ?? 0)} hint={`размер пакета ${repairBatchSize}`} />
+          <MetricCard label="Можно исправить автоматически" value={String(state.repairPreview?.summary?.auto_repairable_count ?? 0)} hint="Подходящие автоматические действия" status="healthy" />
+          <MetricCard label="Ручная проверка" value={String(state.repairPreview?.summary?.manual_review_count ?? 0)} hint={state.repairPreview?.summary?.has_more ? 'Есть еще проблемы после этого пакета' : 'Текущий пакет снимка'} status={state.repairPreview?.summary?.manual_review_count ? 'critical' : 'healthy'} />
         </div>
 
         <div className="mb-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-medium text-slate-900">Action codes</h3>
+            <h3 className="font-medium text-slate-900">Коды действий</h3>
             <div className="mt-3 grid gap-2 text-sm text-slate-700">
               {repairActionCodes.slice(0, 8).map(([code, count]) => (
                 <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2" key={code}>
@@ -926,15 +980,15 @@ export function AdminPayoutOperationsDashboard() {
                   <span className="font-semibold">{count}</span>
                 </div>
               ))}
-              {!repairActionCodes.length ? <span className="text-sm text-slate-500">Repair actions отсутствуют.</span> : null}
+              {!repairActionCodes.length ? <span className="text-sm text-slate-500">Действия исправления отсутствуют.</span> : null}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-medium text-slate-900">Safety</h3>
+            <h3 className="font-medium text-slate-900">Безопасность</h3>
             <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Dry run only</dt><dd>{state.repairPreview?.safety?.dry_run_only ? 'yes' : 'no'}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Future confirmation</dt><dd>{state.repairPreview?.safety?.requires_confirmation_for_future_execution ? 'yes' : 'no'}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Generated</dt><dd>{dateTime(state.repairPreview?.generated_at)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Только пробный запуск</dt><dd>{state.repairPreview?.safety?.dry_run_only ? 'да' : 'нет'}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Подтверждение будущего запуска</dt><dd>{state.repairPreview?.safety?.requires_confirmation_for_future_execution ? 'да' : 'нет'}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Создано</dt><dd>{dateTime(state.repairPreview?.generated_at)}</dd></div>
             </dl>
           </div>
         </div>
@@ -943,12 +997,12 @@ export function AdminPayoutOperationsDashboard() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Risk</th>
-                <th className="px-3 py-2">Issue</th>
-                <th className="px-3 py-2">Action</th>
-                <th className="px-3 py-2">Records</th>
-                <th className="px-3 py-2">Amount</th>
-                <th className="px-3 py-2">Message</th>
+                <th className="px-3 py-2">Риск</th>
+                <th className="px-3 py-2">Проблема</th>
+                <th className="px-3 py-2">Действие</th>
+                <th className="px-3 py-2">Записи</th>
+                <th className="px-3 py-2">Сумма</th>
+                <th className="px-3 py-2">Сообщение</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -958,11 +1012,11 @@ export function AdminPayoutOperationsDashboard() {
                   <td className="px-3 py-2 font-mono text-xs">{action.issue_code}</td>
                   <td className="px-3 py-2">
                     <div className="font-mono text-xs">{action.action_code}</div>
-                    <div className="text-xs text-slate-500">{action.eligible_for_auto_repair ? 'auto repairable' : 'manual review'}</div>
+                    <div className="text-xs text-slate-500">{action.eligible_for_auto_repair ? 'автоисправление' : 'ручная проверка'}</div>
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-600">
                     <div>payout: {stringify(action.payout_id)}</div>
-                    <div>wallet: {stringify(action.wallet_id)}</div>
+                    <div>кошелек: {stringify(action.wallet_id)}</div>
                   </td>
                   <td className="px-3 py-2">{stringify(action.amount)} {stringify(action.currency) !== '—' ? action.currency : ''}</td>
                   <td className="max-w-xl px-3 py-2 text-slate-700">{action.message || '—'}</td>
@@ -970,35 +1024,35 @@ export function AdminPayoutOperationsDashboard() {
               ))}
             </tbody>
           </table>
-          {!repairPreviewActions.length ? <p className="p-4 text-sm text-slate-500">Repair preview пустой: текущий integrity snapshot не требует действий.</p> : null}
+          {!repairPreviewActions.length ? <p className="p-4 text-sm text-slate-500">Предпросмотр исправления пустой: текущий снимок целостности не требует действий.</p> : null}
         </div>
 
         {state.lastRepairExecution ? (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-            Last execution: fixed {state.lastRepairExecution.summary?.repaired_count ?? 0}, skipped {state.lastRepairExecution.summary?.skipped_count ?? 0}, manual review {state.lastRepairExecution.summary?.manual_review_count ?? 0}; after status {state.lastRepairExecution.summary?.after_status || '—'}.
+            Последний запуск: исправлено {state.lastRepairExecution.summary?.repaired_count ?? 0}, пропущено {state.lastRepairExecution.summary?.skipped_count ?? 0}, ручная проверка {state.lastRepairExecution.summary?.manual_review_count ?? 0}; статус после {state.lastRepairExecution.summary?.after_status || '—'}.
           </div>
         ) : null}
       </Section>
 
-      <Section title="Repair History" description="Audit trail repair runs: operator, timestamp, changed records, result counts and manual review fallout.">
+      <Section title="История исправлений" description="Журнал аудита запусков исправления: оператор, время, измененные записи, результаты и ручная проверка.">
         <div className="mb-4 flex flex-wrap gap-3">
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runRepairAuditExport('csv')} disabled={!!busy}>
-            Export repair audit CSV
+            Экспорт аудита исправлений CSV
           </button>
           <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60" onClick={() => void runRepairAuditExport('xlsx')} disabled={!!busy}>
-            Export repair audit XLSX
+            Экспорт аудита исправлений XLSX
           </button>
         </div>
         <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Timestamp</th>
-                <th className="px-3 py-2">Operator</th>
-                <th className="px-3 py-2">Repair id</th>
-                <th className="px-3 py-2">Result</th>
-                <th className="px-3 py-2">Changed records</th>
-                <th className="px-3 py-2">Manual review</th>
+                <th className="px-3 py-2">Время</th>
+                <th className="px-3 py-2">Оператор</th>
+                <th className="px-3 py-2">Исправление id</th>
+                <th className="px-3 py-2">Результат</th>
+                <th className="px-3 py-2">Измененные записи</th>
+                <th className="px-3 py-2">Ручная проверка</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1016,9 +1070,9 @@ export function AdminPayoutOperationsDashboard() {
                       <div className="text-xs text-slate-500">{event.entity_id}</div>
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-700">
-                      <div>fixed: {stringify(context.repaired_count)}</div>
-                      <div>skipped: {stringify(context.skipped_count)}</div>
-                      <div>manual: {stringify(context.manual_review_count)}</div>
+                      <div>исправлено: {stringify(context.repaired_count)}</div>
+                      <div>пропущено: {stringify(context.skipped_count)}</div>
+                      <div>ручная проверка: {stringify(context.manual_review_count)}</div>
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-600">
                       {changed.slice(0, 3).map((result, index) => (
@@ -1028,7 +1082,7 @@ export function AdminPayoutOperationsDashboard() {
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-600">
                       {manual.slice(0, 3).map((result, index) => (
-                        <div key={`${event.id}:manual:${index}`}>{result.issue_code}: {result.reason || 'manual review required'}</div>
+                        <div key={`${event.id}:manual:${index}`}>{result.issue_code}: {result.reason || 'требуется ручная проверка'}</div>
                       ))}
                       {!manual.length ? '—' : null}
                     </td>
@@ -1037,15 +1091,15 @@ export function AdminPayoutOperationsDashboard() {
               })}
             </tbody>
           </table>
-          {!state.repairAudits.length ? <p className="p-4 text-sm text-slate-500">Repair execution audit events пока отсутствуют.</p> : null}
+          {!state.repairAudits.length ? <p className="p-4 text-sm text-slate-500">События аудита исправлений пока отсутствуют.</p> : null}
         </div>
       </Section>
 
-      <Section title="Reconciliation snapshot" description="Read-only snapshot из /payouts/admin-ops/reconciliation/snapshot/ плюс legacy reconciliation issues.">
+      <Section title="Снимок сверки" description="Снимок только для чтения из /payouts/admin-ops/reconciliation/snapshot/ плюс старые проблемы сверки.">
         <div className="mb-4 grid gap-4 md:grid-cols-3">
-          <MetricCard label="Snapshot mode" value={state.adminOpsReconciliation?.mode || '—'} hint={`Generated: ${dateTime(state.adminOpsReconciliation?.generated_at)}`} />
-          <MetricCard label="Snapshot status" value={state.adminOpsReconciliation?.summary?.status || '—'} hint={`${state.adminOpsReconciliation?.summary?.issue_count ?? 0} issues`} status={state.adminOpsReconciliation?.summary?.status} />
-          <MetricCard label="Repair performed" value={state.adminOpsReconciliation?.actions?.repair_performed ? 'yes' : 'no'} hint="Snapshot endpoint is read-only" />
+          <MetricCard label="Режим снимка" value={state.adminOpsReconciliation?.mode || '—'} hint={`Сформировано: ${dateTime(state.adminOpsReconciliation?.generated_at)}`} />
+          <MetricCard label="Статус снимка" value={state.adminOpsReconciliation?.summary?.status || '—'} hint={`${state.adminOpsReconciliation?.summary?.issue_count ?? 0} проблем`} status={state.adminOpsReconciliation?.summary?.status} />
+          <MetricCard label="Исправление выполнено" value={state.adminOpsReconciliation?.actions?.repair_performed ? 'да' : 'нет'} hint="Endpoint снимка работает только на чтение" />
         </div>
         <div className="space-y-3">
           {(snapshotIssues.length ? snapshotIssues : state.reconciliation?.issues ?? []).slice(0, 8).map((issue, index) => (
@@ -1055,11 +1109,11 @@ export function AdminPayoutOperationsDashboard() {
                 <span className="font-medium text-slate-900">{issue.code}</span>
               </div>
               <p className="mt-2 text-sm text-slate-600">
-                {issue.message || `trainer: ${issue.trainer_id || '—'}, delta: ${issue.delta || '—'}`}
+                {issue.message || `тренер: ${issue.trainer_id || '—'}, delta: ${issue.delta || '—'}`}
               </p>
             </div>
           ))}
-          {!(snapshotIssues.length || (state.reconciliation?.issues ?? []).length) ? <p className="text-sm text-slate-500">Payout reconciliation issues отсутствуют.</p> : null}
+          {!(snapshotIssues.length || (state.reconciliation?.issues ?? []).length) ? <p className="text-sm text-slate-500">Проблемы сверки выплат отсутствуют.</p> : null}
         </div>
       </Section>
     </div>

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { apiRequest, privateApi } from '@/lib/api';
 import type { PayoutRequest } from '@/types/api';
 
@@ -24,7 +25,7 @@ export default function AdminPayoutDetailPage() {
   const params = useParams<{ id: string }>();
   const payoutId = useMemo(() => String(params?.id || ''), [params]);
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [item, setItem] = useState<PayoutRequest | null>(null);
   const [reason, setReason] = useState('');
   const [externalReference, setExternalReference] = useState('');
@@ -39,7 +40,7 @@ export default function AdminPayoutDetailPage() {
       setItem(payload);
       setExternalReference(String(payload.metadata?.external_reference || ''));
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить payout detail');
+      setMsg(err instanceof Error ? err.message : 'Не удалось загрузить детали выплаты');
     }
   }
 
@@ -61,7 +62,7 @@ export default function AdminPayoutDetailPage() {
       setItem(payload);
       if (action === 'reject') setReason('');
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : 'Не удалось обновить payout status');
+      setMsg(err instanceof Error ? err.message : 'Не удалось обновить статус выплаты');
     } finally {
       setBusy(false);
     }
@@ -70,19 +71,19 @@ export default function AdminPayoutDetailPage() {
   const history = Array.isArray(item?.metadata?.ops_history) ? item?.metadata?.ops_history as Array<Record<string, unknown>> : [];
 
   return (
-    <ProtectedPage title="Payout detail" description="Ledger, metadata и операционная история payout request.">
+    <ProtectedPage title="Детали выплаты" description="Реестр, метаданные и операционная история заявки на выплату.">
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="row" style={{ alignItems: 'flex-start' }}>
             <div className="stack" style={{ gap: 10 }}>
-              <span className="badge secondary">Admin finance</span>
-              <h1>Payout request</h1>
+              <span className="badge secondary">Финансы администратора</span>
+              <h1>Заявка на выплату</h1>
               <p className="lead">{payoutId}</p>
             </div>
             <div className="inline">
-              <Link href="/admin/payouts" className="button ghost">Back to payouts</Link>
+              <Link href="/admin/payouts" className="button ghost">Назад к выплатам</Link>
               <button className="button secondary" onClick={() => void load()}>Обновить</button>
             </div>
           </div>
@@ -94,47 +95,47 @@ export default function AdminPayoutDetailPage() {
           ) : (
             <>
               <div className="grid-4">
-                <div className="card"><div className="kpi"><span className="muted">Amount</span><strong>{item.amount || '—'} {item.currency || 'RUB'}</strong></div></div>
-                <div className="card"><div className="kpi"><span className="muted">Status</span><strong>{item.status || '—'}</strong></div></div>
-                <div className="card"><div className="kpi"><span className="muted">Requested</span><strong>{formatDate(item.requested_at || item.created_at)}</strong></div></div>
-                <div className="card"><div className="kpi"><span className="muted">Processed</span><strong>{formatDate(item.processed_at)}</strong></div></div>
+                <div className="card"><div className="kpi"><span className="muted">Сумма</span><strong>{item.amount || '—'} {item.currency || 'RUB'}</strong></div></div>
+                <div className="card"><div className="kpi"><span className="muted">Статус</span><strong>{item.status || '—'}</strong></div></div>
+                <div className="card"><div className="kpi"><span className="muted">Запрошено</span><strong>{formatDate(item.requested_at || item.created_at)}</strong></div></div>
+                <div className="card"><div className="kpi"><span className="muted">Обработано</span><strong>{formatDate(item.processed_at)}</strong></div></div>
               </div>
 
               <div className="grid-2">
                 <div className="card">
-                  <h3>Transition controls</h3>
+                  <h3>Управление статусом</h3>
                   <div className="form" style={{ marginTop: 16 }}>
                     <div className="form-group">
-                      <label className="label" htmlFor="external-ref">External reference</label>
+                      <label className="label" htmlFor="external-ref">Внешняя ссылка</label>
                       <input id="external-ref" className="input" value={externalReference} onChange={(event) => setExternalReference(event.target.value)} placeholder="bank-batch-042" />
                     </div>
                     <div className="form-group">
-                      <label className="label" htmlFor="reason">Reject reason</label>
+                      <label className="label" htmlFor="reason">Причина отклонения</label>
                       <textarea id="reason" className="textarea" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Неверные реквизиты" />
                     </div>
                     <div className="inline" style={{ flexWrap: 'wrap' }}>
-                      <button className="button secondary" disabled={busy || item.status !== 'pending'} onClick={() => void transition('approve')}>Approve</button>
-                      <button className="button secondary" disabled={busy || item.status !== 'approved'} onClick={() => void transition('processing')}>Processing</button>
-                      <button className="button" disabled={busy || item.status !== 'processing'} onClick={() => void transition('paid')}>Mark paid</button>
-                      <button className="button ghost" disabled={busy || item.status === 'paid' || item.status === 'rejected'} onClick={() => void transition('reject')}>Reject</button>
+                      <button className="button secondary" disabled={busy || item.status !== 'pending'} onClick={() => void transition('approve')}>Одобрить</button>
+                      <button className="button secondary" disabled={busy || item.status !== 'approved'} onClick={() => void transition('processing')}>В обработку</button>
+                      <button className="button" disabled={busy || item.status !== 'processing'} onClick={() => void transition('paid')}>Отметить оплаченной</button>
+                      <button className="button ghost" disabled={busy || item.status === 'paid' || item.status === 'rejected'} onClick={() => void transition('reject')}>Отклонить</button>
                     </div>
                   </div>
                 </div>
 
                 <div className="card">
-                  <h3>Core fields</h3>
+                  <h3>Основные поля</h3>
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                    <div className="list-item"><span className="muted">Trainer ID</span><strong>{item.trainer_id || '—'}</strong></div>
-                    <div className="list-item"><span className="muted">Destination</span><strong>{item.destination_masked || '—'}</strong></div>
-                    <div className="list-item"><span className="muted">Approved</span><strong>{formatDate(item.approved_at)}</strong></div>
-                    <div className="list-item"><span className="muted">Rejected reason</span><strong>{item.rejected_reason || '—'}</strong></div>
+                    <div className="list-item"><span className="muted">ID тренера</span><strong>{item.trainer_id || '—'}</strong></div>
+                    <div className="list-item"><span className="muted">Получатель</span><strong>{item.destination_masked || '—'}</strong></div>
+                    <div className="list-item"><span className="muted">Одобрено</span><strong>{formatDate(item.approved_at)}</strong></div>
+                    <div className="list-item"><span className="muted">Причина отклонения</span><strong>{item.rejected_reason || '—'}</strong></div>
                   </div>
                 </div>
               </div>
 
               <div className="grid-2">
                 <div className="card">
-                  <h3>Ops history</h3>
+                  <h3>История операций</h3>
                   {history.length ? (
                     <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                       {history.map((entry, index) => (
@@ -149,13 +150,13 @@ export default function AdminPayoutDetailPage() {
                 </div>
 
                 <div className="card">
-                  <h3>Metadata</h3>
+                  <h3>Метаданные</h3>
                   <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{pretty(item.metadata)}</pre>
                 </div>
               </div>
 
               <div className="card">
-                <h3>Ledger entries</h3>
+                <h3>Записи реестра</h3>
                 {item.ledger_entries?.length ? (
                   <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                     {item.ledger_entries.map((entry) => (
@@ -166,7 +167,7 @@ export default function AdminPayoutDetailPage() {
                       </div>
                     ))}
                   </div>
-                ) : <p className="muted">Ledger entries пока отсутствуют.</p>}
+                ) : <p className="muted">Записи реестра пока отсутствуют.</p>}
               </div>
             </>
           )}

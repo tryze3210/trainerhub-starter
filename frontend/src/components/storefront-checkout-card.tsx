@@ -2,15 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
 import { privateApi } from '@/lib/api';
-
-const providerOptions = [
-  { value: 'mock', label: 'Тестовая оплата' },
-  { value: 'cloudpayments', label: 'CloudPayments' },
-  { value: 'yookassa', label: 'ЮKassa' },
-];
+import { checkoutApi } from '@/modules/checkout/api';
+import { toCheckoutProviderOption, type CheckoutProviderOption } from '@/modules/checkout/components/checkout-payment-method';
 
 export function StorefrontCheckoutCard({
   itemType,
@@ -28,12 +24,54 @@ export function StorefrontCheckoutCard({
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated } = useAuthSession();
-  const [provider, setProvider] = useState('mock');
+  const [provider, setProvider] = useState('');
+  const [providerOptions, setProviderOptions] = useState<CheckoutProviderOption[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(true);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPaymentSettings() {
+      try {
+        const payload = await checkoutApi.getPaymentSettings();
+        if (!isMounted) return;
+
+        const options = payload.providers
+          .map((item) => toCheckoutProviderOption(item.provider, item.display_name))
+          .filter((item): item is CheckoutProviderOption => Boolean(item));
+        const defaultOption = options.find((item) => item.value === payload.default_provider) || options[0];
+
+        setProviderOptions(options);
+        setProvider(defaultOption?.value || '');
+        setMsg(options.length ? '' : 'Сейчас нет доступного способа оплаты.');
+      } catch (err) {
+        if (!isMounted) return;
+        setProviderOptions([]);
+        setProvider('');
+        setMsg(err instanceof Error ? err.message : 'Не удалось загрузить способы оплаты.');
+      } finally {
+        if (isMounted) {
+          setLoadingProviders(false);
+        }
+      }
+    }
+
+    void loadPaymentSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   async function handleCheckout() {
     try {
+      if (!provider) {
+        setMsg('Выберите доступный способ оплаты.');
+        return;
+      }
+
       setLoading(true);
       setMsg('');
       const payload = await privateApi.checkoutOneTime({
@@ -71,6 +109,7 @@ export function StorefrontCheckoutCard({
             className="select"
             value={provider}
             onChange={(event) => setProvider(event.target.value)}
+            disabled={loadingProviders || !providerOptions.length}
           >
             {providerOptions.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -80,8 +119,8 @@ export function StorefrontCheckoutCard({
 
         {msg ? <div className="card error compact">{msg}</div> : null}
         {isAuthenticated ? (
-          <button className="button lg w-full" disabled={loading} onClick={() => void handleCheckout()}>
-            {loading ? 'Создаём заказ...' : 'Купить доступ'}
+          <button className="button lg w-full" disabled={loading || loadingProviders || !provider} onClick={() => void handleCheckout()}>
+            {loading || loadingProviders ? 'Готовим оплату...' : 'Купить доступ'}
           </button>
         ) : (
           <Link className="button lg w-full" href={`/login?next=${encodeURIComponent(pathname || '/')}`}>

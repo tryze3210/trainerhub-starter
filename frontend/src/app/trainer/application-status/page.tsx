@@ -98,8 +98,11 @@ function mapModerationStatusLabel(status?: string | null) {
   const labels: Record<string, string> = {
     open: 'Открыто',
     pending: 'Ожидает',
+    draft: 'Черновик',
+    submitted: 'Отправлена',
     under_review: 'На проверке',
     approved: 'Одобрено',
+    changes_requested: 'Нужны правки',
     rejected: 'Отклонено',
     blocked: 'Заблокировано',
     resolved: 'Решено',
@@ -118,6 +121,16 @@ function getBadgeTone(status?: string | null) {
 function shortId(value?: string | null) {
   if (!value) return 'без номера';
   return value.length > 10 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
+}
+
+function getApplicationStatusDescription(status?: string | null, dashboardUnlocked = false) {
+  if (dashboardUnlocked) return 'Заявка одобрена, роль тренера выдана, кабинет и публикация продуктов доступны.';
+  if (status === 'draft') return 'Заявка пока в черновике. Заполните профиль и отправьте его на модерацию.';
+  if (status === 'submitted' || status === 'under_review') return 'Заявка находится в очереди trainer_onboarding. Администратор проверяет профиль, специализации и публичное описание.';
+  if (status === 'changes_requested') return 'Модерация запросила правки. Обновите заявку с учетом комментария и отправьте ее повторно.';
+  if (status === 'rejected') return 'Заявка отклонена. Можно исправить профиль и отправить новую версию на проверку.';
+  if (status === 'approved') return 'Заявка одобрена. Если кабинет еще закрыт, ожидается синхронизация роли и публичного профиля.';
+  return 'Статус проверки еще не сформирован.';
 }
 
 export default function TrainerApplicationStatusPage() {
@@ -144,6 +157,11 @@ export default function TrainerApplicationStatusPage() {
   const applicationStatus = state?.application.status || 'draft';
   const dashboardUnlocked = Boolean(state?.dashboard_unlocked);
   const nextStep = state?.summary.next_step_title || 'Заполнить заявку';
+  const statusDescription = getApplicationStatusDescription(applicationStatus, dashboardUnlocked);
+  const moderationCaseId = state?.application.latest_moderation_case_id;
+  const submittedAt = formatDateTime(state?.application.submitted_at);
+  const reviewedAt = formatDateTime(state?.application.reviewed_at);
+  const canEditApplication = applicationStatus === 'draft' || applicationStatus === 'changes_requested' || applicationStatus === 'rejected';
 
   return (
     <ProtectedPage
@@ -159,9 +177,12 @@ export default function TrainerApplicationStatusPage() {
             <div>
               <span className="trainer-status-eyebrow">Проверка тренера</span>
               <h2>Статус проверки</h2>
-              <p>Модерация заявки, доступ к кабинету и следующие шаги</p>
+              <p>{state ? statusDescription : 'Модерация заявки, доступ к кабинету и следующие шаги'}</p>
               <div className="trainer-status-actions">
-                <Link className="premium-secondary-button" href="/trainer/onboarding">Редактировать заявку</Link>
+                {canEditApplication ? <Link className="premium-secondary-button" href="/trainer/onboarding">Редактировать заявку</Link> : null}
+                <button className="premium-secondary-button" type="button" onClick={() => void load()} disabled={loading}>
+                  {loading ? 'Обновляем…' : 'Обновить статус'}
+                </button>
                 {dashboardUnlocked ? <Link className="premium-primary-button" href="/trainer/dashboard/products">Перейти к продуктам</Link> : null}
               </div>
             </div>
@@ -200,7 +221,7 @@ export default function TrainerApplicationStatusPage() {
                 <article className="trainer-status-result-card">
                   <span>Доступ к кабинету</span>
                   <strong>{dashboardUnlocked ? 'Открыт' : 'Закрыт'}</strong>
-                  <small>{mapRoleLabel(state.user.role)}</small>
+                  <small>{mapRoleLabel(state.user?.role)}</small>
                 </article>
                 <article className="trainer-status-result-card">
                   <span>Прогресс</span>
@@ -222,9 +243,9 @@ export default function TrainerApplicationStatusPage() {
                         {mapTrainerApplicationStatusLabel(applicationStatus)}
                       </span>
                       <h3>Результат проверки</h3>
-                      <p>{dashboardUnlocked ? 'Профиль синхронизирован, кабинет тренера открыт.' : 'Кабинет тренера откроется после проверки и синхронизации профиля.'}</p>
+                      <p>{statusDescription}</p>
                     </div>
-                    <Link className="premium-secondary-button" href="/trainer/onboarding">Редактировать заявку</Link>
+                    {canEditApplication ? <Link className="premium-secondary-button" href="/trainer/onboarding">Редактировать заявку</Link> : null}
                   </div>
 
                   {state.application.reviewer_note ? (
@@ -232,6 +253,41 @@ export default function TrainerApplicationStatusPage() {
                       <strong>Комментарий модерации:</strong> {state.application.reviewer_note}
                     </div>
                   ) : null}
+
+                  <section className="trainer-status-check-card" aria-label="Статус модерации заявки">
+                    <div>
+                      <span className="trainer-status-eyebrow">Статус модерации</span>
+                      <h3>{mapTrainerApplicationStatusLabel(applicationStatus)}</h3>
+                      <p>{statusDescription}</p>
+                    </div>
+                    <dl className="trainer-status-detail-list">
+                      <div>
+                        <dt>Очередь</dt>
+                        <dd>trainer_onboarding</dd>
+                      </div>
+                      <div>
+                        <dt>Moderation case</dt>
+                        <dd>{moderationCaseId ? shortId(moderationCaseId) : 'Создаётся после отправки'}</dd>
+                      </div>
+                      <div>
+                        <dt>Отправлена</dt>
+                        <dd>{submittedAt}</dd>
+                      </div>
+                      <div>
+                        <dt>Проверена</dt>
+                        <dd>{reviewedAt}</dd>
+                      </div>
+                    </dl>
+                    <div className="trainer-status-review-list">
+                      <strong>Что проверяет модерация</strong>
+                      <ul>
+                        <li>Название бренда или юридическое имя</li>
+                        <li>Описание, позиционирование и специализации</li>
+                        <li>Контакты, город, страна и публичные ссылки</li>
+                        <li>Готовность профиля к публикации и выдаче роли тренера</li>
+                      </ul>
+                    </div>
+                  </section>
 
                   <div className="trainer-status-result-grid">
                     <article className="trainer-status-result-card">

@@ -4,107 +4,129 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-type AdminNavGroup = 'core' | 'commercial' | 'risk' | 'settings';
+type AdminNavGroup = 'overview' | 'moderation' | 'finance' | 'system';
 
 type AdminNavItem = {
   href: string;
   label: string;
   description: string;
+  icon: string;
   group: AdminNavGroup;
 };
 
 const NAV_ITEMS: AdminNavItem[] = [
   {
     href: '/admin',
-    label: 'Cockpit',
-    description: 'Главная сводка marketplace core',
-    group: 'core',
+    label: 'Главная',
+    description: 'Сводка по платформе и срочным задачам',
+    icon: 'ГЛ',
+    group: 'overview',
   },
   {
     href: '/admin/operations',
-    label: 'Operations',
-    description: 'Outbox, webhooks, disputes, risk holds',
-    group: 'risk',
+    label: 'Операции',
+    description: 'Вебхуки, споры, блокировки и фоновые события',
+    icon: 'ОП',
+    group: 'system',
   },
   {
     href: '/admin/audit',
-    label: 'Audit feed',
-    description: 'След операторских действий',
-    group: 'risk',
+    label: 'Журнал действий',
+    description: 'История операторских изменений',
+    icon: 'ЖД',
+    group: 'system',
   },
   {
     href: '/admin/reconciliation',
-    label: 'Reconciliation',
+    label: 'Сверка',
     description: 'Расхождения денег, доступов и событий',
-    group: 'risk',
+    icon: 'СВ',
+    group: 'finance',
   },
   {
     href: '/admin/reconciliation/snapshots',
-    label: 'Snapshots',
-    description: 'История reconciliation и тренды',
-    group: 'risk',
+    label: 'Снимки сверки',
+    description: 'История сверок и динамика проблем',
+    icon: 'СС',
+    group: 'finance',
   },
   {
     href: '/admin/moderation',
-    label: 'Moderation',
-    description: 'Очереди модерации и risk cases',
-    group: 'risk',
+    label: 'Модерация',
+    description: 'Очереди проверки и спорные материалы',
+    icon: 'МД',
+    group: 'moderation',
+  },
+  {
+    href: '/admin/trainers/applications',
+    label: 'Заявки тренеров',
+    description: 'Проверка анкет и допуск к кабинету тренера',
+    icon: 'ЗТ',
+    group: 'moderation',
   },
   {
     href: '/admin/payouts',
-    label: 'Payouts',
-    description: 'Выплаты, балансы, ledger',
-    group: 'commercial',
+    label: 'Выплаты',
+    description: 'Балансы, реестр выплат и ручные проверки',
+    icon: 'ВП',
+    group: 'finance',
   },
   {
     href: '/admin/referrals',
-    label: 'Referrals',
-    description: 'Ambassador rewards, attribution, integrity',
-    group: 'commercial',
+    label: 'Рефералы',
+    description: 'Вознаграждения, атрибуция и антифрод',
+    icon: 'РФ',
+    group: 'finance',
   },
   {
     href: '/admin/analytics',
-    label: 'Analytics',
-    description: 'KPI, revenue, conversion',
-    group: 'commercial',
+    label: 'Аналитика',
+    description: 'Выручка, заказы, конверсия и KPI',
+    icon: 'АН',
+    group: 'overview',
   },
   {
     href: '/admin/marketplace',
-    label: 'Marketplace',
-    description: 'Командный центр каталога',
-    group: 'commercial',
+    label: 'Маркетплейс',
+    description: 'Каталог, продукты, программы и наборы',
+    icon: 'МК',
+    group: 'overview',
   },
   {
     href: '/admin/reviews',
-    label: 'Reviews',
+    label: 'Отзывы',
     description: 'Модерация отзывов',
-    group: 'risk',
+    icon: 'ОТ',
+    group: 'moderation',
   },
   {
     href: '/admin/notifications',
-    label: 'Notifications',
+    label: 'Уведомления',
     description: 'Системные уведомления',
-    group: 'core',
+    icon: 'УВ',
+    group: 'system',
   },
   {
     href: '/admin/subscriptions',
-    label: 'Subscriptions',
+    label: 'Подписки',
     description: 'Планы и подписки',
-    group: 'commercial',
+    icon: 'ПД',
+    group: 'finance',
   },
   {
     href: '/admin/settings/payments',
-    label: 'Payment settings',
+    label: 'Настройки оплат',
     description: 'Провайдеры и комиссии',
-    group: 'settings',
+    icon: 'НО',
+    group: 'system',
   },
 ];
 
 const GROUP_LABELS: Record<AdminNavGroup, string> = {
-  core: 'Core',
-  commercial: 'Commercial',
-  risk: 'Risk & ops',
-  settings: 'Settings',
+  overview: 'Обзор',
+  moderation: 'Модерация',
+  finance: 'Финансы',
+  system: 'Система',
 };
 
 function isActivePath(pathname: string, href: string) {
@@ -114,9 +136,12 @@ function isActivePath(pathname: string, href: string) {
 
 function AdminNavLink({ item, active }: { item: AdminNavItem; active: boolean }) {
   return (
-    <Link className={`trainer-side-nav__item ${active ? 'is-active' : ''}`} href={item.href}>
-      <strong>{item.label}</strong>
-      <small style={{ display: 'block', marginTop: 4 }}>{item.description}</small>
+    <Link className={`admin-nav__link ${active ? 'is-active' : ''}`} href={item.href}>
+      <span className="admin-nav__icon" aria-hidden="true">{item.icon}</span>
+      <span className="admin-nav__text">
+        <strong>{item.label}</strong>
+        <small>{item.description}</small>
+      </span>
     </Link>
   );
 }
@@ -126,28 +151,33 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const activeItem = NAV_ITEMS.find((item) => isActivePath(pathname, item.href));
 
   return (
-    <section className="page">
-      <div className="container trainer-dashboard-shell">
-        <aside className="trainer-dashboard-shell__sidebar card">
-          <span className="badge secondary">Admin console</span>
-          <h1 className="title-md" style={{ marginTop: 12 }}>TrainerHub admin</h1>
-          <p className="muted">Единая навигация для операций, риска, выплат, referral growth, модерации и аналитики.</p>
+    <section className="admin-shell">
+      <div className="admin-layout">
+        <aside className="admin-sidebar">
+          <div className="admin-sidebar__brand">
+            <span className="admin-sidebar__mark" aria-hidden="true">TH</span>
+            <div>
+              <span className="admin-eyebrow">Админ-панель</span>
+              <h1>TrainerHub</h1>
+            </div>
+            <p>Рабочее место администратора: модерация, выплаты, каталог, аналитика и системные настройки.</p>
+          </div>
 
           {activeItem ? (
-            <div className="list-item" style={{ marginTop: 16 }}>
-              <span className="muted">Current section</span>
-              <strong>{activeItem.label}</strong>
-              <small>{activeItem.description}</small>
+            <div className="admin-current-section">
+              <span className="admin-nav__group-title">Текущий раздел</span>
+              <h2>{activeItem.label}</h2>
+              <p>{activeItem.description}</p>
             </div>
           ) : null}
 
-          <nav className="trainer-side-nav" aria-label="Admin navigation">
-            {(['risk', 'commercial', 'core', 'settings'] as const).map((group) => {
+          <nav className="admin-nav" aria-label="Навигация администратора">
+            {(['overview', 'moderation', 'finance', 'system'] as const).map((group) => {
               const items = NAV_ITEMS.filter((item) => item.group === group);
 
               return (
-                <div className="stack" key={group} style={{ gap: 8 }}>
-                  <span className="muted" style={{ fontWeight: 700 }}>{GROUP_LABELS[group]}</span>
+                <div className="admin-nav__group" key={group}>
+                  <span className="admin-nav__group-title">{GROUP_LABELS[group]}</span>
                   {items.map((item) => (
                     <AdminNavLink key={item.href} item={item} active={isActivePath(pathname, item.href)} />
                   ))}
@@ -157,7 +187,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </nav>
         </aside>
 
-        <div className="trainer-dashboard-shell__content stack" style={{ gap: 24 }}>
+        <div className="admin-content">
           {children}
         </div>
       </div>

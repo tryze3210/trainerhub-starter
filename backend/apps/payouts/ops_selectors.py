@@ -8,6 +8,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from apps.legal_compliance.services.eligibility import PayoutEligibilityService
 from apps.payouts.models import BalanceEntry, PayoutRequest, TrainerWallet
 from apps.payouts.services import ACTIVE_PAYOUT_STATUSES, PayoutService
 
@@ -79,6 +80,17 @@ def _normalize_status(status: str) -> str:
     return PayoutRequest.Status.PENDING if status == PayoutRequest.Status.REQUESTED else status
 
 
+def _payout_eligibility_payload(payout: PayoutRequest) -> dict[str, Any]:
+    result = PayoutEligibilityService.evaluate_for_trainer(payout.trainer.user)
+    return {
+        "is_eligible": result.is_eligible,
+        "block_reason": result.block_reason,
+        "has_active_agreement": result.has_active_agreement,
+        "has_verified_payout_profile": result.has_verified_payout_profile,
+        "kyc_status": result.kyc_status,
+    }
+
+
 def _status_rows(queryset) -> list[dict[str, Any]]:
     raw_rows = (
         queryset.values("status")
@@ -145,6 +157,7 @@ def _recent_payouts(queryset, *, limit: int) -> list[dict[str, Any]]:
             "amount": _money(payout.amount),
             "currency": payout.currency,
             "destination_masked": payout.destination_masked,
+            "payout_eligibility": _payout_eligibility_payload(payout),
             "created_at": payout.created_at,
             "updated_at": payout.updated_at,
         }

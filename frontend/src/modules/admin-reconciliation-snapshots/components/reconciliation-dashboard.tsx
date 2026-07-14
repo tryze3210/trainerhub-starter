@@ -19,7 +19,20 @@ import type {
 } from '@/modules/admin-reconciliation-snapshots/api';
 
 export function label(value: string) {
-  return value.replaceAll('_', ' ');
+  const labels: Record<string, string> = {
+    access: 'Доступы',
+    async: 'Фоновые задачи',
+    billing: 'Оплаты',
+    entitlement: 'Доступы',
+    ledger: 'Реестр',
+    money: 'Деньги',
+    orders: 'Заказы',
+    payout: 'Выплаты',
+    payment: 'Платежи',
+    subscriptions: 'Подписки',
+    webhook: 'Вебхуки',
+  };
+  return labels[value] || value.replaceAll('_', ' ');
 }
 
 export function formatDate(value?: string | null) {
@@ -42,28 +55,29 @@ export function numberValue(value: unknown) {
 export function scalar(value: unknown, fallback = '—') {
   if (value === null || value === undefined || value === '') return fallback;
   if (typeof value === 'number') return value.toLocaleString('ru-RU');
-  if (typeof value === 'boolean') return value ? 'yes' : 'no';
-  if (Array.isArray(value)) return `${value.length} items`;
+  if (typeof value === 'boolean') return value ? 'да' : 'нет';
+  if (Array.isArray(value)) return `${value.length} шт.`;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
 
 export function statusTitle(status?: SnapshotStatus) {
-  if (!status) return 'Unknown';
-  if (status === 'ok') return 'OK';
-  if (status === 'degraded') return 'Degraded';
-  if (status === 'critical') return 'Critical';
-  if (status === 'missing') return 'Missing';
-  if (status === 'failed') return 'Failed';
+  if (!status) return 'Неизвестно';
+  if (status === 'ok') return 'В норме';
+  if (status === 'degraded') return 'Есть замечания';
+  if (status === 'warning') return 'Предупреждение';
+  if (status === 'critical') return 'Критично';
+  if (status === 'missing') return 'Нет данных';
+  if (status === 'failed') return 'Ошибка';
   return status;
 }
 
 export function sourceTitle(source?: SnapshotSource) {
-  if (!source) return 'Any source';
-  if (source === 'manual') return 'Manual';
-  if (source === 'scheduled') return 'Scheduled';
-  if (source === 'repair') return 'Repair';
-  if (source === 'ci') return 'CI';
+  if (!source) return 'Любой источник';
+  if (source === 'manual') return 'Ручной';
+  if (source === 'scheduled') return 'Плановый';
+  if (source === 'repair') return 'Исправление';
+  if (source === 'ci') return 'Автопроверка';
   return source;
 }
 
@@ -77,14 +91,22 @@ function directionHint(direction?: string) {
   if (direction === 'improved') return 'Проблем стало меньше';
   if (direction === 'worsened') return 'Проблем стало больше';
   if (direction === 'unchanged') return 'Количество проблем не изменилось';
-  if (direction === 'baseline') return 'Это базовый snapshot без сравнения';
-  return 'Сравнение рассчитано backend service';
+  if (direction === 'baseline') return 'Это базовый снимок без сравнения';
+  return 'Сравнение рассчитано сервером';
+}
+
+function directionTitle(direction?: string) {
+  if (direction === 'improved') return 'Улучшилось';
+  if (direction === 'worsened') return 'Ухудшилось';
+  if (direction === 'unchanged') return 'Без изменений';
+  if (direction === 'baseline') return 'Базовый снимок';
+  return direction || '—';
 }
 
 function badgeClass(status?: string) {
   if (status === 'ok' || status === 'improved') return 'badge success';
   if (status === 'critical' || status === 'failed' || status === 'worsened') return 'badge danger';
-  if (status === 'degraded') return 'badge warning';
+  if (status === 'degraded' || status === 'warning') return 'badge warning';
   return 'badge secondary';
 }
 
@@ -100,21 +122,21 @@ function lastSegment(id?: string | null) {
 
 function PanelHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: ReactNode }) {
   return (
-    <div className="row" style={{ alignItems: 'flex-start', marginBottom: 16 }}>
-      <div>
+    <div className="admin-snapshot-panel-header">
+      <div className="admin-snapshot-panel-copy">
         {eyebrow ? <span className="badge secondary">{eyebrow}</span> : null}
         <h2 style={{ marginTop: eyebrow ? 10 : 0 }}>{title}</h2>
         {description ? <p>{description}</p> : null}
       </div>
-      {action ? <div className="inline">{action}</div> : null}
+      {action ? <div className="admin-snapshot-panel-actions">{action}</div> : null}
     </div>
   );
 }
 
 function StatCard({ title, value, hint, badge }: { title: string; value: ReactNode; hint?: string; badge?: ReactNode }) {
   return (
-    <div className="card compact">
-      <div className="row" style={{ alignItems: 'flex-start' }}>
+    <div className="card compact admin-snapshot-stat">
+      <div className="admin-snapshot-stat-row">
         <div className="kpi">
           <small>{title}</small>
           <strong>{value}</strong>
@@ -133,20 +155,20 @@ function EmptyState({ children }: { children: ReactNode }) {
 function SectionMiniGrid({ sectionStatuses }: { sectionStatuses?: Record<string, SnapshotSectionStatus> }) {
   const rows = Object.entries(sectionStatuses || {});
   if (!rows.length) {
-    return <EmptyState>Section statuses отсутствуют в последнем snapshot.</EmptyState>;
+    return <EmptyState>Статусы разделов отсутствуют в последнем снимке.</EmptyState>;
   }
 
   return (
     <div className="grid-3">
       {rows.map(([sectionKey, section]) => (
         <div className="card compact shadow-none" key={sectionKey}>
-          <div className="row">
+          <div className="admin-snapshot-card-row">
             <strong>{label(sectionKey)}</strong>
             <span className={badgeClass(section.status)}>{statusTitle(section.status)}</span>
           </div>
           <small>
-            {formatNumber(section.issue_count ?? section.total_issues)} issues · {formatNumber(section.critical_count)} critical ·{' '}
-            {formatNumber(section.warning_count)} warning
+            {formatNumber(section.issue_count ?? section.total_issues)} проблем · {formatNumber(section.critical_count)} критично ·{' '}
+            {formatNumber(section.warning_count)} предупреждений
           </small>
         </div>
       ))}
@@ -174,17 +196,17 @@ export function ReconciliationHealthCard({
   return (
     <div className="card hero">
       <PanelHeader
-        eyebrow="Health summary"
-        title="Reconciliation health"
-        description="Короткая сводка последнего сохраненного snapshot и scheduled capture состояния."
-        action={current?.id ? <Link className="btn secondary sm" href={snapshotHref(current)}>Open snapshot</Link> : null}
+        eyebrow="Сводка состояния"
+        title="Состояние сверки"
+        description="Короткая сводка последнего сохраненного снимка и состояния запланированного захвата."
+        action={current?.id ? <Link className="btn secondary sm" href={snapshotHref(current)}>Открыть снимок</Link> : null}
       />
 
       <div className="grid-4">
-        <StatCard title="Status" value={statusTitle(status)} hint={formatDate(current?.generated_at || headline?.latest_generated_at)} badge={<span className={badgeClass(status)}>{statusTitle(status)}</span>} />
-        <StatCard title="Total issues" value={formatNumber(totalIssues)} hint={totalDelta !== undefined ? `${deltaLabel(totalDelta)} since previous` : 'latest snapshot'} />
-        <StatCard title="Critical" value={formatNumber(criticalCount)} hint={criticalDelta !== undefined ? `${deltaLabel(criticalDelta)} critical delta` : 'critical issues'} />
-        <StatCard title="Scheduled capture" value={schedule?.due ? 'Due' : 'Not due'} hint={schedule?.next_capture_due_at ? `next ${formatDate(schedule.next_capture_due_at)}` : schedule?.message || 'guarded by backend'} badge={<span className={badgeClass(schedule?.due ? 'degraded' : 'ok')}>{schedule?.due ? 'due' : 'ok'}</span>} />
+        <StatCard title="Статус" value={statusTitle(status)} hint={formatDate(current?.generated_at || headline?.latest_generated_at)} badge={<span className={badgeClass(status)}>{statusTitle(status)}</span>} />
+        <StatCard title="Всего проблем" value={formatNumber(totalIssues)} hint={totalDelta !== undefined ? `${deltaLabel(totalDelta)} к предыдущему` : 'последний снимок'} />
+        <StatCard title="Критично" value={formatNumber(criticalCount)} hint={criticalDelta !== undefined ? `${deltaLabel(criticalDelta)} критичных` : 'критичные проблемы'} />
+        <StatCard title="Плановый снимок" value={schedule?.due ? 'Пора создать' : 'Не требуется'} hint={schedule?.next_capture_due_at ? `следующий: ${formatDate(schedule.next_capture_due_at)}` : schedule?.message || 'контролируется сервером'} badge={<span className={badgeClass(schedule?.due ? 'degraded' : 'ok')}>{schedule?.due ? 'требуется' : 'в норме'}</span>} />
       </div>
 
       <div style={{ marginTop: 20 }}>
@@ -207,28 +229,28 @@ export function ReconciliationSnapshotTrend({ trend, metrics }: { trend?: Snapsh
   return (
     <div className="card">
       <PanelHeader
-        eyebrow="Trend"
-        title="Snapshot trend"
-        description="Динамика total/critical issues по последним manual, scheduled и repair snapshot'ам."
-        action={trend?.delta ? <span className={badgeClass(trend.delta.direction)}>{trend.delta.direction}</span> : null}
+        eyebrow="Динамика"
+        title="Динамика снимков"
+        description="Как менялось количество проблем по последним ручным, плановым и исправляющим снимкам."
+        action={trend?.delta ? <span className={badgeClass(trend.delta.direction)}>{directionTitle(trend.delta.direction)}</span> : null}
       />
 
       {!visiblePoints.length ? (
-        <EmptyState>Истории snapshot'ов пока нет. Создай manual snapshot или дождись scheduled capture.</EmptyState>
+        <EmptyState>Истории снимков пока нет. Создай ручной снимок или дождись запланированного захвата.</EmptyState>
       ) : (
         <div className="stack">
           {visiblePoints.map((point: SnapshotTrendPoint) => {
             const width = Math.max(4, Math.round((numberValue(point.total_issues) / maxIssues) * 100));
             return (
               <div className="card compact shadow-none" key={point.id}>
-                <div className="row">
+                <div className="admin-snapshot-card-row">
                   <div>
                     <strong>{formatDate(point.generated_at)}</strong>
                     <p>
-                      {sourceTitle(point.source)} · {statusTitle(point.status)} · critical {formatNumber(point.critical_count)}
+                      {sourceTitle(point.source)} · {statusTitle(point.status)} · критично: {formatNumber(point.critical_count)}
                     </p>
                   </div>
-                  <strong>{formatNumber(point.total_issues)} issues</strong>
+                  <strong>{formatNumber(point.total_issues)} проблем</strong>
                 </div>
                 <div style={{ height: 10, borderRadius: 999, background: 'var(--bg-muted)', overflow: 'hidden' }}>
                   <div style={{ width: `${width}%`, height: '100%', borderRadius: 999, background: 'var(--primary)' }} />
@@ -248,38 +270,38 @@ export function ReconciliationRepairImpact({ metrics, repairSnapshots }: { metri
   return (
     <div className="card">
       <PanelHeader
-        eyebrow="Repair impact"
-        title="Repair effectiveness"
-        description="Показывает, помогают ли repair actions реально уменьшать число reconciliation проблем."
+        eyebrow="Исправления"
+        title="Эффективность исправлений"
+        description="Показывает, помогают ли исправляющие действия реально уменьшать число проблем сверки."
       />
 
       <div className="grid-4">
-        <StatCard title="Repair snapshots" value={formatNumber(repair?.total ?? repairSnapshots.length)} hint="source=repair" />
-        <StatCard title="Improved" value={formatNumber(repair?.improved)} hint="problem count decreased" badge={<span className="badge success">better</span>} />
-        <StatCard title="Worsened" value={formatNumber(repair?.worsened)} hint="problem count increased" badge={<span className="badge danger">risk</span>} />
-        <StatCard title="Unchanged" value={formatNumber(repair?.unchanged)} hint="no visible delta" />
+        <StatCard title="Снимки исправлений" value={formatNumber(repair?.total ?? repairSnapshots.length)} hint="созданы после исправлений" />
+        <StatCard title="Улучшилось" value={formatNumber(repair?.improved)} hint="проблем стало меньше" badge={<span className="badge success">лучше</span>} />
+        <StatCard title="Ухудшилось" value={formatNumber(repair?.worsened)} hint="проблем стало больше" badge={<span className="badge danger">риск</span>} />
+        <StatCard title="Без изменений" value={formatNumber(repair?.unchanged)} hint="видимой дельты нет" />
       </div>
 
       <div className="divider" />
 
       {!repairSnapshots.length ? (
-        <EmptyState>Repair snapshot'ов пока нет. Они появятся после audited repair action из reconciliation report.</EmptyState>
+        <EmptyState>Снимков исправлений пока нет. Они появятся после исправления из отчета сверки.</EmptyState>
       ) : (
         <div className="stack">
           {repairSnapshots.slice(0, 5).map((snapshot) => {
             const delta = snapshot.delta;
             return (
               <div className="card compact shadow-none" key={snapshot.id}>
-                <div className="row">
+                <div className="admin-snapshot-card-row">
                   <div>
-                    <strong>Repair snapshot {lastSegment(snapshot.id)}</strong>
-                    <p>{formatDate(snapshot.generated_at)} · correlation {snapshot.correlation_id || '—'}</p>
+                    <strong>Снимок исправления {lastSegment(snapshot.id)}</strong>
+                    <p>{formatDate(snapshot.generated_at)} · связка {snapshot.correlation_id || '—'}</p>
                   </div>
-                  <span className={badgeClass(delta?.direction)}>{delta?.direction || statusTitle(snapshot.status)}</span>
+                  <span className={badgeClass(delta?.direction)}>{delta ? directionTitle(delta.direction) : statusTitle(snapshot.status)}</span>
                 </div>
                 <small>
-                  total {formatNumber(snapshot.total_issues)} · critical {formatNumber(snapshot.critical_count)}
-                  {delta ? ` · delta ${deltaLabel(delta.total_issues_delta)}` : ''}
+                  всего {formatNumber(snapshot.total_issues)} · критично {formatNumber(snapshot.critical_count)}
+                  {delta ? ` · изменение ${deltaLabel(delta.total_issues_delta)}` : ''}
                 </small>
               </div>
             );
@@ -291,14 +313,14 @@ export function ReconciliationRepairImpact({ metrics, repairSnapshots }: { metri
 }
 
 function issueTitle(issue: SnapshotCompareIssue) {
-  return issue.message || issue.code || issue.key || `${issue.entity_type || 'entity'}:${issue.entity_id || 'unknown'}`;
+  return issue.message || issue.code || issue.key || `${label(String(issue.entity_type || 'сущность'))}:${issue.entity_id || 'неизвестно'}`;
 }
 
 function IssueList({ title, rows, empty }: { title: string; rows?: SnapshotCompareIssue[]; empty: string }) {
   const list = rows || [];
   return (
     <div className="card compact shadow-none">
-      <div className="row">
+      <div className="admin-snapshot-card-row">
         <h3>{title}</h3>
         <span className="badge secondary">{list.length}</span>
       </div>
@@ -311,7 +333,7 @@ function IssueList({ title, rows, empty }: { title: string; rows?: SnapshotCompa
               <strong>{issueTitle(issue)}</strong>
               <small>
                 {issue.section ? `${issue.section} · ` : ''}
-                {issue.severity || issue.current_severity || issue.previous_severity || 'severity n/a'} · {issue.entity_type || 'entity'}:{issue.entity_id || '—'}
+                {statusTitle(String(issue.severity || issue.current_severity || issue.previous_severity || 'unknown'))} · {label(String(issue.entity_type || 'сущность'))}:{issue.entity_id || '—'}
               </small>
             </li>
           ))}
@@ -322,10 +344,10 @@ function IssueList({ title, rows, empty }: { title: string; rows?: SnapshotCompa
 }
 
 export function ReconciliationComparePanel({ snapshots }: { snapshots: ReconciliationSnapshot[] }) {
-  const defaultCurrent = snapshots[0]?.id || '';
-  const defaultBaseline = snapshots[1]?.id || '';
-  const [baselineId, setBaselineId] = useState(defaultBaseline);
-  const [currentId, setCurrentId] = useState(defaultCurrent);
+  const defaultCurrentSnapshot = snapshots[0]?.id || '';
+  const defaultBaselineSnapshot = snapshots[1]?.id || '';
+  const [baselineId, setBaselineId] = useState(defaultBaselineSnapshot);
+  const [currentId, setCurrentId] = useState(defaultCurrentSnapshot);
   const [compare, setCompare] = useState<SnapshotCompareResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -341,7 +363,7 @@ export function ReconciliationComparePanel({ snapshots }: { snapshots: Reconcili
         })
       );
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'Не удалось сравнить snapshot\'ы');
+      setMsg(error instanceof Error ? error.message : 'Не удалось сравнить снимки');
     } finally {
       setIsLoading(false);
     }
@@ -353,17 +375,17 @@ export function ReconciliationComparePanel({ snapshots }: { snapshots: Reconcili
   return (
     <div className="card">
       <PanelHeader
-        eyebrow="Compare"
-        title="Snapshot comparison"
-        description="Сравнение baseline/current показывает resolved, added и persisted issues после repair или scheduled capture."
-        action={<button className="btn sm" type="button" disabled={isLoading || snapshots.length < 2} onClick={() => void runCompare()}>{isLoading ? 'Comparing...' : 'Compare'}</button>}
+        eyebrow="Сравнить"
+        title="Сравнение снимков"
+        description="Выберите два снимка: система покажет, какие проблемы исчезли, появились или остались."
+        action={<button className="btn sm" type="button" disabled={isLoading || snapshots.length < 2} onClick={() => void runCompare()}>{isLoading ? 'Сравниваем...' : 'Сравнить'}</button>}
       />
 
       <div className="form-row">
         <label className="form-group">
-          <span className="label">Baseline</span>
+          <span className="label">Базовый снимок</span>
           <select className="select" value={baselineId} onChange={(event) => setBaselineId(event.target.value)}>
-            <option value="">Auto baseline</option>
+            <option value="">Авто: базовый</option>
             {snapshots.map((snapshot) => (
               <option key={snapshot.id} value={snapshot.id}>
                 {formatDate(snapshot.generated_at)} · {sourceTitle(snapshot.source)} · {lastSegment(snapshot.id)}
@@ -372,9 +394,9 @@ export function ReconciliationComparePanel({ snapshots }: { snapshots: Reconcili
           </select>
         </label>
         <label className="form-group">
-          <span className="label">Current</span>
+          <span className="label">Текущий снимок</span>
           <select className="select" value={currentId} onChange={(event) => setCurrentId(event.target.value)}>
-            <option value="">Auto current</option>
+            <option value="">Авто: текущий</option>
             {snapshots.map((snapshot) => (
               <option key={snapshot.id} value={snapshot.id}>
                 {formatDate(snapshot.generated_at)} · {sourceTitle(snapshot.source)} · {lastSegment(snapshot.id)}
@@ -389,19 +411,19 @@ export function ReconciliationComparePanel({ snapshots }: { snapshots: Reconcili
       {compare ? (
         <>
           <div className="grid-4" style={{ marginTop: 16 }}>
-            <StatCard title="Direction" value={direction || '—'} hint={directionHint(direction)} badge={direction ? <span className={badgeClass(direction)}>{direction}</span> : null} />
-            <StatCard title="Issue delta" value={deltaLabel(summary?.total_issues_delta)} hint="current - baseline" />
-            <StatCard title="Resolved" value={formatNumber(summary?.resolved_count ?? compare.resolved?.length)} hint="disappeared issues" />
-            <StatCard title="Added" value={formatNumber(summary?.added_count ?? compare.added?.length)} hint="new issues" />
+            <StatCard title="Итог" value={directionTitle(direction)} hint={directionHint(direction)} badge={direction ? <span className={badgeClass(direction)}>{directionTitle(direction)}</span> : null} />
+            <StatCard title="Дельта проблем" value={deltaLabel(summary?.total_issues_delta)} hint="текущий - базовый" />
+            <StatCard title="Закрыто" value={formatNumber(summary?.resolved_count ?? compare.resolved?.length)} hint="исчезнувшие проблемы" />
+            <StatCard title="Добавлено" value={formatNumber(summary?.added_count ?? compare.added?.length)} hint="новые проблемы" />
           </div>
           <div className="grid-3" style={{ marginTop: 16 }}>
-            <IssueList title="Resolved" rows={compare.resolved} empty="Новых resolved issues нет." />
-            <IssueList title="Added" rows={compare.added} empty="Новых added issues нет." />
-            <IssueList title="Persisted" rows={compare.persisted} empty="Persisted issues нет." />
+            <IssueList title="Закрыто" rows={compare.resolved} empty="Закрытых проблем нет." />
+            <IssueList title="Добавлено" rows={compare.added} empty="Новых проблем нет." />
+            <IssueList title="Осталось" rows={compare.persisted} empty="Повторяющихся проблем нет." />
           </div>
         </>
       ) : (
-        <EmptyState>Выбери два snapshot'а и нажми Compare. Если поля пустые, backend сравнит последние два snapshot'а автоматически.</EmptyState>
+        <EmptyState>Выберите два снимка и нажмите «Сравнить». Если оставить поля пустыми, сервер сравнит последние два снимка автоматически.</EmptyState>
       )}
     </div>
   );
@@ -419,7 +441,7 @@ function retentionCount(value: SnapshotRetentionResponse | null, key: 'candidate
 export function ReconciliationRetentionPanel({ initialPreview, onChanged }: { initialPreview?: SnapshotRetentionResponse | null; onChanged: () => void }) {
   const [source, setSource] = useState('scheduled');
   const [keepMin, setKeepMin] = useState(5);
-  const [confirmPrune, setConfirmPrune] = useState(false);
+  const [confirmОчистить, setConfirmОчистить] = useState(false);
   const [preview, setPreview] = useState<SnapshotRetentionResponse | null>(initialPreview || null);
   const [isLoading, setIsLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -436,15 +458,15 @@ export function ReconciliationRetentionPanel({ initialPreview, onChanged }: { in
       setMsg('');
       setPreview(await adminReconciliationSnapshotsApi.pruneRetention(payload));
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'Не удалось посчитать retention preview');
+      setMsg(error instanceof Error ? error.message : 'Не удалось посчитать предпросмотр очистки');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const runPrune = async () => {
-    if (!confirmPrune) {
-      setMsg('Подтверди prune: это удалит старые snapshot records согласно retention policy.');
+  const runОчистить = async () => {
+    if (!confirmОчистить) {
+      setMsg('Подтвердите очистку: старые снимки будут удалены по правилам хранения.');
       return;
     }
 
@@ -453,11 +475,11 @@ export function ReconciliationRetentionPanel({ initialPreview, onChanged }: { in
       setMsg('');
       const result = await adminReconciliationSnapshotsApi.pruneRetention({ ...payload, dry_run: false });
       setPreview(result);
-      setMsg(`Retention prune завершён. Deleted: ${retentionCount(result, 'deleted_count')}.`);
-      setConfirmPrune(false);
+      setMsg(`Очистка завершена. Удалено: ${retentionCount(result, 'deleted_count')}.`);
+      setConfirmОчистить(false);
       onChanged();
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'Retention prune failed');
+      setMsg(error instanceof Error ? error.message : 'Не удалось выполнить очистку');
     } finally {
       setIsLoading(false);
     }
@@ -466,30 +488,30 @@ export function ReconciliationRetentionPanel({ initialPreview, onChanged }: { in
   return (
     <div className="card">
       <PanelHeader
-        eyebrow="Retention"
-        title="Snapshot retention"
-        description="Безопасный preview/prune для ограничения роста таблицы reconciliation snapshots."
+        eyebrow="Хранение"
+        title="Хранение снимков"
+        description="Удаляет старые служебные снимки и оставляет последние записи для проверки истории."
         action={
           <div className="inline">
-            <button className="btn secondary sm" type="button" disabled={isLoading} onClick={() => void runPreview()}>{isLoading ? 'Loading...' : 'Preview'}</button>
-            <button className="btn danger sm" type="button" disabled={isLoading} onClick={() => void runPrune()}>Prune</button>
+            <button className="btn secondary sm" type="button" disabled={isLoading} onClick={() => void runPreview()}>{isLoading ? 'Загрузка...' : 'Проверить'}</button>
+            <button className="btn danger sm" type="button" disabled={isLoading} onClick={() => void runОчистить()}>Очистить</button>
           </div>
         }
       />
 
       <div className="form-row">
         <label className="form-group">
-          <span className="label">Source</span>
+          <span className="label">Источник</span>
           <select className="select" value={source} onChange={(event) => setSource(event.target.value)}>
-            <option value="">All sources</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="repair">Repair</option>
-            <option value="manual">Manual</option>
-            <option value="ci">CI</option>
+            <option value="">Все источники</option>
+            <option value="scheduled">Плановый</option>
+            <option value="repair">Исправление</option>
+            <option value="manual">Ручной</option>
+            <option value="ci">Автопроверка</option>
           </select>
         </label>
         <label className="form-group">
-          <span className="label">Keep min per source</span>
+          <span className="label">Минимум на источник</span>
           <select className="select" value={keepMin} onChange={(event) => setKeepMin(Number(event.target.value))}>
             {[3, 5, 10, 20].map((value) => (
               <option key={value} value={value}>{value}</option>
@@ -499,16 +521,16 @@ export function ReconciliationRetentionPanel({ initialPreview, onChanged }: { in
       </div>
 
       <label className="checkbox-inline" style={{ marginTop: 12 }}>
-        <input type="checkbox" checked={confirmPrune} onChange={(event) => setConfirmPrune(event.target.checked)} />
-        Подтверждаю prune старых snapshot records по retention policy
+        <input type="checkbox" checked={confirmОчистить} onChange={(event) => setConfirmОчистить(event.target.checked)} />
+        Подтверждаю удаление старых снимков по правилам хранения
       </label>
 
       {msg ? <div className="card warning compact" style={{ marginTop: 12 }}>{msg}</div> : null}
 
       <div className="grid-3" style={{ marginTop: 16 }}>
-        <StatCard title="Candidates" value={formatNumber(retentionCount(preview, 'candidate_count'))} hint="will be deleted on prune" />
-        <StatCard title="Protected" value={formatNumber(retentionCount(preview, 'protected_count'))} hint="latest records kept" />
-        <StatCard title="Deleted" value={formatNumber(retentionCount(preview, 'deleted_count'))} hint={preview?.dry_run === false ? 'last prune result' : 'dry-run mode'} />
+        <StatCard title="К удалению" value={formatNumber(retentionCount(preview, 'candidate_count'))} hint="будут удалены при очистке" />
+        <StatCard title="Защищено" value={formatNumber(retentionCount(preview, 'protected_count'))} hint="последние записи сохранены" />
+        <StatCard title="Удалено" value={formatNumber(retentionCount(preview, 'deleted_count'))} hint={preview?.dry_run === false ? 'результат последней очистки' : 'режим проверки'} />
       </div>
     </div>
   );
@@ -517,20 +539,20 @@ export function ReconciliationRetentionPanel({ initialPreview, onChanged }: { in
 export function SnapshotHistoryPanel({ snapshots }: { snapshots: ReconciliationSnapshot[] }) {
   return (
     <div className="card">
-      <PanelHeader eyebrow="History" title="Recent snapshots" description="Последние snapshot records с быстрым переходом в admin entity detail." />
+      <PanelHeader eyebrow="История" title="Последние снимки" description="Последние сохраненные состояния сверки. Открывайте запись только если нужно посмотреть подробности." />
       {!snapshots.length ? (
-        <EmptyState>Snapshot history пустая. Нажми Capture snapshot, чтобы сохранить первое состояние.</EmptyState>
+        <EmptyState>История снимков пустая. Нажмите «Создать снимок», чтобы сохранить первое состояние.</EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th>Generated</th>
-                <th>Source</th>
-                <th>Status</th>
-                <th>Issues</th>
-                <th>Critical</th>
-                <th>Correlation</th>
+                <th>Создано</th>
+                <th>Источник</th>
+                <th>Статус</th>
+                <th>Проблемы</th>
+                <th>Критично</th>
+                <th>Связка</th>
                 <th />
               </tr>
             </thead>
@@ -543,7 +565,7 @@ export function SnapshotHistoryPanel({ snapshots }: { snapshots: ReconciliationS
                   <td>{formatNumber(snapshot.total_issues)}</td>
                   <td>{formatNumber(snapshot.critical_count)}</td>
                   <td>{snapshot.correlation_id || '—'}</td>
-                  <td><Link className="btn secondary sm" href={snapshotHref(snapshot)}>Open</Link></td>
+                  <td><Link className="btn secondary sm" href={snapshotHref(snapshot)}>Открыть</Link></td>
                 </tr>
               ))}
             </tbody>

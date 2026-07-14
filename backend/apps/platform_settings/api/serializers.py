@@ -16,3 +16,15 @@ class PaymentProviderConfigSerializer(serializers.Serializer):
 class PaymentProviderSettingsSerializer(serializers.Serializer):
     default_provider = serializers.CharField(default='mock')
     providers = PaymentProviderConfigSerializer(many=True)
+
+
+class PublicCheckoutPaymentProviderSerializer(serializers.Serializer):
+    provider = serializers.CharField()
+    display_name = serializers.CharField(required=False, allow_blank=True, default='')
+    environment = serializers.CharField(required=False, allow_blank=True, default='')
+    public_key = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class PublicCheckoutPaymentSettingsSerializer(serializers.Serializer):
+    default_provider = serializers.CharField(required=False, allow_blank=True, default='')
+    providers = PublicCheckoutPaymentProviderSerializer(many=True)

@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+  <body>
+    <p>Hello,</p>
+    <p>Your finance document <strong>{{ document.document_number }}</strong> is ready.</p>
+    <ul>
+      <li>Document type: {{ document.document_type }}</li>
+      <li>Period: {{ document.period_start }} - {{ document.period_end }}</li>
+    </ul>
+    <p><a href="{{ download_url }}">Download document</a></p>
+    <p>TrainerHub</p>
+  </body>
+</html>

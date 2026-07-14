@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.conf import settings
 from rest_framework import serializers
 
 from apps.payouts.models import BalanceEntry, PayoutRequest, TrainerWallet
@@ -33,7 +34,15 @@ class TrainerBalanceSerializer(serializers.Serializer):
         return Decimal("100.00")
 
     def get_can_request_payout(self, obj: TrainerWallet):
-        return Decimal(obj.available_amount or 0) >= Decimal("100.00")
+        has_minimum_balance = Decimal(obj.available_amount or 0) >= Decimal("100.00")
+        if not has_minimum_balance:
+            return False
+        if not bool(getattr(settings, "PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY", False)):
+            return True
+
+        from apps.legal_compliance.services.eligibility import PayoutEligibilityService
+
+        return PayoutEligibilityService.evaluate_for_trainer(obj.trainer.user).is_eligible
 
 
 class PayoutLedgerEntrySerializer(serializers.Serializer):
@@ -69,6 +78,7 @@ class PayoutRequestSerializer(serializers.Serializer):
     approved_at = serializers.SerializerMethodField()
     processed_at = serializers.SerializerMethodField()
     rejected_reason = serializers.SerializerMethodField()
+    payout_eligibility = serializers.SerializerMethodField()
     metadata = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
@@ -94,6 +104,18 @@ class PayoutRequestSerializer(serializers.Serializer):
 
     def get_rejected_reason(self, obj: PayoutRequest):
         return (obj.destination_json or {}).get("rejected_reason", "")
+
+    def get_payout_eligibility(self, obj: PayoutRequest):
+        from apps.legal_compliance.services.eligibility import PayoutEligibilityService
+
+        result = PayoutEligibilityService.evaluate_for_trainer(obj.trainer.user)
+        return {
+            "is_eligible": result.is_eligible,
+            "block_reason": result.block_reason,
+            "has_active_agreement": result.has_active_agreement,
+            "has_verified_payout_profile": result.has_verified_payout_profile,
+            "kyc_status": result.kyc_status,
+        }
 
     def get_metadata(self, obj: PayoutRequest):
         return obj.destination_json or {}

@@ -103,6 +103,9 @@ def test_admin_can_read_payout_ops_summary(api_client, admin_user, payout_datase
     assert payload["wallets"]["locked_amount"] == "250.00"
     assert payload["reconciliation"]["status"] in {"healthy", "attention_required"}
     assert len(payload["recent_payouts"]) == 2
+    assert "payout_eligibility" in payload["recent_payouts"][0]
+    assert payload["recent_payouts"][0]["payout_eligibility"]["is_eligible"] is False
+    assert "kyc_profile_missing" in payload["recent_payouts"][0]["payout_eligibility"]["block_reason"]
 
 
 @pytest.mark.django_db

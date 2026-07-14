@@ -1,21 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../.."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PYTHON_BIN="${PYTHON:-$ROOT_DIR/backend/.venv/bin/python}"
 
-python -m compileall backend
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1 || ! "$PYTHON_BIN" --version >/dev/null 2>&1; then
+  PYTHON_BIN="${PYTHON_FALLBACK:-python}"
+fi
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1 || ! "$PYTHON_BIN" --version >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+fi
+
+cd "$ROOT_DIR"
+export DATABASE_URL="${QUALITY_DATABASE_URL:-}"
+
+"$PYTHON_BIN" -m compileall -q backend/apps backend/common backend/config backend/scripts backend/manage.py
 
 (
   cd backend
-  python manage.py check
-  python manage.py makemigrations --check --dry-run
-  python manage.py check_production_readiness --json --fail-on-degraded
-  pytest \
+  "$PYTHON_BIN" manage.py check
+  "$PYTHON_BIN" manage.py makemigrations --check --dry-run
+  "$PYTHON_BIN" manage.py check_production_readiness --summary-only --fail-on-degraded
+  bash "$ROOT_DIR/scripts/test/run_backend_contracts.sh"
+  "$PYTHON_BIN" -m pytest \
     tests/test_notifications_v91_domain_triggers.py \
     tests/test_customer_crm_v92.py \
     tests/test_booking_v93_schedule_waitlist.py \
     tests/test_booking_v94_attendance_checkin.py \
     tests/test_production_readiness_v95.py \
+    tests/test_auth_login_audit.py \
     tests/test_course_program_builder_v97.py \
     tests/test_content_access_runtime_v98.py \
     tests/test_video_delivery_hardening_v99.py \
@@ -42,6 +56,5 @@ python -m compileall backend
 
 (
   cd frontend
-  npm run typecheck
-  npm run build
+  bash "$ROOT_DIR/scripts/quality/frontend_check.sh"
 )

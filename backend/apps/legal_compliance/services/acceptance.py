@@ -18,7 +18,28 @@ DOCUMENT_CONSENT_TYPE = {
 
 class LegalAcceptanceService:
     @classmethod
+    def latest_active_document(cls, *, doc_type: str) -> LegalDocumentTemplate | None:
+        return (
+            LegalDocumentTemplate.objects.filter(doc_type=doc_type, is_active=True)
+            .order_by('-published_at', '-created_at')
+            .first()
+        )
+
+    @classmethod
+    def active_current_documents(cls) -> list[LegalDocumentTemplate]:
+        documents = []
+        for doc_type, _label in LegalDocumentTemplate.DOC_CHOICES:
+            document = cls.latest_active_document(doc_type=doc_type)
+            if document:
+                documents.append(document)
+        return documents
+
+    @classmethod
     def accept_document(cls, *, user, actor_type: str, document: LegalDocumentTemplate, ip_address=None, user_agent='', source='api'):
+        latest_document = cls.latest_active_document(doc_type=document.doc_type)
+        if not latest_document or latest_document.id != document.id:
+            raise ValueError('Only the latest active legal document version can be accepted.')
+
         existing = LegalAcceptanceSnapshot.objects.filter(
             user=user,
             actor_type=actor_type,
@@ -63,11 +84,7 @@ class LegalAcceptanceService:
             required = [*required, LegalDocumentTemplate.DOC_TRAINER_AGREEMENT]
         documents = []
         for doc_type in required:
-            document = (
-                LegalDocumentTemplate.objects.filter(doc_type=doc_type, is_active=True)
-                .order_by('-published_at', '-created_at')
-                .first()
-            )
+            document = cls.latest_active_document(doc_type=doc_type)
             if document:
                 documents.append(document)
         return documents

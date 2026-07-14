@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { adminEntityDetailsApi, adminEntityHref } from '@/modules/admin-entity-details/api';
 import type { AdminEntityActionResult, AdminEntityDetail } from '@/modules/admin-entity-details/api';
 
@@ -83,7 +84,7 @@ function JsonBlock({ title, value }: { title: string; value: unknown }) {
       {json ? (
         <pre style={{ overflowX: 'auto', whiteSpace: 'pre-wrap', marginTop: 16 }}>{json}</pre>
       ) : (
-        <p className="muted" style={{ marginTop: 16 }}>Нет JSON payload.</p>
+        <p className="muted" style={{ marginTop: 16 }}>Нет JSON-payload.</p>
       )}
     </div>
   );
@@ -113,7 +114,7 @@ function EntityActions({
   if (!isOutbox && !isWebhook && !isRiskHold) {
     return (
       <div className="card">
-        <h2 className="title-md">Actions</h2>
+        <h2 className="title-md">Действия</h2>
         <p className="muted" style={{ marginTop: 12 }}>
           Для этого типа сущности операторские действия не предусмотрены. Используй связанные сущности или audit feed.
         </p>
@@ -123,15 +124,15 @@ function EntityActions({
 
   return (
     <div className="card">
-      <h2 className="title-md">Actions</h2>
+      <h2 className="title-md">Действия</h2>
       <div className="stack" style={{ gap: 12, marginTop: 16 }}>
         {isOutbox ? (
           <>
             <div className="list-item">
               <span>
-                <strong>Retry outbox message</strong>
+                <strong>Повторить outbox-сообщение</strong>
                 <br />
-                <span className="muted">Вернуть сообщение в pending и сбросить attempts.</span>
+                <span className="muted">Вернуть сообщение в ожидание и сбросить попытки.</span>
               </span>
               <button
                 className="button"
@@ -144,9 +145,9 @@ function EntityActions({
             </div>
             <div className="list-item">
               <span>
-                <strong>Mark outbox dead</strong>
+                <strong>Пометить outbox как необрабатываемый</strong>
                 <br />
-                <span className="muted">Пометить сообщение как dead с причиной оператора.</span>
+                <span className="muted">Пометить сообщение как необрабатываемое с причиной оператора.</span>
               </span>
               <button
                 className="button secondary"
@@ -167,9 +168,9 @@ function EntityActions({
         {isWebhook ? (
           <div className="list-item">
             <span>
-              <strong>Reprocess payment webhook</strong>
+              <strong>Повторно обработать платежный вебхук</strong>
               <br />
-              <span className="muted">Повторно прогнать сохраненный webhook через payment lifecycle без проверки подписи.</span>
+              <span className="muted">Повторно прогнать сохраненный вебхук через жизненный цикл платежа без проверки подписи.</span>
             </span>
             <button
               className="button"
@@ -190,7 +191,7 @@ function EntityActions({
         {isRiskHold ? (
           <div className="list-item">
             <span>
-              <strong>Release risk hold</strong>
+              <strong>Снять риск-холд</strong>
               <br />
               <span className="muted">Вернуть заблокированную сумму тренеру по payment_id: {paymentId || '—'}.</span>
             </span>
@@ -218,7 +219,7 @@ export default function AdminEntityDetailPage() {
   const entityType = String(params?.entityType || '');
   const entityId = String(params?.entityId || '');
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [detail, setDetail] = useState<AdminEntityDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -267,23 +268,23 @@ export default function AdminEntityDetailPage() {
   }, [detail]);
 
   return (
-    <ProtectedPage title="Admin entity detail" description="Детальная карточка операционной сущности: payment, webhook, outbox, audit, payout ledger или moderation case.">
+    <ProtectedPage title="Детали сущности" description="Детальная карточка операционной сущности: платеж, вебхук, outbox, аудит, реестр выплат или кейс модерации.">
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="card dark">
             <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
               <div className="stack" style={{ gap: 10 }}>
-                <span className="badge secondary">Entity detail</span>
+                <span className="badge secondary">Детали сущности</span>
                 <h1 className="title-lg">{detail?.title || `${entityType}:${entityId}`}</h1>
                 <p className="lead">
                   {detail ? `${detail.entity_type}:${detail.entity_id}` : `${entityType}:${entityId}`}
                 </p>
                 <div className="inline" style={{ flexWrap: 'wrap' }}>
-                  <Link href={entityBackLink(detail?.entity_type || entityType)} className="button secondary">Back</Link>
-                  <Link href="/admin/operations" className="button ghost">Operations</Link>
-                  <Link href="/admin/audit" className="button ghost">Audit</Link>
+                  <Link href={entityBackLink(detail?.entity_type || entityType)} className="button secondary">Назад</Link>
+                  <Link href="/admin/operations" className="button ghost">Операции</Link>
+                  <Link href="/admin/audit" className="button ghost">Аудит</Link>
                   <button className="button" type="button" disabled={loading || actionLoading} onClick={() => void load()}>
                     {loading ? 'Refreshing...' : 'Refresh'}
                   </button>
@@ -291,7 +292,7 @@ export default function AdminEntityDetailPage() {
               </div>
               <div className="card" style={{ minWidth: 220 }}>
                 <div className="kpi">
-                  <span className="muted">Status</span>
+                  <span className="muted">Статус</span>
                   <strong>{detail?.status || '—'}</strong>
                   <small className="muted">{detail?.entity_type || entityType}</small>
                 </div>
@@ -301,7 +302,7 @@ export default function AdminEntityDetailPage() {
 
           {msg ? <div className="card error">{msg}</div> : null}
           {actionMsg ? <div className="card">{actionMsg}</div> : null}
-          {!detail && !msg ? <div className="card">Загрузка entity detail...</div> : null}
+          {!detail && !msg ? <div className="card">Загрузка деталей сущности...</div> : null}
 
           {detail ? (
             <>
@@ -309,14 +310,14 @@ export default function AdminEntityDetailPage() {
 
               <div className="grid-2">
                 <div className="card">
-                  <h2 className="title-md">Primary fields</h2>
+                  <h2 className="title-md">Основные поля</h2>
                   <div style={{ marginTop: 16 }}>
                     <KeyValueRows data={detail.primary} />
                   </div>
                 </div>
 
                 <div className="card">
-                  <h2 className="title-md">System fields</h2>
+                  <h2 className="title-md">Системные поля</h2>
                   <div style={{ marginTop: 16 }}>
                     <KeyValueRows data={rawSummary} />
                   </div>
@@ -324,7 +325,7 @@ export default function AdminEntityDetailPage() {
               </div>
 
               <div className="card">
-                <h2 className="title-md">Relationships</h2>
+                <h2 className="title-md">Связи</h2>
                 <div className="stack" style={{ gap: 10, marginTop: 16 }}>
                   {detail.relationships.length === 0 ? <p className="muted">Связанных сущностей нет.</p> : null}
                   {detail.relationships.map((relationship) => {
@@ -336,7 +337,7 @@ export default function AdminEntityDetailPage() {
                           <br />
                           <span className="muted">{relationship.entity_type}:{relationship.entity_id}</span>
                         </span>
-                        <Link href={href} className="button secondary">Open</Link>
+                        <Link href={href} className="button secondary">Открыть</Link>
                       </div>
                     );
                   })}
@@ -344,8 +345,8 @@ export default function AdminEntityDetailPage() {
               </div>
 
               <div className="grid-2">
-                <JsonBlock title="Payload / context" value={detail.payload} />
-                <JsonBlock title="Raw object" value={detail.raw} />
+                <JsonBlock title="Payload / контекст" value={detail.payload} />
+                <JsonBlock title="Исходный объект" value={detail.raw} />
               </div>
             </>
           ) : null}

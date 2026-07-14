@@ -4,6 +4,9 @@ from apps.reviews.models import Review
 from apps.trainer_profiles.models import TrainerPublicProfile
 
 
+DEFAULT_TRAINER_AVATAR_URL = ''
+
+
 def _trainer_rating(profile: TrainerPublicProfile) -> tuple[float, int]:
     target_ids = [str(x.id) for x in PublishedVideo.objects.filter(trainer_profile=profile).only('id')]
     target_ids += [str(x.id) for x in PublishedProgram.objects.filter(trainer_profile=profile).only('id')]
@@ -28,7 +31,7 @@ def _serialize(profile: TrainerPublicProfile) -> dict:
         'display_name': profile.display_name,
         'headline': profile.headline,
         'bio': profile.bio,
-        'avatar_url': profile.avatar_url or 'https://cdn.example.com/placeholder-trainer.jpg',
+        'avatar_url': profile.avatar_url or DEFAULT_TRAINER_AVATAR_URL,
         'specialties': profile.specialties,
         'languages': profile.languages,
         'rating': rating,

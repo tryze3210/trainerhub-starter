@@ -13,17 +13,15 @@ def test_v116_production_gate_script_contains_required_checks():
     script = _read("scripts/ci/production_gate.sh")
 
     required_fragments = [
-        "python -m compileall backend",
-        "python manage.py check",
-        "python manage.py check --deploy --fail-level WARNING",
-        "python manage.py makemigrations --check --dry-run",
-        "pytest",
-        "pytest tests/contracts",
-        "python manage.py check_production_readiness --json --fail-on-degraded",
-        "python -m pip check",
-        "npm run typecheck",
-        "npm run build",
-        "npm run test:contracts",
+        '"$PYTHON_BIN" -m compileall -q backend/apps backend/common backend/config backend/scripts backend/manage.py',
+        '"$PYTHON_BIN" manage.py check',
+        '"$PYTHON_BIN" manage.py check --deploy --fail-level WARNING',
+        '"$PYTHON_BIN" manage.py makemigrations --check --dry-run',
+        '"$PYTHON_BIN" -m pytest',
+        '"$PYTHON_BIN" -m pytest tests/contracts',
+        '"$PYTHON_BIN" manage.py check_production_readiness --summary-only --fail-on-degraded',
+        '"$PYTHON_BIN" -m pip check',
+        'bash "$ROOT_DIR/scripts/quality/frontend_check.sh"',
         "npm audit --audit-level=high",
     ]
     for fragment in required_fragments:
@@ -42,10 +40,14 @@ def test_v116_ci_workflow_requires_production_gate():
 
     assert "production-gate:" in workflow
     assert "needs: [backend-quality, frontend-build, launch-hardening]" in workflow
+    assert "Run backend contract tests" in workflow
+    assert "scripts/test/run_backend_contracts.sh" in workflow
     assert "bash scripts/ci/production_gate.sh" in workflow
 
 
 def test_v116_launch_gate_includes_production_gate_contract_test():
     script = _read("scripts/ci/launch_gate.sh")
 
+    assert "tests/test_auth_login_audit.py" in script
     assert "tests/test_ci_cd_production_gate_v116.py" in script
+    assert 'bash "$ROOT_DIR/scripts/test/run_backend_contracts.sh"' in script

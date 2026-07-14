@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { adminReconciliationApi } from '@/modules/admin-reconciliation/api';
 import type {
   AdminReconciliationReport,
@@ -43,7 +44,7 @@ function formatDate(value?: string | null) {
 function statusTitle(status: ReconciliationStatus) {
   if (status === 'ok') return 'OK';
   if (status === 'degraded') return 'Degraded';
-  if (status === 'critical') return 'Critical';
+  if (status === 'critical') return 'Критично';
   return status;
 }
 
@@ -216,14 +217,14 @@ function RepairResultBlock({ result }: { result?: ReconciliationRepairResult | n
           <span className="muted">{result.action} · changed: {result.changed ? 'yes' : 'no'}</span>
         </div>
         <div className="inline" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {result.audit_event_href ? <Link href={result.audit_event_href} className="button secondary">Open audit event</Link> : null}
-          {result.entity_href ? <Link href={result.entity_href} className="button ghost">Open target</Link> : null}
+          {result.audit_event_href ? <Link href={result.audit_event_href} className="button secondary">Открыть событие аудита</Link> : null}
+          {result.entity_href ? <Link href={result.entity_href} className="button ghost">Открыть цель</Link> : null}
         </div>
       </div>
       <div className="grid-3" style={{ marginTop: 14 }}>
-        <div className="list-item"><span className="muted">Audit event</span><strong>{result.audit_event_id || '—'}</strong></div>
-        <div className="list-item"><span className="muted">Target</span><strong>{result.entity_type}:{result.entity_id}</strong></div>
-        <div className="list-item"><span className="muted">Recorded</span><strong>{formatDate(result.audit?.created_at || null)}</strong></div>
+        <div className="list-item"><span className="muted">Событие аудита</span><strong>{result.audit_event_id || '—'}</strong></div>
+        <div className="list-item"><span className="muted">Цель</span><strong>{result.entity_type}:{result.entity_id}</strong></div>
+        <div className="list-item"><span className="muted">Записано</span><strong>{formatDate(result.audit?.created_at || null)}</strong></div>
       </div>
       <EvidenceBlock evidence={result.result} />
     </div>
@@ -237,9 +238,9 @@ function LastRepairPanel({ result, onRefresh }: { result?: ReconciliationRepairR
       <div className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
         <div className="stack" style={{ gap: 8 }}>
           <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <Badge>last repair</Badge>
+            <Badge>последнее исправление</Badge>
             <Badge>{result.status}</Badge>
-            {result.changed ? <Badge>changed</Badge> : <Badge>no change</Badge>}
+            {result.changed ? <Badge>изменено</Badge> : <Badge>без изменений</Badge>}
           </div>
           <h2 className="title-md">{result.message}</h2>
           <p className="muted">
@@ -247,9 +248,9 @@ function LastRepairPanel({ result, onRefresh }: { result?: ReconciliationRepairR
           </p>
         </div>
         <div className="inline" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {result.audit_event_href ? <Link href={result.audit_event_href} className="button secondary">Audit event</Link> : null}
-          {result.entity_href ? <Link href={result.entity_href} className="button ghost">Target detail</Link> : null}
-          <button className="button" type="button" onClick={onRefresh}>Refresh report</button>
+          {result.audit_event_href ? <Link href={result.audit_event_href} className="button secondary">Событие аудита</Link> : null}
+          {result.entity_href ? <Link href={result.entity_href} className="button ghost">Детали цели</Link> : null}
+          <button className="button" type="button" onClick={onRefresh}>Обновить отчет</button>
         </div>
       </div>
     </div>
@@ -276,7 +277,7 @@ function IssueRepairActions({ issue, onDone }: { issue: SectionIssue; onDone: (r
   if (!options.length) {
     return (
       <div className="card" style={{ marginTop: 14 }}>
-        <strong>Repair action</strong>
+        <strong>Действие исправления</strong>
         <p className="muted" style={{ marginTop: 6 }}>
           Для этого типа расхождения пока нужен ручной разбор через detail page и audit trail.
         </p>
@@ -320,15 +321,15 @@ function IssueRepairActions({ issue, onDone }: { issue: SectionIssue; onDone: (r
     <div className="card" style={{ marginTop: 14 }}>
       <div className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
         <div className="stack" style={{ gap: 6 }}>
-          <strong>Audited repair</strong>
-          <span className="muted">Действие запишется в audit log как admin.reconciliation.*</span>
+          <strong>Исправление с аудитом</strong>
+          <span className="muted">Действие запишется в журнал аудита как admin.reconciliation.*</span>
         </div>
         <Badge>{selected?.entity_type || issue.entity_type}</Badge>
       </div>
 
       <div className="grid-4" style={{ marginTop: 14 }}>
         <label className="stack" style={{ gap: 6 }}>
-          <span className="muted">Action</span>
+          <span className="muted">Действие</span>
           <select
             className="select"
             value={selectedAction}
@@ -349,24 +350,24 @@ function IssueRepairActions({ issue, onDone }: { issue: SectionIssue; onDone: (r
             ))}
           </select>
         </label>
-        <div className="list-item"><span className="muted">Target type</span><strong>{selected?.entity_type || issue.entity_type}</strong></div>
-        <div className="list-item"><span className="muted">Target id</span><strong>{selected?.entity_id || issue.entity_id}</strong></div>
+        <div className="list-item"><span className="muted">Тип цели</span><strong>{selected?.entity_type || issue.entity_type}</strong></div>
+        <div className="list-item"><span className="muted">ID цели</span><strong>{selected?.entity_id || issue.entity_id}</strong></div>
         <label className="stack" style={{ gap: 6 }}>
-          <span className="muted">Force</span>
+          <span className="muted">Принудительно</span>
           <span className="inline" style={{ gap: 8 }}>
             <input type="checkbox" checked={force} onChange={(event) => setForce(event.target.checked)} />
-            <span className="muted">required for destructive/unsafe actions</span>
+            <span className="muted">требуется для разрушающих или небезопасных действий</span>
           </span>
         </label>
       </div>
 
       <label className="stack" style={{ gap: 6, marginTop: 14 }}>
-        <span className="muted">Reason</span>
+        <span className="muted">Причина</span>
         <input
           className="input"
           value={reason}
           onChange={(event) => setReason(event.target.value)}
-          placeholder="Почему оператор запускает repair action"
+          placeholder="Почему оператор запускает исправление"
         />
       </label>
 
@@ -377,7 +378,7 @@ function IssueRepairActions({ issue, onDone }: { issue: SectionIssue; onDone: (r
         <button className="button" type="button" disabled={isSubmitting} onClick={() => void submit()}>
           {isSubmitting ? 'Executing...' : 'Execute repair'}
         </button>
-        <Link href="/admin/audit" className="button ghost">Audit feed</Link>
+        <Link href="/admin/audit" className="button ghost">Журнал аудита</Link>
       </div>
     </div>
   );
@@ -389,7 +390,7 @@ function EvidenceBlock({ evidence }: { evidence?: Record<string, unknown> }) {
 
   return (
     <details style={{ marginTop: 14 }}>
-      <summary className="muted" style={{ cursor: 'pointer' }}>Evidence snapshot</summary>
+      <summary className="muted" style={{ cursor: 'pointer' }}>Снимок доказательств</summary>
       <div className="grid-2" style={{ marginTop: 12 }}>
         {rows.map(([key, value]) => (
           <div className="list-item" key={key}>
@@ -418,18 +419,18 @@ function IssueCard({ issue, onRepairDone }: { issue: SectionIssue; onRepairDone:
           <h2 className="title-md">{issue.message}</h2>
           <p className="muted">{issue.suggested_action}</p>
         </div>
-        <Link href={entityHref} className="button secondary">Open entity</Link>
+        <Link href={entityHref} className="button secondary">Открыть сущность</Link>
       </div>
 
       <div className="grid-3" style={{ marginTop: 16 }}>
-        <div className="list-item"><span className="muted">Entity type</span><strong>{issue.entity_type}</strong></div>
-        <div className="list-item"><span className="muted">Entity id</span><strong>{issue.entity_id}</strong></div>
-        <div className="list-item"><span className="muted">Severity</span><strong>{issue.severity}</strong></div>
+        <div className="list-item"><span className="muted">Тип сущности</span><strong>{issue.entity_type}</strong></div>
+        <div className="list-item"><span className="muted">ID сущности</span><strong>{issue.entity_id}</strong></div>
+        <div className="list-item"><span className="muted">Критичность</span><strong>{issue.severity}</strong></div>
       </div>
 
       {related.length ? (
         <div className="stack" style={{ gap: 10, marginTop: 14 }}>
-          <strong>Related entities</strong>
+          <strong>Связанные сущности</strong>
           <div className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
             {related.map((item) => (
               <Link
@@ -450,9 +451,9 @@ function IssueCard({ issue, onRepairDone }: { issue: SectionIssue; onRepairDone:
   );
 }
 
-export default function AdminReconciliationPage() {
+export default function AdminСверкаPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [report, setReport] = useState<AdminReconciliationReport | null>(null);
   const [limit, setLimit] = useState(100);
   const [sectionFilter, setSectionFilter] = useState('');
@@ -510,22 +511,22 @@ export default function AdminReconciliationPage() {
   }, [query, sectionFilter, sections, severityFilter]);
 
   return (
-    <ProtectedPage title="Admin reconciliation" description="Отчет по расхождениям между payment, order, entitlement, payout ledger, webhooks и outbox с audited repair actions.">
+    <ProtectedPage title="Сверка администратора" description="Отчет по расхождениям между платежами, заказами, доступами, реестром выплат, вебхуками и outbox с аудитом исправляющих действий.">
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="row" style={{ alignItems: 'flex-start' }}>
             <div className="stack" style={{ gap: 10 }}>
-              <span className="badge secondary">Money reconciliation</span>
-              <h1>Admin reconciliation report</h1>
+              <span className="badge secondary">Сверка денег</span>
+              <h1>Отчет сверки</h1>
               <p className="lead">
                 Проверка согласованности оплат, заказов, доступов, payout ledger, payment webhooks и outbox pipeline.
               </p>
             </div>
             <div className="inline" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <Link href="/admin/operations" className="button secondary">Operations</Link>
-              <Link href="/admin/audit" className="button ghost">Audit</Link>
+              <Link href="/admin/operations" className="button secondary">Операции</Link>
+              <Link href="/admin/audit" className="button ghost">Аудит</Link>
               <button className="button" type="button" disabled={isLoading} onClick={() => void load()}>
                 {isLoading ? 'Загрузка...' : 'Обновить'}
               </button>
@@ -539,20 +540,20 @@ export default function AdminReconciliationPage() {
             <div className="row" style={{ alignItems: 'center' }}>
               <div className="stack" style={{ gap: 8 }}>
                 <div className="inline" style={{ gap: 8 }}>
-                  <Badge>{report ? statusTitle(report.status) : 'loading'}</Badge>
+                  <Badge>{report ? statusTitle(report.status) : 'загрузка'}</Badge>
                   <Badge>{report ? formatDate(report.generated_at) : '—'}</Badge>
                 </div>
-                <h2 className="title-md">{report ? statusDescription(report.status) : 'Загрузка reconciliation report...'}</h2>
+                <h2 className="title-md">{report ? statusDescription(report.status) : 'Загрузка отчета сверки...'}</h2>
               </div>
-              <strong>{report?.summary.total_issues ?? 0} issues</strong>
+              <strong>{report?.summary.total_issues ?? 0} проблем</strong>
             </div>
           </div>
 
           <div className="grid-4">
-            <StatCard title="Total issues" value={report?.summary.total_issues ?? 0} />
-            <StatCard title="Critical" value={report?.summary.critical_count ?? 0} hint="нужно исправить первым" />
-            <StatCard title="Warnings" value={report?.summary.warning_count ?? 0} hint="операторская проверка" />
-            <StatCard title="Sections" value={sections.length} hint="money/access/async checks" />
+            <StatCard title="Всего проблем" value={report?.summary.total_issues ?? 0} />
+            <StatCard title="Критично" value={report?.summary.critical_count ?? 0} hint="нужно исправить первым" />
+            <StatCard title="Предупреждения" value={report?.summary.warning_count ?? 0} hint="операторская проверка" />
+            <StatCard title="Разделы" value={sections.length} hint="деньги, доступы и async-проверки" />
           </div>
 
           <div className="grid-3">
@@ -564,28 +565,28 @@ export default function AdminReconciliationPage() {
           <div className="card">
             <div className="grid-4">
               <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Section</span>
+                <span className="muted">Раздел</span>
                 <select className="select" value={sectionFilter} onChange={(event) => setSectionFilter(event.target.value)}>
-                  <option value="">all sections</option>
+                  <option value="">Все разделы</option>
                   {sections.map(([sectionKey]) => (
                     <option key={sectionKey} value={sectionKey}>{sectionKey}</option>
                   ))}
                 </select>
               </label>
               <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Severity</span>
+                <span className="muted">Критичность</span>
                 <select className="select" value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)}>
                   {SEVERITY_PRESETS.map((value) => (
-                    <option key={value || 'all'} value={value}>{value || 'all severities'}</option>
+                    <option key={value || 'all'} value={value}>{value || 'Все уровни'}</option>
                   ))}
                 </select>
               </label>
               <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Search</span>
-                <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="payment id / issue code / order" />
+                <span className="muted">Поиск</span>
+                <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ID платежа / код проблемы / заказ" />
               </label>
               <label className="stack" style={{ gap: 6 }}>
-                <span className="muted">Backend limit</span>
+                <span className="muted">Лимит backend</span>
                 <select className="select" value={limit} onChange={(event) => setLimit(Number(event.target.value))}>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
@@ -614,10 +615,10 @@ export default function AdminReconciliationPage() {
 
           <div className="stack" style={{ gap: 16 }}>
             <div className="row">
-              <h2 className="title-md">Issues</h2>
-              <span className="muted">{issues.length} visible</span>
+              <h2 className="title-md">Проблемы</h2>
+            <span className="muted">{issues.length} показано</span>
             </div>
-            {isLoading ? <div className="card">Загрузка reconciliation report...</div> : null}
+            {isLoading ? <div className="card">Загрузка отчета сверки...</div> : null}
             {!isLoading && issues.length === 0 ? <div className="card">Расхождений по текущему фильтру нет.</div> : null}
             {issues.map((issue) => (
               <IssueCard

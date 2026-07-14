@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import {
   DSBadge,
   DSDataTable,
@@ -85,7 +86,7 @@ function flattenRefunds(payments: AdminPayment[]): RefundRow[] {
 
 function IssueList({ issues }: { issues: PaymentReconciliationIssue[] }) {
   if (!issues.length) {
-    return <DSEmptyState title="Reconciliation issues не найдены" description="Платежи, provider events и entitlements сейчас согласованы." />;
+    return <DSEmptyState title="Проблемы сверки не найдены" description="Платежи, события провайдера и доступы сейчас согласованы." />;
   }
 
   return (
@@ -103,7 +104,7 @@ function IssueList({ issues }: { issues: PaymentReconciliationIssue[] }) {
               <span className="muted">{issue.suggested_action}</span>
             </div>
             <Link href={`/admin/entities/${issue.entity_type}/${issue.entity_id}`} className="button secondary sm">
-              Entity
+              Сущность
             </Link>
           </div>
         </div>
@@ -114,7 +115,7 @@ function IssueList({ issues }: { issues: PaymentReconciliationIssue[] }) {
 
 function RefundsTable({ refunds }: { refunds: RefundRow[] }) {
   if (!refunds.length) {
-    return <DSEmptyState title="Refund operations пока нет" description="Возвраты появятся здесь после partial/full refund." />;
+    return <DSEmptyState title="Операций возврата пока нет" description="Возвраты появятся здесь после частичного или полного возврата." />;
   }
 
   return (
@@ -124,7 +125,7 @@ function RefundsTable({ refunds }: { refunds: RefundRow[] }) {
         { key: 'payment', label: 'Payment' },
         { key: 'buyer', label: 'Buyer' },
         { key: 'amount', label: 'Amount' },
-        { key: 'status', label: 'Status' },
+        { key: 'status', label: 'Статус' },
         { key: 'reason', label: 'Reason' },
         { key: 'timestamp', label: 'Timestamp' },
       ]}
@@ -144,7 +145,7 @@ function RefundsTable({ refunds }: { refunds: RefundRow[] }) {
 
 function PaymentsTable({ payments }: { payments: AdminPayment[] }) {
   if (!payments.length) {
-    return <DSEmptyState title="Payments не найдены" description="Измени фильтры или обнови список." />;
+    return <DSEmptyState title="Платежи не найдены" description="Измени фильтры или обнови список." />;
   }
 
   return (
@@ -152,7 +153,7 @@ function PaymentsTable({ payments }: { payments: AdminPayment[] }) {
       columns={[
         { key: 'payment', label: 'Payment' },
         { key: 'buyer', label: 'Buyer' },
-        { key: 'status', label: 'Status' },
+        { key: 'status', label: 'Статус' },
         { key: 'amount', label: 'Amount' },
         { key: 'order', label: 'Order' },
         { key: 'entitlement', label: 'Entitlement' },
@@ -203,7 +204,7 @@ function WebhooksTable({
   busyWebhookId: string;
 }) {
   if (!webhooks.length) {
-    return <DSEmptyState title="Webhook events не найдены" description="Измени фильтры или обнови список." />;
+    return <DSEmptyState title="События вебхуков не найдены" description="Измени фильтры или обнови список." />;
   }
 
   return (
@@ -212,7 +213,7 @@ function WebhooksTable({
         { key: 'webhook', label: 'Webhook' },
         { key: 'provider', label: 'Provider' },
         { key: 'event', label: 'Event' },
-        { key: 'status', label: 'Status' },
+        { key: 'status', label: 'Статус' },
         { key: 'payment', label: 'Payment' },
         { key: 'attempts', label: 'Attempts' },
         { key: 'received', label: 'Received' },
@@ -249,7 +250,7 @@ function WebhooksTable({
 
 export function AdminPaymentOperationsDashboard() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
   const [paymentFilters, setPaymentFilters] = useState<AdminPaymentFilters>({ limit: 100 });
   const [webhookFilters, setWebhookFilters] = useState<AdminWebhookFilters>({ status: '', limit: 100 });
   const [state, setState] = useState<DashboardState>({ payments: [], webhooks: [], reconciliation: null });
@@ -303,25 +304,25 @@ export function AdminPaymentOperationsDashboard() {
 
   return (
     <section className="stack" style={{ gap: 24 }}>
-      {!isAdmin ? <div className="card error">У текущей сессии нет admin-role.</div> : null}
+      {!isAdmin ? <div className="card error">У текущей сессии нет роли администратора.</div> : null}
 
       {message ? <div className="card">{message}</div> : null}
       {loading ? <div className="card"><DSSkeleton lines={4} /></div> : null}
 
       <DSStatsGrid
         stats={[
-          { label: 'Payments', value: state.payments.length, hint: `${paymentBuckets.succeeded || 0} succeeded`, tone: 'primary' },
-          { label: 'Refund operations', value: refunds.length, hint: `${paymentBuckets.refunded || 0} refunded payments`, tone: refunds.length > 0 ? 'warning' : 'neutral' },
+          { label: 'Платежи', value: state.payments.length, hint: `${paymentBuckets.succeeded || 0} успешных`, tone: 'primary' },
+          { label: 'Возвраты', value: refunds.length, hint: `${paymentBuckets.refunded || 0} возвращенных платежей`, tone: refunds.length > 0 ? 'warning' : 'neutral' },
           {
-            label: 'Webhook issues',
+            label: 'Проблемы вебхуков',
             value: (webhookBuckets.failed || 0) + (webhookBuckets.rejected || 0),
-            hint: `${state.webhooks.length} loaded`,
+            hint: `${state.webhooks.length} загружено`,
             tone: (webhookBuckets.failed || 0) + (webhookBuckets.rejected || 0) > 0 ? 'danger' : 'success',
           },
           {
-            label: 'Reconciliation',
+            label: 'Сверка',
             value: state.reconciliation?.status || '-',
-            hint: `${state.reconciliation?.summary.total_issues || 0} issues`,
+            hint: `${state.reconciliation?.summary.total_issues || 0} проблем`,
             tone: state.reconciliation?.status === 'ok' ? 'success' : 'warning',
           },
         ]}
@@ -329,33 +330,33 @@ export function AdminPaymentOperationsDashboard() {
 
       <DSTransitionPanel active className="stack" style={{ gap: 24 }}>
       <DSSection
-        title="Payment ledger"
-        description="Payments, buyer, order and entitlement status."
+        title="Реестр платежей"
+        description="Платежи, покупатель, заказ и статус доступа."
         actions={
           <>
             <DSSelect
-              label="Payment status"
+              label="Статус платежа"
               value={paymentFilters.status || ''}
               onChange={(event) => setPaymentFilters((prev) => ({ ...prev, status: event.target.value }))}
             >
               {PAYMENT_STATUSES.map((status) => (
-                <option key={status || 'all'} value={status}>{status || 'all statuses'}</option>
+                <option key={status || 'all'} value={status}>{status || 'Все статусы'}</option>
               ))}
             </DSSelect>
             <DSTextField
-              label="Provider"
+              label="Провайдер"
               value={paymentFilters.provider || ''}
               onChange={(event) => setPaymentFilters((prev) => ({ ...prev, provider: event.target.value }))}
-              placeholder="provider"
+              placeholder="провайдер"
             />
             <DSTextField
-              label="Buyer email"
+              label="Email покупателя"
               value={paymentFilters.buyer_email || ''}
               onChange={(event) => setPaymentFilters((prev) => ({ ...prev, buyer_email: event.target.value }))}
-              placeholder="buyer email"
+              placeholder="email покупателя"
             />
             <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
+              {loading ? 'Загрузка...' : 'Обновить'}
             </button>
           </>
         }
@@ -366,7 +367,7 @@ export function AdminPaymentOperationsDashboard() {
       </DSSection>
 
       <div className="grid-3">
-        <DSSection title="Entitlement status" description="Payment-linked entitlement outcomes.">
+        <DSSection title="Статусы доступов" description="Итоги выдачи доступов, связанных с платежами.">
           <div className="card compact stack" style={{ gap: 10 }}>
             {Object.entries(entitlementBuckets).map(([status, count]) => (
               <div className="list-item" key={status}>
@@ -374,10 +375,10 @@ export function AdminPaymentOperationsDashboard() {
                 <strong>{count}</strong>
               </div>
             ))}
-            {!Object.keys(entitlementBuckets).length ? <DSEmptyState title="Нет entitlement статусов" description="Статусы появятся после загрузки payments." /> : null}
+            {!Object.keys(entitlementBuckets).length ? <DSEmptyState title="Нет статусов доступов" description="Статусы появятся после загрузки платежей." /> : null}
           </div>
         </DSSection>
-        <DSSection title="Payment statuses" description="Loaded payment status buckets.">
+        <DSSection title="Статусы платежей" description="Загруженные группы статусов платежей.">
           <div className="card compact stack" style={{ gap: 10 }}>
             {Object.entries(paymentBuckets).map(([status, count]) => (
               <div className="list-item" key={status}>
@@ -387,7 +388,7 @@ export function AdminPaymentOperationsDashboard() {
             ))}
           </div>
         </DSSection>
-        <DSSection title="Webhook statuses" description="Provider event intake buckets.">
+        <DSSection title="Статусы вебхуков" description="Группы входящих событий провайдера.">
           <div className="card compact stack" style={{ gap: 10 }}>
             {Object.entries(webhookBuckets).map(([status, count]) => (
               <div className="list-item" key={status}>
@@ -400,30 +401,30 @@ export function AdminPaymentOperationsDashboard() {
       </div>
 
       <DSSection
-        title="Provider event intake"
-        description="Webhook events with reprocess action."
+        title="Входящие события провайдера"
+        description="События вебхуков с возможностью повторной обработки."
         actions={
           <>
             <DSSelect
-              label="Webhook status"
+              label="Статус вебхука"
               value={webhookFilters.status || ''}
               onChange={(event) => setWebhookFilters((prev) => ({ ...prev, status: event.target.value }))}
             >
               {WEBHOOK_STATUSES.map((status) => (
-                <option key={status || 'all'} value={status}>{status || 'all statuses'}</option>
+                <option key={status || 'all'} value={status}>{status || 'Все статусы'}</option>
               ))}
             </DSSelect>
             <DSTextField
-              label="Provider"
+              label="Провайдер"
               value={webhookFilters.provider || ''}
               onChange={(event) => setWebhookFilters((prev) => ({ ...prev, provider: event.target.value }))}
-              placeholder="provider"
+              placeholder="провайдер"
             />
             <DSTextField
-              label="Event type"
+              label="Тип события"
               value={webhookFilters.event_type || ''}
               onChange={(event) => setWebhookFilters((prev) => ({ ...prev, event_type: event.target.value }))}
-              placeholder="event type"
+              placeholder="тип события"
             />
           </>
         }
@@ -433,16 +434,16 @@ export function AdminPaymentOperationsDashboard() {
         </div>
       </DSSection>
 
-      <DSSection title="Refund operations" description="Partial/full refund audit rows.">
+      <DSSection title="Операции возвратов" description="Строки аудита частичных и полных возвратов.">
         <div className="card compact">
         <RefundsTable refunds={refunds} />
         </div>
       </DSSection>
 
       <DSSection
-        title="Provider payments, internal payments, entitlements"
+        title="Платежи провайдера, внутренние платежи, доступы"
         description={`Generated: ${formatDate(state.reconciliation?.generated_at)}`}
-        actions={<DSBadge tone={(state.reconciliation?.summary.critical_count || 0) > 0 ? 'danger' : 'success'}>{state.reconciliation?.summary.critical_count || 0} critical</DSBadge>}
+        actions={<DSBadge tone={(state.reconciliation?.summary.critical_count || 0) > 0 ? 'danger' : 'success'}>{state.reconciliation?.summary.critical_count || 0} критично</DSBadge>}
       >
         <div className="card compact">
           <IssueList issues={state.reconciliation?.issues || []} />

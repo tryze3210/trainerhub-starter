@@ -4,6 +4,12 @@
 - New deployment causes critical health, payment, entitlement, payout or login regression.
 - CI passed, but production runtime health degrades after release.
 
+## Triage
+- Identify the failing release SHA, previous healthy SHA and deploy start time.
+- Check health, readiness, error rate, login, checkout and worker queues.
+- Decide whether the issue is code-only or includes irreversible data migrations.
+- Keep customer support informed when login, payments or content access are affected.
+
 ## Preconditions
 - Identify current release SHA and previous known-good SHA.
 - Confirm database migrations are backward-compatible or prepare database restore path.

@@ -13,7 +13,7 @@ class FinanceDocumentEmailDeliveryService:
             channel="email",
         )
         try:
-            subject = f"Your {document.document_type} is ready"
+            subject = f"Your {document.document_type} {document.document_number} is ready"
             text_body = render_to_string(
                 "finance_documents/email/document_ready.txt",
                 {"document": document, "download_url": download_url},

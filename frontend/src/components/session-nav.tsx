@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 
 const publicLinks = [
   { href: '/catalog', label: 'Каталог' },
@@ -34,7 +35,7 @@ export function SessionNav() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, signOut } = useAuthSession();
   const isTrainer = user?.active_role === 'trainer';
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   async function onSignOut() {
     await signOut();

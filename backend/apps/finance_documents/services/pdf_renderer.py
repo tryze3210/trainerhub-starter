@@ -17,12 +17,17 @@ class PDFRenderer(Protocol):
 
 
 class WeasyPrintPDFRenderer:
-    """
-    Production seam. Install weasyprint in backend image and use this implementation.
-    """
+    """Render PDFs when WeasyPrint is installed, otherwise persist HTML."""
 
     def render_html_to_pdf(self, *, html: str) -> RenderedArtifact:
-        from weasyprint import HTML  # type: ignore
+        try:
+            from weasyprint import HTML  # type: ignore
+        except ImportError:
+            return RenderedArtifact(
+                content=html.encode("utf-8"),
+                content_type="text/html; charset=utf-8",
+                extension="html",
+            )
 
         pdf_bytes = HTML(string=html).write_pdf()
         return RenderedArtifact(

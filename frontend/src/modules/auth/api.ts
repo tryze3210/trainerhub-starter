@@ -64,6 +64,10 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    clearTokens();
+    try {
+      await apiRequest('/auth/logout/', { method: 'POST', body: JSON.stringify({}) });
+    } finally {
+      clearTokens();
+    }
   },
 };

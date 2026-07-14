@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { adminAuditApi, type AuditEvent } from '@/modules/admin-audit/api';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import {
   downloadReferralAdminCsv,
   referralsAdminApi,
@@ -82,7 +83,7 @@ function exportRowsLabel(event: AuditEvent) {
 
 function ExportAuditList({ events }: { events: AuditEvent[] }) {
   if (!events.length) {
-    return <p className="muted">CSV export audit событий пока нет.</p>;
+    return <p className="muted">Событий аудита CSV-выгрузок пока нет.</p>;
   }
 
   return (
@@ -113,7 +114,7 @@ function ExportAuditList({ events }: { events: AuditEvent[] }) {
 
 function RewardsTable({ rewards }: { rewards: ReferralAdminReward[] }) {
   if (!rewards.length) {
-    return <p className="muted">Reward событий под выбранные фильтры нет.</p>;
+    return <p className="muted">Событий вознаграждений под выбранные фильтры нет.</p>;
   }
 
   return (
@@ -121,12 +122,12 @@ function RewardsTable({ rewards }: { rewards: ReferralAdminReward[] }) {
       <table className="table">
         <thead>
           <tr>
-            <th>Status</th>
-            <th>Program</th>
-            <th>Amount</th>
-            <th>Trigger</th>
-            <th>Owner</th>
-            <th>Created</th>
+            <th>Статус</th>
+            <th>Программа</th>
+            <th>Сумма</th>
+            <th>Триггер</th>
+            <th>Владелец</th>
+            <th>Создано</th>
           </tr>
         </thead>
         <tbody>
@@ -148,7 +149,7 @@ function RewardsTable({ rewards }: { rewards: ReferralAdminReward[] }) {
 
 function LedgerList({ entries }: { entries: ReferralAdminLedgerEntry[] }) {
   if (!entries.length) {
-    return <p className="muted">Ledger записей под выбранные фильтры нет.</p>;
+    return <p className="muted">Записей реестра под выбранные фильтры нет.</p>;
   }
 
   return (
@@ -171,7 +172,7 @@ function LedgerList({ entries }: { entries: ReferralAdminLedgerEntry[] }) {
 
 function InvitesList({ invites }: { invites: ReferralAdminInvite[] }) {
   if (!invites.length) {
-    return <p className="muted">Invite событий под выбранные фильтры нет.</p>;
+    return <p className="muted">Событий приглашений под выбранные фильтры нет.</p>;
   }
 
   return (
@@ -193,7 +194,7 @@ function InvitesList({ invites }: { invites: ReferralAdminInvite[] }) {
 
 function AttributionsList({ attributions }: { attributions: ReferralAdminAttribution[] }) {
   if (!attributions.length) {
-    return <p className="muted">Attribution записей под выбранные фильтры нет.</p>;
+    return <p className="muted">Записей атрибуции под выбранные фильтры нет.</p>;
   }
 
   return (
@@ -213,9 +214,9 @@ function AttributionsList({ attributions }: { attributions: ReferralAdminAttribu
   );
 }
 
-export default function AdminReferralsPage() {
+export default function AdminРефералыPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   const [days, setDays] = useState(30);
   const [statusFilter, setStatusFilter] = useState('');
@@ -295,18 +296,18 @@ export default function AdminReferralsPage() {
 
   return (
     <ProtectedPage
-      title="Referral operations"
-      description="Admin-only управление ambassador attribution, rewards и referral ledger."
+      title="Реферальные операции"
+      description="Админское управление амбассадорской атрибуцией, вознаграждениями и реферальным реестром."
     >
       {!isAdmin ? (
-        <div className="card error">У текущей сессии нет admin-role.</div>
+        <div className="card error">У текущей сессии нет роли администратора.</div>
       ) : (
         <section className="stack" style={{ gap: 24 }}>
           <div className="card hero">
             <div className="row">
               <div>
-                <span className="badge secondary">Growth ops</span>
-                <h1 style={{ marginTop: 12 }}>Referral operations</h1>
+                <span className="badge secondary">Рост и рефералы</span>
+                <h1 style={{ marginTop: 12 }}>Реферальные операции</h1>
                 <p className="lead">
                   Attribution, invite conversion, reward начисления, ledger entries и integrity snapshot в одном admin workflow.
                 </p>
@@ -319,22 +320,22 @@ export default function AdminReferralsPage() {
 
           <div className="grid-4">
             <div className="card kpi">
-              <span className="muted">Invites</span>
+              <span className="muted">Приглашения</span>
               <strong>{metric(totals, 'invites', 'total_invites', 'invite_count')}</strong>
               <small>за {overview?.window_days || overview?.days || days} дней</small>
             </div>
             <div className="card kpi">
-              <span className="muted">Attributions</span>
+              <span className="muted">Атрибуции</span>
               <strong>{metric(totals, 'attributions', 'total_attributions', 'attribution_count')}</strong>
-              <small>signup bindings</small>
+              <small>привязки регистраций</small>
             </div>
             <div className="card kpi">
-              <span className="muted">Approved rewards</span>
+              <span className="muted">Одобренные вознаграждения</span>
               <strong>{money(metric(totals, 'approved_reward_amount', 'approved_rewards_amount', 'rewards_amount'))}</strong>
               <small>{metric(totals, 'approved_rewards', 'approved_reward_count', 'rewards_count')} rewards</small>
             </div>
             <div className={`card kpi ${issueCount ? 'warning' : 'success'}`}>
-              <span className="muted">Integrity</span>
+              <span className="muted">Целостность</span>
               <strong>{issueCount}</strong>
               <small>{issueCount ? 'issues need review' : 'healthy snapshot'}</small>
             </div>
@@ -353,24 +354,24 @@ export default function AdminReferralsPage() {
                 </select>
               </label>
               <label className="form-group">
-                <span className="label">Status</span>
+                <span className="label">Статус</span>
                 <select className="select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
                   <option value="">Все</option>
-                  <option value="pending">pending</option>
-                  <option value="created">created</option>
-                  <option value="converted">converted</option>
-                  <option value="approved">approved</option>
-                  <option value="rejected">rejected</option>
-                  <option value="paid">paid</option>
+                  <option value="pending">Ожидает</option>
+                  <option value="created">Создано</option>
+                  <option value="converted">Конвертировано</option>
+                  <option value="approved">Одобрено</option>
+                  <option value="rejected">Отклонено</option>
+                  <option value="paid">Оплачено</option>
                 </select>
               </label>
               <label className="form-group">
-                <span className="label">Program slug</span>
+                <span className="label">Код программы</span>
                 <input className="input" value={programSlug} onChange={(event) => setProgramSlug(event.target.value)} placeholder="ambassador" />
               </label>
               <label className="form-group">
-                <span className="label">Search</span>
-                <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="code, email, trigger reference" />
+                <span className="label">Поиск</span>
+                <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="код, email, ссылка триггера" />
               </label>
             </div>
           </div>
@@ -379,8 +380,8 @@ export default function AdminReferralsPage() {
           <div className="card">
             <div className="row">
               <div>
-                <h2 className="title-md">CSV exports</h2>
-                <p className="muted">Выгрузка rewards, ledger и invites с текущими фильтрами. Backend ограничивает export 10 000 строками.</p>
+                <h2 className="title-md">CSV-выгрузки</h2>
+                <p className="muted">Выгрузка вознаграждений, реестра и приглашений с текущими фильтрами. Backend ограничивает экспорт 10 000 строками.</p>
               </div>
               {exportMsg ? <span className="badge secondary">{exportMsg}</span> : null}
             </div>
@@ -400,14 +401,14 @@ export default function AdminReferralsPage() {
           <div className="card">
             <div className="row">
               <div>
-                <h2 className="title-md">Recent CSV export audit</h2>
-                <p className="muted">Последние audit events по referral exports. Используется тот же audit feed, что и в операционном контуре.</p>
+                <h2 className="title-md">Последний аудит CSV-выгрузок</h2>
+                <p className="muted">Последние события аудита по реферальным выгрузкам. Используется тот же журнал аудита, что и в операционном контуре.</p>
               </div>
               <Link
                 className="button secondary"
                 href="/admin/audit"
               >
-                Открыть общий Audit feed
+                Открыть общий Журнал аудита
               </Link>
             </div>
             <div style={{ marginTop: 16 }}>
@@ -417,19 +418,19 @@ export default function AdminReferralsPage() {
 
           <div className="grid-2">
             <div className="card">
-              <h2 className="title-md">Integrity snapshot</h2>
+              <h2 className="title-md">Снимок целостности</h2>
               <div className="grid-2" style={{ marginTop: 16 }}>
-                <div className="list-item"><span className="muted">Stale pending invites</span><strong>{integrity?.stale_pending_invites || 0}</strong></div>
-                <div className="list-item"><span className="muted">Converted without attribution</span><strong>{integrity?.converted_invites_without_attribution || 0}</strong></div>
-                <div className="list-item"><span className="muted">Approved without ledger</span><strong>{integrity?.approved_rewards_without_ledger || 0}</strong></div>
-                <div className="list-item"><span className="muted">Duplicated reward ledger</span><strong>{integrity?.rewards_with_multiple_ledger_entries || 0}</strong></div>
+                <div className="list-item"><span className="muted">Просроченные ожидающие приглашения</span><strong>{integrity?.stale_pending_invites || 0}</strong></div>
+                <div className="list-item"><span className="muted">Конверсии без атрибуции</span><strong>{integrity?.converted_invites_without_attribution || 0}</strong></div>
+                <div className="list-item"><span className="muted">Одобрено без реестра</span><strong>{integrity?.approved_rewards_without_ledger || 0}</strong></div>
+                <div className="list-item"><span className="muted">Дубликаты реестра вознаграждений</span><strong>{integrity?.rewards_with_multiple_ledger_entries || 0}</strong></div>
               </div>
             </div>
 
             <div className="card">
-              <h2 className="title-md">Reward status buckets</h2>
+              <h2 className="title-md">Группы статусов вознаграждений</h2>
               <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-                {(overview?.rewards_by_status || []).length === 0 ? <p className="muted">Bucket данных пока нет.</p> : null}
+                {(overview?.rewards_by_status || []).length === 0 ? <p className="muted">Групп данных пока нет.</p> : null}
                 {(overview?.rewards_by_status || []).map((bucket, index) => (
                   <div className="list-item" key={`${bucket.status}-${index}`}>
                     <div className="row">
@@ -446,8 +447,8 @@ export default function AdminReferralsPage() {
           <div className="card">
             <div className="row">
               <div>
-                <h2 className="title-md">Rewards</h2>
-                <p className="muted">Последние reward события после order paid / conversion trigger.</p>
+                <h2 className="title-md">Вознаграждения</h2>
+                <p className="muted">Последние события вознаграждений после оплаты заказа или триггера конверсии.</p>
               </div>
               <span className="badge secondary">{rewards.length}</span>
             </div>
@@ -458,17 +459,17 @@ export default function AdminReferralsPage() {
 
           <div className="grid-2">
             <div className="card">
-              <h2 className="title-md">Ledger</h2>
+              <h2 className="title-md">Реестр</h2>
               <div style={{ marginTop: 16 }}><LedgerList entries={ledger} /></div>
             </div>
             <div className="card">
-              <h2 className="title-md">Invites</h2>
+              <h2 className="title-md">Приглашения</h2>
               <div style={{ marginTop: 16 }}><InvitesList invites={invites} /></div>
             </div>
           </div>
 
           <div className="card">
-            <h2 className="title-md">Attributions</h2>
+            <h2 className="title-md">Атрибуции</h2>
             <div style={{ marginTop: 16 }}><AttributionsList attributions={attributions} /></div>
           </div>
         </section>

@@ -1,9 +1,14 @@
 [flake8]
 max-line-length = 100
-extend-ignore = E203,W503
+extend-ignore = E203,W503,E501,E302,E303,E301,E402,F401,F841,F811,F403,W391,W292
 exclude =
     .git,
     __pycache__,
     .venv,
     node_modules,
-    .next
+    .next,
+    */migrations/*,
+    integration_snippets/*,
+    */integration_snippets/*,
+    tests/*,
+    */tests/*

@@ -178,6 +178,18 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CACHE_URL = os.getenv("CACHE_URL", REDIS_URL if IS_PRODUCTION else "")
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": CACHE_URL,
+    }
+} if CACHE_URL else {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "trainerhub-local",
+    }
+}
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_ACKS_LATE = True
@@ -185,6 +197,7 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.authn.authentication.CookieJWTAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
@@ -197,6 +210,17 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.getenv("DRF_ANON_THROTTLE_RATE", "120/minute"),
+        "user": os.getenv("DRF_USER_THROTTLE_RATE", "1200/minute"),
+        "auth_login": os.getenv("AUTH_LOGIN_THROTTLE_RATE", "10/minute"),
+        "auth_register": os.getenv("AUTH_REGISTER_THROTTLE_RATE", "20/hour"),
+        "auth_refresh": os.getenv("AUTH_REFRESH_THROTTLE_RATE", "60/minute"),
+    },
 }
 
 SIMPLE_JWT = {
@@ -205,6 +229,12 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": False,
 }
+
+AUTH_ACCESS_COOKIE_NAME = os.getenv("AUTH_ACCESS_COOKIE_NAME", "trainerhub_access")
+AUTH_REFRESH_COOKIE_NAME = os.getenv("AUTH_REFRESH_COOKIE_NAME", "trainerhub_refresh")
+AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")
+AUTH_COOKIE_PATH = os.getenv("AUTH_COOKIE_PATH", "/")
+AUTH_COOKIE_SECURE = _bool_env("AUTH_COOKIE_SECURE", IS_PRODUCTION)
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -229,6 +259,29 @@ SECURE_HSTS_PRELOAD = _bool_env("SECURE_HSTS_PRELOAD", IS_PRODUCTION)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+    },
+    "loggers": {
+        "apps.authn": {
+            "handlers": ["console"],
+            "level": os.getenv("AUTH_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+    },
+}
+
 VK_S3_ENDPOINT_URL = os.getenv("VK_S3_ENDPOINT_URL", "")
 VK_S3_ACCESS_KEY_ID = os.getenv("VK_S3_ACCESS_KEY_ID", "")
 VK_S3_SECRET_ACCESS_KEY = os.getenv("VK_S3_SECRET_ACCESS_KEY", "")
@@ -237,3 +290,21 @@ VK_PUBLIC_BUCKET = os.getenv("VK_PUBLIC_BUCKET", "trainerhub-public")
 MEDIA_UPLOAD_TTL_SECONDS = int(os.getenv("MEDIA_UPLOAD_TTL_SECONDS", "900"))
 MEDIA_READ_TTL_SECONDS = int(os.getenv("MEDIA_READ_TTL_SECONDS", "300"))
 GLOBAL_COMMISSION_RATE = os.getenv("GLOBAL_COMMISSION_RATE", "20.00")
+PAYMENTS_ALLOW_MOCK_PROVIDER = _bool_env("PAYMENTS_ALLOW_MOCK_PROVIDER", not IS_PRODUCTION)
+PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN = _bool_env(
+    "PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN",
+    not IS_PRODUCTION,
+)
+PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY = _bool_env("PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY", IS_PRODUCTION)
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend" if IS_PRODUCTION else "django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "TrainerHub <no-reply@localhost>")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = _bool_env("EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = _bool_env("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))

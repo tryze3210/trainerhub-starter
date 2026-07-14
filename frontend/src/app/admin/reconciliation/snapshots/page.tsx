@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProtectedPage } from '@/components/protected-page';
 import { useAuthSession } from '@/components/auth-provider';
+import { isAdminUser } from '@/lib/authz';
 import { adminReconciliationSnapshotsApi } from '@/modules/admin-reconciliation-snapshots/api';
 import type {
   ReconciliationSnapshot,
@@ -36,7 +37,7 @@ function latestFromPayload(payload: SnapshotListResponse | null): Reconciliation
 
 export default function AdminReconciliationSnapshotsPage() {
   const { user } = useAuthSession();
-  const isAdmin = user?.active_role === 'admin';
+  const isAdmin = isAdminUser(user);
 
   const [listPayload, setListPayload] = useState<SnapshotListResponse | null>(null);
   const [repairPayload, setRepairPayload] = useState<SnapshotListResponse | null>(null);
@@ -75,7 +76,7 @@ export default function AdminReconciliationSnapshotsPage() {
       setSchedule(scheduleResponse);
       setRetentionPreview(retentionResponse);
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'Не удалось загрузить reconciliation dashboard');
+      setMsg(error instanceof Error ? error.message : 'Не удалось загрузить панель снимков сверки');
     } finally {
       setIsLoading(false);
     }
@@ -96,10 +97,10 @@ export default function AdminReconciliationSnapshotsPage() {
         limit: 100,
         correlation_id: `manual-dashboard-${Date.now()}`,
       });
-      setMsg(`Snapshot ${snapshot.id.slice(0, 8)} создан. Status: ${statusTitle(snapshot.status)}.`);
+      setMsg(`Снимок ${snapshot.id.slice(0, 8)} создан. Статус: ${statusTitle(snapshot.status)}.`);
       await load();
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'Не удалось создать reconciliation snapshot');
+      setMsg(error instanceof Error ? error.message : 'Не удалось создать снимок сверки');
     } finally {
       setIsCapturing(false);
     }
@@ -111,34 +112,35 @@ export default function AdminReconciliationSnapshotsPage() {
 
   return (
     <ProtectedPage
-      title="Reconciliation snapshots"
-      description="Admin dashboard для snapshot history, repair impact, compare и retention."
+      title="Снимки сверки"
+      description="История проверок сверки: что сломалось, что исправилось и какие старые записи можно очистить."
     >
       {!isAdmin ? (
         <div className="container page">
-          <div className="card error">У текущей сессии нет admin-role.</div>
+          <div className="card error">У текущей сессии нет роли администратора.</div>
         </div>
       ) : (
-        <div className="container page">
-          <div className="section row" style={{ alignItems: 'flex-start' }}>
-            <div>
-              <span className="badge secondary">Reconciliation dashboard</span>
-              <h1>Reconciliation snapshots</h1>
+        <div className="container page admin-snapshot-page">
+          <div className="section admin-snapshot-hero">
+            <div className="admin-snapshot-hero-copy">
+              <span className="badge secondary">Панель сверки</span>
+              <h1>Снимки сверки</h1>
               <p className="lead">
-                Единая админская панель для v8.30-v8.34: auto-capture после repair, trend, compare, scheduled capture и retention.
+                Снимок — это сохраненное состояние сверки денег, заказов, доступов и выплат. Здесь можно быстро понять,
+                стало ли проблем меньше после исправлений и не пора ли сохранить новую проверку.
               </p>
               <p className="muted">
-                Latest: {latestSnapshot ? `${sourceTitle(latestSnapshot.source)} · ${formatDate(latestSnapshot.generated_at)}` : 'snapshot history empty'}
+                Последний снимок: {latestSnapshot ? `${sourceTitle(latestSnapshot.source)} · ${formatDate(latestSnapshot.generated_at)}` : 'история пока пустая'}
               </p>
             </div>
-            <div className="inline">
-              <Link className="btn secondary" href="/admin/reconciliation">Live report</Link>
-              <Link className="btn secondary" href="/admin/operations">Operations</Link>
+            <div className="admin-snapshot-actions">
+              <Link className="btn secondary" href="/admin/reconciliation">Текущий отчет</Link>
+              <Link className="btn secondary" href="/admin/operations">Операции</Link>
               <button className="btn secondary" type="button" disabled={isLoading || isCapturing} onClick={() => void load()}>
-                {isLoading ? 'Loading...' : 'Refresh'}
+                {isLoading ? 'Обновляем...' : 'Обновить'}
               </button>
               <button className="btn" type="button" disabled={isCapturing || isLoading} onClick={() => void capture()}>
-                {isCapturing ? 'Capturing...' : 'Capture snapshot'}
+                {isCapturing ? 'Создаем...' : 'Создать снимок'}
               </button>
             </div>
           </div>
@@ -148,7 +150,7 @@ export default function AdminReconciliationSnapshotsPage() {
           <div className="section card compact">
             <div className="form-row">
               <label className="form-group">
-                <span className="label">Limit</span>
+                <span className="label">Лимит</span>
                 <select className="select" value={limit} onChange={(event) => setLimit(Number(event.target.value))}>
                   {[10, 20, 30, 50, 100, 250].map((value) => (
                     <option key={value} value={value}>{value}</option>
@@ -156,31 +158,31 @@ export default function AdminReconciliationSnapshotsPage() {
                 </select>
               </label>
               <label className="form-group">
-                <span className="label">Source</span>
+                <span className="label">Источник</span>
                 <select className="select" value={source} onChange={(event) => setSource(event.target.value)}>
                   {SOURCE_FILTERS.map((value) => (
-                    <option key={value || 'any-source'} value={value}>{value ? sourceTitle(value) : 'Any source'}</option>
+                    <option key={value || 'any-source'} value={value}>{value ? sourceTitle(value) : 'Все источники'}</option>
                   ))}
                 </select>
               </label>
               <label className="form-group">
-                <span className="label">Status</span>
+                <span className="label">Статус</span>
                 <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
                   {STATUS_FILTERS.map((value) => (
-                    <option key={value || 'any-status'} value={value}>{value ? statusTitle(value) : 'Any status'}</option>
+                    <option key={value || 'any-status'} value={value}>{value ? statusTitle(value) : 'Все статусы'}</option>
                   ))}
                 </select>
               </label>
               <div className="form-group">
-                <span className="label">Apply</span>
+                <span className="label">Применить</span>
                 <button className="btn secondary" type="button" disabled={isLoading} onClick={() => void load()}>
-                  Apply filters
+                  Применить фильтры
                 </button>
               </div>
             </div>
           </div>
 
-          {!listPayload && !msg ? <div className="empty-state section">Загрузка reconciliation dashboard...</div> : null}
+          {!listPayload && !msg ? <div className="empty-state section">Загрузка панели сверки...</div> : null}
 
           {listPayload ? (
             <>

@@ -4,7 +4,7 @@ import csv
 import io
 import json
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, Iterable
 
@@ -492,7 +492,7 @@ class AdminPayoutOpsReconciliationSnapshotAPIView(APIView):
         safe_report = _json_safe(report)
         return Response(
             {
-                "generated_at": datetime.utcnow().isoformat() + "Z",
+                "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                 "mode": "read_only_snapshot",
                 "summary": {
                     "status": safe_report.get("status", "unknown"),

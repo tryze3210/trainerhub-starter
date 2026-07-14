@@ -4,15 +4,15 @@ import { ProtectedPage } from '@/components/protected-page';
 import { AdminPaymentOperationsDashboard } from '@/modules/admin-payments/components/admin-payment-operations-dashboard';
 
 export const metadata: Metadata = {
-  title: 'Admin payments · TrainerHub',
-  description: 'Payment operations: payments, webhook events, refunds, entitlements and reconciliation issues.',
+  title: 'Платежи администратора · TrainerHub',
+  description: 'Операции с платежами: платежи, вебхуки, возвраты, доступы и проблемы сверки.',
 };
 
 export default function AdminPaymentsPage() {
   return (
     <ProtectedPage
-      title="Admin payments"
-      description="Операционный центр платежей: payments, webhooks, refunds, entitlement status и reconciliation."
+      title="Платежи администратора"
+      description="Операционный центр платежей: платежи, вебхуки, возвраты, статусы доступов и сверка."
     >
       <AdminPaymentOperationsDashboard />
     </ProtectedPage>

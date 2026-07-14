@@ -44,6 +44,7 @@ function assertExcludesAll(source, fragments, label) {
 
 const requiredFiles = [
   'src/app/globals.css',
+  'src/app/admin/admin-route.css',
   'src/styles/00-reset.css',
   'src/styles/01-tokens.css',
   'src/styles/02-layout.css',
@@ -54,6 +55,7 @@ const requiredFiles = [
   'src/styles/07-admin-ops.css',
   'src/styles/08-components.css',
   'src/styles/09-responsive.css',
+  'src/app/trainer/trainer-route.css',
   'src/design-system/tokens.ts',
   'src/design-system/components.tsx',
   'src/design-system/feedback.tsx',
@@ -64,6 +66,7 @@ const requiredFiles = [
   'src/design-system/use-count-up.ts',
   'src/design-system/index.ts',
   'src/design-system/profile-workbench.tsx',
+  'src/lib/authz.ts',
   '../docs/design-system/v131_ui_design_system.md',
   '../docs/design-system/v132_layout_system.md',
   '../docs/design-system/v133_component_library.md',
@@ -170,7 +173,8 @@ const cssLayerFiles = [
   '09-responsive.css',
 ];
 const cssLayers = Object.fromEntries(cssLayerFiles.map((file) => [file, readUtf8(root, 'src/styles', file)]));
-const globals = `${globalsEntry}\n${Object.values(cssLayers).join('\n')}`;
+const routeCss = readUtf8(root, 'src/app/trainer/trainer-route.css');
+const globals = `${globalsEntry}\n${Object.values(cssLayers).join('\n')}\n${routeCss}`;
 const profileWorkbenchCss = cssLayers['06-trainer-cabinet.css'];
 const trainerOperationsCss = cssLayers['06-trainer-cabinet.css'];
 const trainerFinanceAnalyticsCss = cssLayers['06-trainer-cabinet.css'];
@@ -184,6 +188,13 @@ const library = readUtf8(root, 'src/design-system/library.tsx');
 const theme = readUtf8(root, 'src/design-system/theme.tsx');
 const animated = readUtf8(root, 'src/design-system/animated.tsx');
 const countUp = readUtf8(root, 'src/design-system/use-count-up.ts');
+const authz = readUtf8(root, 'src/lib/authz.ts');
+
+assertIncludesAll(
+  authz,
+  ["user.active_role === 'admin'", 'user.is_staff', 'user.is_superuser', "user.available_roles?.includes('admin')"],
+  'admin authorization helper'
+);
 
 for (const fragment of [
   '--color-primary',
@@ -796,6 +807,9 @@ const messagesPage = fs.readFileSync(path.join(root, 'src/app/messages/page.tsx'
 const billingPage = fs.readFileSync(path.join(root, 'src/app/billing/page.tsx'), 'utf8');
 const subscriptionsPage = fs.readFileSync(path.join(root, 'src/app/subscriptions/page.tsx'), 'utf8');
 const entitlementsPage = fs.readFileSync(path.join(root, 'src/app/entitlements/page.tsx'), 'utf8');
+const adminPage = fs.readFileSync(path.join(root, 'src/app/admin/page.tsx'), 'utf8');
+const adminShell = fs.readFileSync(path.join(root, 'src/modules/admin-shell/admin-shell.tsx'), 'utf8');
+const adminRouteCss = fs.readFileSync(path.join(root, 'src/app/admin/admin-route.css'), 'utf8');
 const trainerShell = fs.readFileSync(path.join(root, 'src/modules/trainer-dashboard/components/trainer-dashboard-shell.tsx'), 'utf8');
 const trainerCabinetShell = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-shell.tsx'), 'utf8');
 const trainerCabinetNav = fs.readFileSync(path.join(root, 'src/modules/trainer-cabinet/components/trainer-cabinet-nav.tsx'), 'utf8');
@@ -813,6 +827,7 @@ const trainerBusinessPage = fs.readFileSync(path.join(root, 'src/app/trainer/bus
 const trainerVideosPage = fs.readFileSync(path.join(root, 'src/app/trainer/videos/page.tsx'), 'utf8');
 const trainerOnboardingPage = fs.readFileSync(path.join(root, 'src/app/trainer/onboarding/page.tsx'), 'utf8');
 const trainerOnboardingChecklist = fs.readFileSync(path.join(root, 'src/modules/trainer-onboarding/components/trainer-onboarding-checklist.tsx'), 'utf8');
+const trainerOnboardingApi = fs.readFileSync(path.join(root, 'src/modules/trainer-onboarding/api.ts'), 'utf8');
 const trainerApplicationStatusPage = fs.readFileSync(path.join(root, 'src/app/trainer/application-status/page.tsx'), 'utf8');
 const trainerReviewsPage = fs.readFileSync(path.join(root, 'src/app/trainer/reviews/page.tsx'), 'utf8');
 const trainerProductBuilder = fs.readFileSync(path.join(root, 'src/modules/trainer-products/components/trainer-product-builder-dashboard.tsx'), 'utf8');
@@ -889,6 +904,65 @@ for (const fragment of [
 for (const forbidden of ['Billing', 'Payouts', 'Admin cockpit', 'Payment ops', 'Trainer dashboard']) {
   if (sessionNav.includes(forbidden)) {
     throw new Error(`session-nav.tsx still contains crowded header label: ${forbidden}`);
+  }
+}
+
+for (const fragment of [
+  'admin-shell',
+  'admin-layout',
+  'admin-sidebar',
+  'admin-nav__link',
+  'admin-current-section',
+  'Админ-панель',
+  'Модерация',
+  'Финансы',
+  'Система',
+]) {
+  if (!adminShell.includes(fragment)) {
+    throw new Error(`admin shell missing premium admin fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of [
+  'admin-cockpit',
+  'admin-hero',
+  'admin-metric-grid',
+  'admin-work-grid',
+  'admin-bar-chart',
+  'Быстрые действия',
+  'Заявки тренеров',
+  'barFillClass',
+]) {
+  if (!adminPage.includes(fragment)) {
+    throw new Error(`admin cockpit page missing premium admin fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of [
+  '.admin-shell',
+  '.admin-layout',
+  '.admin-sidebar',
+  '.admin-nav__link',
+  '.admin-cockpit',
+  '.admin-hero',
+  '.admin-metric-card',
+  '.admin-work-card',
+  '.admin-bar-fill--100',
+  '@media (max-width: 1180px)',
+]) {
+  if (!adminRouteCss.includes(fragment)) {
+    throw new Error(`admin-route.css missing premium admin fragment: ${fragment}`);
+  }
+}
+
+for (const [fileName, source, forbiddenFragments] of [
+  ['admin/page.tsx', adminPage, ['DSPageHeader', 'DSSection', 'DSStatsGrid', 'DSTransitionPanel', 'className="card', 'className="stack', 'className="row', 'style={{']],
+  ['admin-shell.tsx', adminShell, ['trainer-dashboard-shell', 'trainer-side-nav', 'className="card', 'className="stack', 'className="row', 'style={{']],
+]) {
+  for (const forbiddenFragment of forbiddenFragments) {
+    if (source.includes(forbiddenFragment)) {
+      throw new Error(`${fileName} still contains legacy admin fragment: ${forbiddenFragment}`);
+    }
   }
 }
 
@@ -1144,13 +1218,25 @@ for (const fragment of ['trainer-onboarding-workbench', 'trainer-onboarding-hero
   }
 }
 
-for (const fragment of ['trainer-status-workbench', 'trainer-status-hero', 'trainer-status-kpi-grid', 'trainer-status-layout', 'Результат проверки', 'Шаги готовности', 'Редактировать заявку', 'Перейти к продуктам', 'mapTrainerApplicationStatusLabel', 'mapStepStatusLabel', 'mapRoleLabel']) {
+for (const fragment of ['new FormData(form)', 'canSubmitCurrentDraft = canEdit || canSubmit', 'disabled={saving || !canSubmitCurrentDraft}', 'await onSave(getPayload())', 'await onSubmitApplication(payload)']) {
+  if (!trainerOnboardingChecklist.includes(fragment)) {
+    throw new Error(`trainer onboarding checklist missing draft/submit flow fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ["saveApplication: (payload: TrainerApplicationPayload)", "'/trainers/me/application/'", "method: 'PATCH'", "submitApplication: (payload: TrainerApplicationPayload)", "'/trainers/me/application/submit/'", "method: 'POST'"]) {
+  if (!trainerOnboardingApi.includes(fragment)) {
+    throw new Error(`trainer onboarding api missing draft/moderation fragment: ${fragment}`);
+  }
+}
+
+for (const fragment of ['trainer-status-workbench', 'trainer-status-hero', 'trainer-status-kpi-grid', 'trainer-status-layout', 'Результат проверки', 'Статус модерации', 'Moderation case', 'Что проверяет модерация', 'Обновить статус', 'Шаги готовности', 'Редактировать заявку', 'Перейти к продуктам', 'getApplicationStatusDescription', 'mapTrainerApplicationStatusLabel', 'mapStepStatusLabel', 'mapRoleLabel']) {
   if (!trainerApplicationStatusPage.includes(fragment)) {
     throw new Error(`trainer application status page missing v164 fragment: ${fragment}`);
   }
 }
 
-for (const fragment of ['.trainer-business-workbench', '.trainer-business-hero', '.trainer-business-kpi-grid', '.trainer-business-layout', '.trainer-business-main', '.trainer-business-sidebar', '.trainer-business-panel', '.trainer-business-card', '.trainer-business-timeline', '.trainer-business-timeline-item', '.trainer-business-readiness-card', '.trainer-business-risk-card', '.trainer-onboarding-workbench', '.trainer-onboarding-hero', '.trainer-onboarding-kpi-grid', '.trainer-onboarding-layout', '.trainer-onboarding-main', '.trainer-onboarding-sidebar', '.trainer-onboarding-form-card', '.trainer-onboarding-step-card', '.trainer-onboarding-status-card', '.trainer-onboarding-field', '.trainer-onboarding-actions', '.trainer-onboarding-alert', '.trainer-onboarding-empty', '.trainer-status-workbench', '.trainer-status-hero', '.trainer-status-kpi-grid', '.trainer-status-layout', '.trainer-status-panel', '.trainer-status-step-card', '.trainer-status-result-card', '.trainer-status-timeline']) {
+for (const fragment of ['.trainer-business-workbench', '.trainer-business-hero', '.trainer-business-kpi-grid', '.trainer-business-layout', '.trainer-business-main', '.trainer-business-sidebar', '.trainer-business-panel', '.trainer-business-card', '.trainer-business-timeline', '.trainer-business-timeline-item', '.trainer-business-readiness-card', '.trainer-business-risk-card', '.trainer-onboarding-workbench', '.trainer-onboarding-hero', '.trainer-onboarding-kpi-grid', '.trainer-onboarding-layout', '.trainer-onboarding-main', '.trainer-onboarding-sidebar', '.trainer-onboarding-form-card', '.trainer-onboarding-step-card', '.trainer-onboarding-status-card', '.trainer-onboarding-field', '.trainer-onboarding-actions', '.trainer-onboarding-alert', '.trainer-onboarding-empty', '.trainer-status-workbench', '.trainer-status-hero', '.trainer-status-kpi-grid', '.trainer-status-layout', '.trainer-status-panel', '.trainer-status-step-card', '.trainer-status-result-card', '.trainer-status-check-card', '.trainer-status-detail-list', '.trainer-status-review-list', '.trainer-status-timeline']) {
   if (!globals.includes(fragment)) {
     throw new Error(`globals.css missing v164 fragment: ${fragment}`);
   }
@@ -1523,7 +1609,6 @@ assertIncludesAll(
 assertIncludesAll(
   globals,
   [
-    'v166.1 production visual hardening CSS and contract lock',
     'overflow-wrap: anywhere',
     'word-break: normal',
     'scroll-snap-type: x mandatory',
@@ -1538,6 +1623,13 @@ assertIncludesAll(
     '.premium-empty-state',
     '.premium-error-state',
     '.premium-loading-state',
+  ],
+  'globals.css v166.1 explicit hardening',
+);
+
+assertExcludesAll(
+  routeCss,
+  [
     '[class*="customer-"]',
     '[class*="trainer-"]',
     '[class*="admin-"]',
@@ -1545,8 +1637,12 @@ assertIncludesAll(
     '[class*="marketplace-"]',
     '[class*="product-"]',
     '[class*="learning-"]',
+    '[class*="actions"]',
+    '[class*="toolbar"]',
+    '[class*="filters"]',
+    '[class*="cta"]',
   ],
-  'globals.css v166.1',
+  'trainer-route.css performance guard',
 );
 
 assertExcludesAll(

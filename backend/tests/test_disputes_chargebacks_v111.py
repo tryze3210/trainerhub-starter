@@ -1,13 +1,17 @@
 from decimal import Decimal
+from io import StringIO
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountRoleAssignment
 from apps.audit.models import AuditEvent
-from apps.disputes.models import ChargebackOperation, DisputeCase, DisputeEvent
+from apps.disputes.models import ChargebackOperation, DisputeCase, DisputeEvent, RefundReview, SupportInboxItem
 from apps.disputes.services.case_service import ChargebackDisputeService
+from apps.disputes.tasks import sla_escalation_sweep, sync_open_chargebacks
 from apps.entitlements.access_audit import AccessControlAuditService
 from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus, EntitlementTargetType
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderType, PurchasedItemType
@@ -210,3 +214,95 @@ def test_v111_chargeback_api_contract():
     )
     assert resolve_response.status_code == 200
     assert resolve_response.json()["status"] == ChargebackOperation.STATUS_WON
+
+
+@pytest.mark.django_db
+def test_v111_disputes_read_side_rebuild_repairs_missing_derived_records():
+    user = _user("v111-rebuild-user@example.com")
+    refund_case = DisputeCase.objects.create(
+        public_id="DSP-RB-REFUND",
+        opened_by=user,
+        dispute_type=DisputeCase.TYPE_REFUND,
+        subject="Refund request",
+        summary="customer requested refund",
+    )
+    chargeback_case = DisputeCase.objects.create(
+        public_id="DSP-RB-CHARGEBACK",
+        opened_by=user,
+        dispute_type=DisputeCase.TYPE_CHARGEBACK,
+        subject="Chargeback opened",
+        summary="provider opened chargeback",
+    )
+
+    dry_run_output = StringIO()
+    call_command("rebuild_disputes_read_side", "--dry-run", stdout=dry_run_output)
+
+    assert "dry-run" in dry_run_output.getvalue()
+    assert not RefundReview.objects.filter(dispute_case=refund_case).exists()
+    assert not ChargebackOperation.objects.filter(dispute_case=chargeback_case).exists()
+    assert not SupportInboxItem.objects.filter(dispute_case=refund_case).exists()
+    assert not DisputeEvent.objects.filter(dispute_case=refund_case).exists()
+
+    output = StringIO()
+    call_command("rebuild_disputes_read_side", stdout=output)
+
+    assert "applied" in output.getvalue()
+    assert RefundReview.objects.filter(dispute_case=refund_case).exists()
+    assert ChargebackOperation.objects.filter(dispute_case=chargeback_case).exists()
+    assert SupportInboxItem.objects.filter(dispute_case=refund_case).exists()
+    assert SupportInboxItem.objects.filter(dispute_case=chargeback_case).exists()
+    assert DisputeEvent.objects.filter(dispute_case=refund_case, event_type=DisputeEvent.EVENT_CREATED).exists()
+    assert DisputeEvent.objects.filter(dispute_case=chargeback_case, event_type=DisputeEvent.EVENT_CREATED).exists()
+
+
+@pytest.mark.django_db
+def test_v111_chargeback_sync_marks_overdue_evidence():
+    user = _user("v111-sync-user@example.com")
+    case = DisputeCase.objects.create(
+        public_id="DSP-RB-SYNC",
+        opened_by=user,
+        dispute_type=DisputeCase.TYPE_CHARGEBACK,
+        subject="Chargeback evidence",
+    )
+    operation = ChargebackOperation.objects.create(
+        dispute_case=case,
+        status=ChargebackOperation.STATUS_OPEN,
+        evidence_due_at=timezone.now() - timezone.timedelta(hours=1),
+    )
+
+    result = sync_open_chargebacks()
+
+    operation.refresh_from_db()
+    assert result["marked_needs_evidence"] == 1
+    assert operation.status == ChargebackOperation.STATUS_NEEDS_EVIDENCE
+    assert "needs_evidence_marked_at" in operation.provider_payload
+    assert DisputeEvent.objects.filter(dispute_case=case, payload__action="evidence_due").exists()
+
+
+@pytest.mark.django_db
+def test_v111_dispute_sla_sweep_escalates_stale_cases(settings):
+    settings.DISPUTE_SLA_ESCALATION_HOURS = 24
+    user = _user("v111-sla-user@example.com")
+    case = DisputeCase.objects.create(
+        public_id="DSP-RB-SLA",
+        opened_by=user,
+        dispute_type=DisputeCase.TYPE_SUPPORT,
+        subject="Slow support case",
+        status=DisputeCase.STATUS_UNDER_REVIEW,
+    )
+    SupportInboxItem.objects.create(dispute_case=case)
+    DisputeCase.objects.filter(id=case.id).update(opened_at=timezone.now() - timezone.timedelta(hours=25))
+
+    result = sla_escalation_sweep()
+
+    case.refresh_from_db()
+    inbox = SupportInboxItem.objects.get(dispute_case=case)
+    assert result["escalated"] == 1
+    assert case.status == DisputeCase.STATUS_ESCALATED
+    assert inbox.priority == SupportInboxItem.PRIORITY_HIGH
+    assert inbox.unread_for_admin is True
+    assert DisputeEvent.objects.filter(
+        dispute_case=case,
+        event_type=DisputeEvent.EVENT_STATUS_CHANGED,
+        payload__status=DisputeCase.STATUS_ESCALATED,
+    ).exists()

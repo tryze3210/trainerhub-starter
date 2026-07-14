@@ -32,7 +32,9 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels -r /tmp/requireme
 
 COPY --chown=app:app backend /app/backend
 COPY --chown=app:app deploy/backend /app/deploy/backend
-RUN chmod +x /app/deploy/backend/*.sh
+RUN mkdir -p /app/backend/staticfiles /app/run \
+    && chmod +x /app/deploy/backend/*.sh \
+    && chown -R app:app /app/backend /app/deploy /app/run
 
 USER app
 

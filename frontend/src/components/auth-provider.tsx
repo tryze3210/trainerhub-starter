@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { authApi } from '@/lib/api';
-import { clearTokens, hasTokens } from '@/lib/auth';
+import { clearTokens } from '@/lib/auth';
 import type { AuthUser } from '@/types/api';
 
 type AuthContextValue = {
@@ -27,12 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshSession = useCallback(async () => {
-    if (!hasTokens()) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setIsLoading(true);
       const session = await authApi.me();

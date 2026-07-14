@@ -1,12 +1,17 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthSession } from '@/components/auth-provider';
 import { checkoutApi } from '@/modules/checkout/api';
 import { CheckoutOrderSummary, formatCheckoutPrice } from '@/modules/checkout/components/checkout-order-summary';
-import { CheckoutPaymentMethod, type CheckoutProvider } from '@/modules/checkout/components/checkout-payment-method';
+import {
+  CheckoutPaymentMethod,
+  toCheckoutProviderOption,
+  type CheckoutProvider,
+  type CheckoutProviderOption,
+} from '@/modules/checkout/components/checkout-payment-method';
 import { CheckoutStateCard } from '@/modules/checkout/components/checkout-state-card';
 import { CheckoutTrustPanel } from '@/modules/checkout/components/checkout-trust-panel';
 
@@ -34,7 +39,9 @@ export function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useAuthSession();
-  const [provider, setProvider] = useState<CheckoutProvider>('mock');
+  const [provider, setProvider] = useState<CheckoutProvider | ''>('');
+  const [providers, setProviders] = useState<CheckoutProviderOption[]>([]);
+  const [isLoadingPaymentSettings, setIsLoadingPaymentSettings] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ orderId?: string; paymentId?: string } | null>(null);
@@ -56,6 +63,42 @@ export function CheckoutPage() {
     return `/login?next=${encodeURIComponent(`/checkout${query ? `?${query}` : ''}`)}`;
   }, [searchParams]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPaymentSettings() {
+      try {
+        const payload = await checkoutApi.getPaymentSettings();
+        if (!isMounted) return;
+
+        const options = payload.providers
+          .map((item) => toCheckoutProviderOption(item.provider, item.display_name))
+          .filter((item): item is CheckoutProviderOption => Boolean(item));
+        const defaultOption =
+          options.find((item) => item.value === payload.default_provider) || options[0];
+
+        setProviders(options);
+        setProvider(defaultOption?.value || '');
+        setError(options.length ? '' : 'Сейчас нет доступного способа оплаты. Свяжитесь с поддержкой.');
+      } catch (err) {
+        if (!isMounted) return;
+        setProviders([]);
+        setProvider('');
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить способы оплаты.');
+      } finally {
+        if (isMounted) {
+          setIsLoadingPaymentSettings(false);
+        }
+      }
+    }
+
+    void loadPaymentSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   async function submitCheckout() {
     if (!checkoutParams.item_type || !checkoutParams.item_id) {
       setError('Не удалось определить продукт для покупки. Вернитесь в каталог и выберите продукт заново.');
@@ -66,6 +109,10 @@ export function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      if (!provider) {
+        throw new Error('Выберите доступный способ оплаты.');
+      }
+
       const payload = await checkoutApi.checkoutOneTime({
         ...checkoutParams,
         provider,
@@ -136,7 +183,11 @@ export function CheckoutPage() {
             <strong>{formatCheckoutPrice(checkoutParams.amount, checkoutParams.currency)}</strong>
           </div>
 
-          <CheckoutPaymentMethod provider={provider} onProviderChange={setProvider} />
+          {isLoadingPaymentSettings ? (
+            <div className="premium-checkout-success">Загружаем доступные способы оплаты...</div>
+          ) : providers.length ? (
+            <CheckoutPaymentMethod provider={provider} providers={providers} onProviderChange={setProvider} />
+          ) : null}
 
           {error ? <div className="premium-checkout-error">{error}</div> : null}
           {result ? (
@@ -145,7 +196,7 @@ export function CheckoutPage() {
             </div>
           ) : null}
 
-          <button className="premium-primary-button" type="button" disabled={isSubmitting} onClick={() => void submitCheckout()}>
+          <button className="premium-primary-button" type="button" disabled={isSubmitting || isLoadingPaymentSettings || !provider} onClick={() => void submitCheckout()}>
             {isSubmitting ? 'Создаём заказ...' : 'Подтвердить покупку'}
           </button>
 

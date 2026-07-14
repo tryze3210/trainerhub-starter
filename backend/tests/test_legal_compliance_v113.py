@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from apps.finance_documents.models import FinanceDocument
 from apps.finance_documents.services.commercial_documents import FinanceCommercialDocumentService
-from apps.legal_compliance.models import ConsentLog, LegalDocumentTemplate, TrainerKYCProfile
+from apps.legal_compliance.models import ConsentLog, LegalDocumentTemplate, PayoutEligibilitySnapshot, TrainerKYCProfile
 from apps.legal_compliance.services.acceptance import LegalAcceptanceService
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderType, PurchasedItemType
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
@@ -108,6 +108,41 @@ def test_v113_compliance_status_and_consent_log_endpoints():
 
 
 @pytest.mark.django_db
+def test_v113_legal_documents_endpoint_exposes_only_latest_active_versions():
+    user = _user("v113-latest-docs@example.com")
+    old_terms = _document(LegalDocumentTemplate.DOC_TERMS, version="2026.01")
+    latest_terms = _document(LegalDocumentTemplate.DOC_TERMS, version="2026.07")
+    privacy = _document(LegalDocumentTemplate.DOC_PRIVACY, version="2026.07")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.get("/api/v1/legal/me/documents/")
+
+    assert response.status_code == 200
+    ids = {item["id"] for item in response.json()["results"]}
+    assert str(latest_terms.id) in ids
+    assert str(privacy.id) in ids
+    assert str(old_terms.id) not in ids
+
+
+@pytest.mark.django_db
+def test_v113_cannot_accept_stale_active_legal_document_version():
+    user = _user("v113-stale-accept@example.com")
+    old_terms = _document(LegalDocumentTemplate.DOC_TERMS, version="2026.01")
+    latest_terms = _document(LegalDocumentTemplate.DOC_TERMS, version="2026.07")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    stale_response = client.post(f"/api/v1/legal/me/documents/{old_terms.id}/accept/")
+    latest_response = client.post(f"/api/v1/legal/me/documents/{latest_terms.id}/accept/")
+
+    assert stale_response.status_code == 400
+    assert latest_response.status_code == 201
+    assert ConsentLog.objects.filter(user=user, document=old_terms).count() == 0
+    assert ConsentLog.objects.filter(user=user, document=latest_terms).count() == 1
+
+
+@pytest.mark.django_db
 def test_v113_finance_document_payload_contains_legal_fields():
     student = _user("v113-finance-legal@example.com")
     TrainerKYCProfile.objects.create(
@@ -131,3 +166,66 @@ def test_v113_finance_document_payload_contains_legal_fields():
     assert legal["legal_name"] == "Student Buyer LLC"
     assert legal["tax_id"] == "7700000000"
     assert legal["legal_address"] == "Moscow, Test street"
+
+
+@pytest.mark.django_db
+def test_v113_admin_kyc_review_requires_complete_profile_for_approval():
+    admin = get_user_model().objects.create_superuser(email="v113-kyc-admin@example.com", password="pass12345")
+    trainer = _user("v113-kyc-trainer@example.com", role="trainer")
+    profile = TrainerKYCProfile.objects.create(
+        trainer=trainer,
+        full_name="Trainer Legal",
+        country="RU",
+        tax_id="7700000000",
+    )
+    client = APIClient()
+    client.force_authenticate(user=admin)
+
+    response = client.post(f"/api/v1/legal/admin/kyc/{profile.id}/review/", {"decision": "approve"}, format="json")
+
+    profile.refresh_from_db()
+    assert response.status_code == 400
+    assert set(response.json()["missing_fields"]) == {"legal_address", "payout_legal_entity_name"}
+    assert profile.status == TrainerKYCProfile.STATUS_DRAFT
+
+
+@pytest.mark.django_db
+def test_v113_admin_kyc_reject_requires_reason():
+    admin = get_user_model().objects.create_superuser(email="v113-kyc-reject-admin@example.com", password="pass12345")
+    trainer = _user("v113-kyc-reject-trainer@example.com", role="trainer")
+    profile = TrainerKYCProfile.objects.create(trainer=trainer, status=TrainerKYCProfile.STATUS_PENDING)
+    client = APIClient()
+    client.force_authenticate(user=admin)
+
+    response = client.post(f"/api/v1/legal/admin/kyc/{profile.id}/review/", {"decision": "reject"}, format="json")
+
+    profile.refresh_from_db()
+    assert response.status_code == 400
+    assert profile.status == TrainerKYCProfile.STATUS_PENDING
+    assert profile.rejection_reason == ""
+
+
+@pytest.mark.django_db
+def test_v113_admin_kyc_approval_refreshes_payout_eligibility_snapshot():
+    admin = get_user_model().objects.create_superuser(email="v113-kyc-ok-admin@example.com", password="pass12345")
+    trainer = _user("v113-kyc-ok-trainer@example.com", role="trainer")
+    profile = TrainerKYCProfile.objects.create(
+        trainer=trainer,
+        full_name="Trainer Legal",
+        country="RU",
+        tax_id="7700000000",
+        legal_address="Moscow, Test street",
+        payout_legal_entity_name="Trainer LLC",
+        status=TrainerKYCProfile.STATUS_PENDING,
+    )
+    client = APIClient()
+    client.force_authenticate(user=admin)
+
+    response = client.post(f"/api/v1/legal/admin/kyc/{profile.id}/review/", {"decision": "approve"}, format="json")
+
+    profile.refresh_from_db()
+    snapshot = PayoutEligibilitySnapshot.objects.get(trainer=trainer)
+    assert response.status_code == 200
+    assert profile.status == TrainerKYCProfile.STATUS_APPROVED
+    assert profile.reviewed_by == admin
+    assert snapshot.kyc_status == TrainerKYCProfile.STATUS_APPROVED

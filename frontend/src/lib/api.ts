@@ -85,7 +85,7 @@ export const privateApi = {
     title?: string;
     amount?: string;
     currency?: string;
-    provider?: string;
+    provider: string;
   }): Promise<CheckoutResponse> => checkoutApi.checkoutOneTime(payload),
   simulatePaymentSuccess: paymentsApi.simulatePaymentSuccess,
   confirmMockPayment: (paymentId: string) => apiRequest<Payment>(`/payments/${paymentId}/confirm-mock/`, { auth: true, method: 'POST' }),

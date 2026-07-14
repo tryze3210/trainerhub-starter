@@ -1,29 +1,36 @@
 export type CheckoutProvider = 'mock' | 'cloudpayments' | 'yookassa';
 
-const providers: { value: CheckoutProvider; label: string; description: string }[] = [
-  {
-    value: 'mock',
-    label: 'Тестовая оплата',
-    description: 'Подходит для локальной проверки покупки.',
-  },
-  {
-    value: 'cloudpayments',
-    label: 'CloudPayments',
-    description: 'Создаёт платёжную сессию у провайдера.',
-  },
-  {
-    value: 'yookassa',
-    label: 'ЮKassa',
-    description: 'Создаёт платёжную сессию у провайдера.',
-  },
-];
+export type CheckoutProviderOption = {
+  value: CheckoutProvider;
+  label: string;
+  description: string;
+};
+
+const providerDescriptions: Record<CheckoutProvider, string> = {
+  mock: 'Подходит только для локальной проверки покупки.',
+  cloudpayments: 'Безопасная оплата банковской картой.',
+  yookassa: 'Оплата картой или через доступные способы ЮKassa.',
+};
 
 type CheckoutPaymentMethodProps = {
-  provider: CheckoutProvider;
+  provider: CheckoutProvider | '';
+  providers: CheckoutProviderOption[];
   onProviderChange: (provider: CheckoutProvider) => void;
 };
 
-export function CheckoutPaymentMethod({ provider, onProviderChange }: CheckoutPaymentMethodProps) {
+export function toCheckoutProviderOption(provider: string, label?: string): CheckoutProviderOption | null {
+  if (provider !== 'mock' && provider !== 'cloudpayments' && provider !== 'yookassa') {
+    return null;
+  }
+
+  return {
+    value: provider,
+    label: label || provider,
+    description: providerDescriptions[provider],
+  };
+}
+
+export function CheckoutPaymentMethod({ provider, providers, onProviderChange }: CheckoutPaymentMethodProps) {
   return (
     <div className="premium-checkout-provider" role="radiogroup" aria-label="Способ оплаты">
       {providers.map((item) => (

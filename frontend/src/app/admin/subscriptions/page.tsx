@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   description: 'Subscription lifecycle operations, entitlement sync, expire-due and reconciliation controls.',
 };
 
-export default function AdminSubscriptionsPage() {
+export default function AdminПодпискиPage() {
   return (
     <ProtectedPage
-      title="Admin subscriptions"
-      description="Lifecycle operations для подписок, entitlement sync и recurring revenue контроля."
+      title="Подписки администратора"
+      description="Операции жизненного цикла подписок, синхронизация доступов и контроль регулярной выручки."
     >
       <AdminSubscriptionOperationsDashboard />
     </ProtectedPage>

@@ -1,0 +1,9 @@
+Hello,
+
+Your finance document {{ document.document_number }} is ready.
+
+Document type: {{ document.document_type }}
+Period: {{ document.period_start }} - {{ document.period_end }}
+Download link: {{ download_url }}
+
+TrainerHub

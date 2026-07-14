@@ -12,6 +12,7 @@ PUBLIC_ENTITY_MODELS = {
     'program': PublishedProgram,
     'bundle': PublishedBundle,
 }
+DEFAULT_CATALOG_COVER_URL = ''
 
 
 def _rating_stats(entity_type: str, ids: list[str]) -> dict[str, dict[str, float | int]]:
@@ -60,7 +61,7 @@ def serialize_catalog_item(instance, entity_type: str) -> dict:
         'reviews_count': stats['reviews_count'],
         'duration_minutes': getattr(instance, 'duration_minutes', 0),
         'is_featured': bool(getattr(instance, 'is_featured', False)),
-        'cover_url': instance.trainer_profile.avatar_url or 'https://cdn.example.com/placeholder-cover.jpg',
+        'cover_url': instance.trainer_profile.avatar_url or DEFAULT_CATALOG_COVER_URL,
         'description': instance.description,
         'published_at': instance.published_at.isoformat(),
     }

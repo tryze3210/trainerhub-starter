@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   trainerOnboardingApi,
   type TrainerApplicationPayload,
@@ -177,6 +177,20 @@ function buildPayload(form: FormState): TrainerApplicationPayload {
   };
 }
 
+function formDataToState(formData: FormData): FormState {
+  return {
+    legal_name: String(formData.get('legal_name') || ''),
+    brand_name: String(formData.get('brand_name') || ''),
+    contact_phone: String(formData.get('contact_phone') || ''),
+    country: String(formData.get('country') || ''),
+    city: String(formData.get('city') || ''),
+    bio: String(formData.get('bio') || ''),
+    specialties_text: String(formData.get('specialties_text') || ''),
+    links_text: String(formData.get('links_text') || ''),
+    experience_years: String(formData.get('experience_years') || ''),
+  };
+}
+
 function stateToForm(state: TrainerOnboardingState | null): FormState {
   const application = state?.application;
   if (!application) return emptyForm;
@@ -193,9 +207,131 @@ function stateToForm(state: TrainerOnboardingState | null): FormState {
   };
 }
 
+type TrainerApplicationFormProps = {
+  initialForm: FormState;
+  canEdit: boolean;
+  canSubmit: boolean;
+  saving: boolean;
+  onSave: (payload: TrainerApplicationPayload) => Promise<void>;
+  onSubmitApplication: (payload: TrainerApplicationPayload) => Promise<void>;
+};
+
+const TrainerApplicationForm = memo(function TrainerApplicationForm({
+  initialForm,
+  canEdit,
+  canSubmit,
+  saving,
+  onSave,
+  onSubmitApplication,
+}: TrainerApplicationFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [localError, setLocalError] = useState('');
+  const canSubmitCurrentDraft = canEdit || canSubmit;
+
+  const getPayload = useCallback(() => {
+    const form = formRef.current;
+    return buildPayload(form ? formDataToState(new FormData(form)) : initialForm);
+  }, [initialForm]);
+
+  const validateForSubmit = useCallback((payload: TrainerApplicationPayload) => {
+    if (!(payload.brand_name || payload.legal_name)) return 'Укажите название бренда или юридическое имя.';
+    if (!payload.bio) return 'Добавьте позиционирование и описание.';
+    if (!payload.specialties?.length) return 'Укажите хотя бы одну специализацию.';
+    return '';
+  }, []);
+
+  async function saveDraft(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLocalError('');
+    await onSave(getPayload());
+  }
+
+  async function submitApplication() {
+    const payload = getPayload();
+    const validationError = validateForSubmit(payload);
+    if (validationError) {
+      setLocalError(validationError);
+      return;
+    }
+    setLocalError('');
+    await onSubmitApplication(payload);
+  }
+
+  return (
+    <form className="trainer-onboarding-form" ref={formRef} onSubmit={saveDraft}>
+      <div className="trainer-onboarding-form-grid">
+        <label className="trainer-onboarding-field">
+          <span>Название бренда</span>
+          <input name="brand_name" defaultValue={initialForm.brand_name} />
+        </label>
+        <label className="trainer-onboarding-field">
+          <span>Юридическое имя</span>
+          <input name="legal_name" defaultValue={initialForm.legal_name} />
+        </label>
+      </div>
+
+      <div className="trainer-onboarding-form-grid">
+        <label className="trainer-onboarding-field">
+          <span>Телефон</span>
+          <input name="contact_phone" defaultValue={initialForm.contact_phone} />
+        </label>
+        <label className="trainer-onboarding-field">
+          <span>Опыт в годах</span>
+          <input name="experience_years" type="number" min={0} defaultValue={initialForm.experience_years} />
+        </label>
+      </div>
+
+      <div className="trainer-onboarding-form-grid">
+        <label className="trainer-onboarding-field">
+          <span>Страна</span>
+          <input name="country" defaultValue={initialForm.country} />
+        </label>
+        <label className="trainer-onboarding-field">
+          <span>Город</span>
+          <input name="city" defaultValue={initialForm.city} />
+        </label>
+      </div>
+
+      <label className="trainer-onboarding-field">
+        <span>Позиционирование и описание</span>
+        <textarea name="bio" rows={5} defaultValue={initialForm.bio} />
+      </label>
+
+      <label className="trainer-onboarding-field">
+        <span>Специализации</span>
+        <input
+          name="specialties_text"
+          placeholder="силовые тренировки, мобильность, снижение веса"
+          defaultValue={initialForm.specialties_text}
+        />
+      </label>
+
+      <label className="trainer-onboarding-field">
+        <span>Ссылки</span>
+        <textarea name="links_text" rows={3} defaultValue={initialForm.links_text} />
+      </label>
+
+      {localError ? <div className="trainer-onboarding-alert">{localError}</div> : null}
+
+      <div className="trainer-onboarding-actions">
+        <button className="premium-secondary-button" type="submit" disabled={saving || !canEdit}>
+          {saving ? 'Сохраняем…' : 'Сохранить черновик'}
+        </button>
+        <button
+          className="premium-primary-button"
+          type="button"
+          onClick={() => void submitApplication()}
+          disabled={saving || !canSubmitCurrentDraft}
+        >
+          {saving ? 'Отправляем…' : 'Отправить на проверку'}
+        </button>
+      </div>
+    </form>
+  );
+});
+
 export function TrainerOnboardingChecklist() {
   const [state, setState] = useState<TrainerOnboardingState | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -207,7 +343,6 @@ export function TrainerOnboardingChecklist() {
       setError('');
       const payload = await trainerOnboardingApi.getStatus();
       setState(payload);
-      setForm(stateToForm(payload));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось загрузить профиль тренера');
     } finally {
@@ -219,18 +354,14 @@ export function TrainerOnboardingChecklist() {
     void load();
   }, []);
 
-  const applicationReady = useMemo(() => {
-    const payload = buildPayload(form);
-    return Boolean((payload.brand_name || payload.legal_name) && payload.bio && payload.specialties?.length);
-  }, [form]);
+  const initialForm = useMemo(() => stateToForm(state), [state]);
 
-  async function saveDraft(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const saveDraft = useCallback(async (payload: TrainerApplicationPayload) => {
     try {
       setSaving(true);
       setError('');
       setMessage('');
-      await trainerOnboardingApi.saveApplication(buildPayload(form));
+      await trainerOnboardingApi.saveApplication(payload);
       setMessage('Черновик заявки сохранён.');
       await load();
     } catch (err) {
@@ -238,14 +369,14 @@ export function TrainerOnboardingChecklist() {
     } finally {
       setSaving(false);
     }
-  }
+  }, []);
 
-  async function submitApplication() {
+  const submitApplication = useCallback(async (payload: TrainerApplicationPayload) => {
     try {
       setSaving(true);
       setError('');
       setMessage('');
-      await trainerOnboardingApi.submitApplication(buildPayload(form));
+      await trainerOnboardingApi.submitApplication(payload);
       setMessage('Заявка отправлена на проверку.');
       await load();
     } catch (err) {
@@ -253,7 +384,7 @@ export function TrainerOnboardingChecklist() {
     } finally {
       setSaving(false);
     }
-  }
+  }, []);
 
   if (loading) {
     return (
@@ -301,7 +432,7 @@ export function TrainerOnboardingChecklist() {
           <span>Прогресс заполнения</span>
           <strong>{formatPercent(state?.summary.completion_percent)}</strong>
           <small>
-            {mapTrainerApplicationStatusLabel(applicationStatus)} · {dashboardUnlocked ? 'Кабинет открыт' : 'Кабинет закрыт'} · {mapRoleLabel(state?.user.role)}
+            {mapTrainerApplicationStatusLabel(applicationStatus)} · {dashboardUnlocked ? 'Кабинет открыт' : 'Кабинет закрыт'} · {mapRoleLabel(state?.user?.role)}
           </small>
         </div>
       </section>
@@ -324,7 +455,7 @@ export function TrainerOnboardingChecklist() {
         </article>
         <article className="trainer-onboarding-status-card">
           <span>Роль</span>
-          <strong>{mapRoleLabel(state?.user.role)}</strong>
+          <strong>{mapRoleLabel(state?.user?.role)}</strong>
           <small>Роль тренера выдаётся после одобрения заявки</small>
         </article>
       </section>
@@ -352,64 +483,15 @@ export function TrainerOnboardingChecklist() {
               </div>
             ) : null}
 
-            <form className="trainer-onboarding-form" onSubmit={saveDraft}>
-              <div className="trainer-onboarding-form-grid">
-                <label className="trainer-onboarding-field">
-                  <span>Название бренда</span>
-                  <input value={form.brand_name} onChange={(event) => setForm((prev) => ({ ...prev, brand_name: event.target.value }))} />
-                </label>
-                <label className="trainer-onboarding-field">
-                  <span>Юридическое имя</span>
-                  <input value={form.legal_name} onChange={(event) => setForm((prev) => ({ ...prev, legal_name: event.target.value }))} />
-                </label>
-              </div>
-
-              <div className="trainer-onboarding-form-grid">
-                <label className="trainer-onboarding-field">
-                  <span>Телефон</span>
-                  <input value={form.contact_phone} onChange={(event) => setForm((prev) => ({ ...prev, contact_phone: event.target.value }))} />
-                </label>
-                <label className="trainer-onboarding-field">
-                  <span>Опыт в годах</span>
-                  <input type="number" min={0} value={form.experience_years} onChange={(event) => setForm((prev) => ({ ...prev, experience_years: event.target.value }))} />
-                </label>
-              </div>
-
-              <div className="trainer-onboarding-form-grid">
-                <label className="trainer-onboarding-field">
-                  <span>Страна</span>
-                  <input value={form.country} onChange={(event) => setForm((prev) => ({ ...prev, country: event.target.value }))} />
-                </label>
-                <label className="trainer-onboarding-field">
-                  <span>Город</span>
-                  <input value={form.city} onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))} />
-                </label>
-              </div>
-
-              <label className="trainer-onboarding-field">
-                <span>Позиционирование и описание</span>
-                <textarea rows={5} value={form.bio} onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} />
-              </label>
-
-              <label className="trainer-onboarding-field">
-                <span>Специализации</span>
-                <input placeholder="силовые тренировки, мобильность, снижение веса" value={form.specialties_text} onChange={(event) => setForm((prev) => ({ ...prev, specialties_text: event.target.value }))} />
-              </label>
-
-              <label className="trainer-onboarding-field">
-                <span>Ссылки</span>
-                <textarea rows={3} value={form.links_text} onChange={(event) => setForm((prev) => ({ ...prev, links_text: event.target.value }))} />
-              </label>
-
-              <div className="trainer-onboarding-actions">
-                <button className="premium-secondary-button" type="submit" disabled={saving || !state?.can_edit_application}>
-                  {saving ? 'Сохраняем…' : 'Сохранить черновик'}
-                </button>
-                <button className="premium-primary-button" type="button" onClick={() => void submitApplication()} disabled={saving || !applicationReady || !state?.can_submit_application}>
-                  {saving ? 'Отправляем…' : 'Отправить на проверку'}
-                </button>
-              </div>
-            </form>
+            <TrainerApplicationForm
+              key={state?.application.updated_at || state?.application.id || 'trainer-application-form'}
+              initialForm={initialForm}
+              canEdit={Boolean(state?.can_edit_application)}
+              canSubmit={Boolean(state?.can_submit_application)}
+              saving={saving}
+              onSave={saveDraft}
+              onSubmitApplication={submitApplication}
+            />
           </section>
         </main>
 
@@ -440,8 +522,8 @@ export function TrainerOnboardingChecklist() {
           <section className="trainer-onboarding-form-card">
             <h3>Сводка профиля</h3>
             <article className="trainer-onboarding-step-card">
-              <strong>{state?.profile?.display_name || form.brand_name || 'Публичное имя не указано'}</strong>
-              <p>{state?.profile?.headline || form.bio || 'Описание появится после заполнения заявки.'}</p>
+              <strong>{state?.profile?.display_name || state?.application.brand_name || 'Публичное имя не указано'}</strong>
+              <p>{state?.profile?.headline || state?.application.bio || 'Описание появится после заполнения заявки.'}</p>
             </article>
             <article className="trainer-onboarding-step-card">
               <strong>{shortId(state?.application.id)}</strong>

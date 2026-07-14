@@ -27,7 +27,25 @@ REQUIRED_RUNBOOKS = [
 
 
 def _runbook_dir() -> Path:
-    return Path(settings.BASE_DIR) / "ops" / "runbooks"
+    backend_dir = Path(settings.BASE_DIR)
+    candidates = [
+        backend_dir.parent / "ops" / "runbooks",
+        backend_dir / "ops" / "runbooks",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def _display_path(path: Path) -> str:
+    backend_dir = Path(settings.BASE_DIR)
+    for root in (backend_dir.parent, backend_dir):
+        try:
+            return str(path.relative_to(root))
+        except ValueError:
+            continue
+    return str(path)
 
 
 def _read_text(path: Path) -> str:
@@ -50,7 +68,7 @@ def get_ops_runbook_index(*, include_content: bool = False) -> dict[str, Any]:
             "title": spec.title,
             "incident_type": spec.incident_type,
             "severity": spec.severity,
-            "path": str(path.relative_to(Path(settings.BASE_DIR))),
+            "path": _display_path(path),
             "exists": exists,
             "sections": [line[3:].strip() for line in content.splitlines() if line.startswith("## ")] if content else [],
         }

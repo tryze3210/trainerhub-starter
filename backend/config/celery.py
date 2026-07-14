@@ -6,7 +6,7 @@ from celery import Celery
 
 os.environ.setdefault(
     'DJANGO_SETTINGS_MODULE',
-    os.getenv('DJANGO_SETTINGS_MODULE', 'config.settings.local'),
+    os.getenv('DJANGO_SETTINGS_MODULE', 'config.settings.base'),
 )
 
 app = Celery('trainerhub')
@@ -30,6 +30,8 @@ def _float_env(name: str, default: float) -> float:
 
 OUTBOX_QUEUE = os.getenv('CELERY_OUTBOX_QUEUE', 'outbox')
 OPS_QUEUE = os.getenv('CELERY_OPS_QUEUE', 'ops')
+DISPUTES_QUEUE = os.getenv('CELERY_DISPUTES_QUEUE', OPS_QUEUE)
+EMAIL_QUEUE = os.getenv('CELERY_EMAIL_QUEUE', 'email')
 DEFAULT_QUEUE = os.getenv('CELERY_TASK_DEFAULT_QUEUE', 'default')
 
 # Keep event processing isolated from regular background work. A burst of media
@@ -41,6 +43,10 @@ app.conf.task_routes = {
     'apps.events.tasks.outbox_healthcheck_task': {'queue': OUTBOX_QUEUE},
     'apps.ops.tasks.capture_reconciliation_snapshot_task': {'queue': OPS_QUEUE},
     'apps.ops.tasks.prune_reconciliation_snapshots_task': {'queue': OPS_QUEUE},
+    'disputes.sync_open_chargebacks': {'queue': DISPUTES_QUEUE},
+    'disputes.sla_escalation_sweep': {'queue': DISPUTES_QUEUE},
+    'apps.notifications.tasks.deliver_pending_email_notification': {'queue': EMAIL_QUEUE},
+    'apps.notifications.tasks.sweep_pending_email_notifications': {'queue': EMAIL_QUEUE},
 }
 
 # Celery Beat schedule. The task bodies are bounded, so running them often is
@@ -99,6 +105,22 @@ app.conf.beat_schedule = {
             'dry_run': os.getenv('CELERY_RECONCILIATION_SNAPSHOT_RETENTION_DRY_RUN', 'false').lower() in {'1', 'true', 'yes'},
         },
         'options': {'queue': OPS_QUEUE},
+    },
+    'trainerhub-disputes-sync-open-chargebacks': {
+        'task': 'disputes.sync_open_chargebacks',
+        'schedule': _float_env('CELERY_DISPUTES_CHARGEBACK_SYNC_EVERY_SECONDS', 600.0),
+        'options': {'queue': DISPUTES_QUEUE},
+    },
+    'trainerhub-disputes-sla-escalation-sweep': {
+        'task': 'disputes.sla_escalation_sweep',
+        'schedule': _float_env('CELERY_DISPUTES_SLA_SWEEP_EVERY_SECONDS', 1800.0),
+        'options': {'queue': DISPUTES_QUEUE},
+    },
+    'trainerhub-notifications-sweep-pending-email': {
+        'task': 'apps.notifications.tasks.sweep_pending_email_notifications',
+        'schedule': _float_env('CELERY_EMAIL_SWEEP_EVERY_SECONDS', 60.0),
+        'kwargs': {'limit': _int_env('CELERY_EMAIL_SWEEP_LIMIT', 200)},
+        'options': {'queue': EMAIL_QUEUE},
     },
 }
 

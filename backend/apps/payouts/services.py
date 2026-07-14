@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -79,6 +80,22 @@ class PayoutService:
     @classmethod
     def _is_active_status(cls, status: str) -> bool:
         return status in ACTIVE_PAYOUT_STATUSES
+
+    @staticmethod
+    def _enforce_legal_eligibility(trainer_user) -> None:
+        if not bool(getattr(settings, "PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY", False)):
+            return
+
+        from apps.legal_compliance.services.eligibility import PayoutEligibilityService
+
+        snapshot = PayoutEligibilityService.refresh_snapshot(trainer_user)
+        if not snapshot.is_eligible:
+            raise ValidationError(
+                {
+                    "detail": "Trainer is not eligible for payouts.",
+                    "block_reason": snapshot.block_reason,
+                }
+            )
 
     @staticmethod
     def _json_payload(payout: PayoutRequest) -> dict:
@@ -172,6 +189,7 @@ class PayoutService:
             raise ValidationError({"detail": "Payout request amount must be positive."})
 
         wallet = cls._get_or_create_locked_balance(trainer_id=trainer_id)
+        cls._enforce_legal_eligibility(wallet.trainer.user)
         if amount > wallet.available_amount:
             raise ValidationError({"detail": "Insufficient available balance for payout request."})
 
@@ -216,6 +234,7 @@ class PayoutService:
         if cls._canonical_status(payout.status) == PayoutRequest.Status.APPROVED:
             return payout
         cls._require_status(payout, {PayoutRequest.Status.PENDING, PayoutRequest.Status.REQUESTED}, "approve")
+        cls._enforce_legal_eligibility(payout.trainer.user)
 
         payload = cls._append_ops_history(
             metadata=cls._json_payload(payout),
@@ -237,6 +256,7 @@ class PayoutService:
         if payout.status == PayoutRequest.Status.PROCESSING:
             return payout
         cls._require_status(payout, {PayoutRequest.Status.APPROVED}, "move to processing")
+        cls._enforce_legal_eligibility(payout.trainer.user)
 
         payout.status = PayoutRequest.Status.PROCESSING
         payout.destination_json = cls._append_ops_history(
@@ -256,6 +276,7 @@ class PayoutService:
         if payout.status == PayoutRequest.Status.PAID:
             return payout
         cls._require_status(payout, {PayoutRequest.Status.PROCESSING}, "mark paid")
+        cls._enforce_legal_eligibility(payout.trainer.user)
 
         wallet = TrainerWallet.objects.select_for_update().get(id=payout.wallet_id)
         if wallet.locked_amount < payout.amount:

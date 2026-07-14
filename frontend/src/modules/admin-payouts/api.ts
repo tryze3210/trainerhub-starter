@@ -23,10 +23,19 @@ export type AdminPayoutRequest = {
   approved_at?: string | null;
   processed_at?: string | null;
   rejected_reason?: string;
+  payout_eligibility?: AdminPayoutEligibility;
   metadata?: Record<string, unknown>;
   ledger_entries?: AdminPayoutLedgerEntry[];
   created_at?: string | null;
   updated_at?: string | null;
+};
+
+export type AdminPayoutEligibility = {
+  is_eligible: boolean;
+  block_reason?: string;
+  has_active_agreement?: boolean;
+  has_verified_payout_profile?: boolean;
+  kyc_status?: string;
 };
 
 export type AdminPayoutLedgerEntry = {
@@ -392,6 +401,7 @@ async function downloadFile(path: string, fallbackFilename: string) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers,
     cache: 'no-store',
+    credentials: 'include',
   });
 
   if (!response.ok) {
