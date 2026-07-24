@@ -11,6 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import AuditService
+from common.csv_safe import csv_safe_value
 from apps.finance_documents.models import FinanceDocument
 from apps.finance_documents.services.rendering import FinanceDocumentRenderer
 from apps.orders.models import Order
@@ -211,25 +212,24 @@ class FinanceCommercialDocumentService:
         writer.writeheader()
         for document in queryset.select_related("trainer").order_by("created_at"):
             payload = document.payload or {}
-            writer.writerow(
-                {
-                    "document_number": document.document_number,
-                    "document_type": document.document_type,
-                    "status": document.status,
-                    "owner_id": str(document.trainer_id),
-                    "owner_email": getattr(document.trainer, "email", ""),
-                    "period_start": document.period_start.isoformat(),
-                    "period_end": document.period_end.isoformat(),
-                    "currency": document.currency,
-                    "gross_amount": str(document.gross_amount),
-                    "commission_amount": str(document.commission_amount),
-                    "net_amount": str(document.net_amount),
-                    "order_id": payload.get("order_id", ""),
-                    "payment_id": payload.get("payment_id", ""),
-                    "refund_id": payload.get("refund_id", ""),
-                    "provider": payload.get("provider", ""),
-                    "created_at": document.created_at.isoformat() if document.created_at else "",
-                    "finalized_at": document.finalized_at.isoformat() if document.finalized_at else "",
-                }
-            )
+            row = {
+                "document_number": document.document_number,
+                "document_type": document.document_type,
+                "status": document.status,
+                "owner_id": str(document.trainer_id),
+                "owner_email": getattr(document.trainer, "email", ""),
+                "period_start": document.period_start.isoformat(),
+                "period_end": document.period_end.isoformat(),
+                "currency": document.currency,
+                "gross_amount": str(document.gross_amount),
+                "commission_amount": str(document.commission_amount),
+                "net_amount": str(document.net_amount),
+                "order_id": payload.get("order_id", ""),
+                "payment_id": payload.get("payment_id", ""),
+                "refund_id": payload.get("refund_id", ""),
+                "provider": payload.get("provider", ""),
+                "created_at": document.created_at.isoformat() if document.created_at else "",
+                "finalized_at": document.finalized_at.isoformat() if document.finalized_at else "",
+            }
+            writer.writerow({key: csv_safe_value(value) for key, value in row.items()})
         return stream.getvalue()

@@ -1,10 +1,12 @@
 from django.conf import settings
+from django.middleware.csrf import get_token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.authn import services
+from apps.authn.authentication import enforce_csrf
 from apps.authn.api.serializers import (
     LoginSerializer,
     LogoutSerializer,
@@ -54,6 +56,15 @@ def _set_auth_cookies(response: Response, payload: dict) -> Response:
     return response
 
 
+def _prepare_auth_response(request, response: Response, payload: dict) -> Response:
+    get_token(request)
+    return _set_auth_cookies(response, payload)
+
+
+def _public_auth_payload(payload: dict) -> dict:
+    return {'user': payload.get('user')}
+
+
 def _clear_auth_cookies(response: Response) -> Response:
     response.delete_cookie(
         settings.AUTH_ACCESS_COOKIE_NAME,
@@ -68,6 +79,13 @@ def _clear_auth_cookies(response: Response) -> Response:
     return response
 
 
+def _refresh_token_from_request(request) -> tuple[str, bool]:
+    explicit_token = request.data.get('refresh_token') or request.data.get('refresh')
+    if explicit_token:
+        return explicit_token, False
+    return request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, ''), True
+
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
@@ -80,7 +98,7 @@ class RegisterView(APIView):
             **serializer.validated_data,
             request_meta=_request_meta(request),
         )
-        return _set_auth_cookies(Response(payload, status=201), payload)
+        return _prepare_auth_response(request, Response(_public_auth_payload(payload), status=201), payload)
 
 
 class LoginView(APIView):
@@ -95,7 +113,7 @@ class LoginView(APIView):
             **serializer.validated_data,
             request_meta=_request_meta(request),
         )
-        return _set_auth_cookies(Response(payload), payload)
+        return _prepare_auth_response(request, Response(_public_auth_payload(payload)), payload)
 
 
 class RefreshView(APIView):
@@ -105,10 +123,10 @@ class RefreshView(APIView):
 
     def post(self, request):
         request_data = request.data.copy()
-        request_data['refresh_token'] = (
-            request_data.get('refresh_token')
-            or request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, '')
-        )
+        refresh_token, from_cookie = _refresh_token_from_request(request)
+        if from_cookie and refresh_token:
+            enforce_csrf(request)
+        request_data['refresh_token'] = refresh_token
         serializer = RefreshSerializer(data=request_data)
         serializer.is_valid(raise_exception=True)
         if not serializer.validated_data.get('refresh_token'):
@@ -116,19 +134,21 @@ class RefreshView(APIView):
                 Response({'detail': 'Refresh token is required'}, status=401)
             )
         payload = services.refresh_tokens(**serializer.validated_data)
-        response_payload = TokenPairSerializer(payload).data
-        return _set_auth_cookies(Response(response_payload), response_payload)
+        TokenPairSerializer(data=payload).is_valid(raise_exception=True)
+        return _prepare_auth_response(request, Response({'status': 'refreshed'}), payload)
 
 
 class LogoutView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_logout'
 
     def post(self, request):
         request_data = request.data.copy()
-        request_data['refresh_token'] = (
-            request_data.get('refresh_token')
-            or request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, '')
-        )
+        refresh_token, from_cookie = _refresh_token_from_request(request)
+        if from_cookie and refresh_token:
+            enforce_csrf(request)
+        request_data['refresh_token'] = refresh_token
         serializer = LogoutSerializer(data=request_data)
         serializer.is_valid(raise_exception=True)
         if serializer.validated_data.get('refresh_token'):

@@ -89,6 +89,50 @@ def test_access_check_denies_refunded_order_even_if_entitlement_is_still_active(
 
 
 @pytest.mark.django_db
+def test_access_check_allows_older_valid_entitlement_when_newer_source_is_invalid():
+    user = get_user_model().objects.create_user(email="access-valid-fallback@example.com", password="pass12345")
+    target_id = "video-valid-fallback-001"
+    valid_entitlement = Entitlement.objects.create(
+        user=user,
+        source_type=EntitlementSourceType.ADMIN_GRANT,
+        target_type=EntitlementTargetType.VIDEO,
+        target_id=target_id,
+        status=EntitlementStatus.ACTIVE,
+        starts_at=timezone.now() - timedelta(days=2),
+    )
+    refunded_order = Order.objects.create(
+        user=user,
+        order_type=OrderType.ONE_TIME,
+        status=OrderStatus.REFUNDED,
+        currency="RUB",
+        total_amount=Decimal("499.00"),
+    )
+    Entitlement.objects.create(
+        user=user,
+        source_type=EntitlementSourceType.ORDER,
+        source_order=refunded_order,
+        target_type=EntitlementTargetType.VIDEO,
+        target_id=target_id,
+        status=EntitlementStatus.ACTIVE,
+        starts_at=timezone.now() - timedelta(days=1),
+    )
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+    response = client.get(
+        "/api/v1/entitlements/me/access-check/",
+        {"target_type": "video", "target_id": target_id},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["allowed"] is True
+    assert payload["code"] == "access_granted"
+    assert payload["entitlement_id"] == str(valid_entitlement.id)
+    assert payload["source_type"] == EntitlementSourceType.ADMIN_GRANT
+
+
+@pytest.mark.django_db
 def test_access_check_allows_active_library_subscription_entitlement():
     user = get_user_model().objects.create_user(email="access-sub@example.com", password="pass12345")
     plan = SubscriptionPlan.objects.create(title="Library", price=Decimal("1000.00"), currency="RUB")
@@ -171,6 +215,34 @@ def test_entitlement_revoke_is_idempotent_and_audited():
         event_type="entitlement.revoked",
         aggregate_id=str(entitlement.id),
     ).count() == 1
+
+
+@pytest.mark.django_db
+def test_entitlement_access_granted_notification_failure_is_audited(monkeypatch):
+    user = get_user_model().objects.create_user(email="access-notification-fail@example.com", password="pass12345")
+
+    def raise_notification_error(*args, **kwargs):
+        raise RuntimeError("notification provider unavailable")
+
+    monkeypatch.setattr(
+        "apps.notifications.domain.triggers.DomainNotificationTriggers.on_access_granted",
+        raise_notification_error,
+    )
+
+    entitlement = EntitlementService.grant(
+        user=user,
+        target_type=EntitlementTargetType.VIDEO,
+        target_id=str(uuid4()),
+        source_type=EntitlementSourceType.ADMIN,
+    )
+
+    audit_event = AuditEvent.objects.get(
+        event_type="side_effect.failed",
+        entity_type="entitlement",
+        entity_id=str(entitlement.id),
+    )
+    assert audit_event.context["side_effect"] == "notification.access_granted"
+    assert "notification provider unavailable" in audit_event.context["error"]
 
 
 @pytest.mark.django_db

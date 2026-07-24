@@ -65,7 +65,7 @@ class PolicyService:
             user = getattr(request, 'user', None)
         try:
             context = selectors.get_current_account_context(user=user)
-        except Exception:
+        except (AttributeError, TypeError):
             context = self._legacy_context_from_request(request)
         gate = self.feature_gate(key, context=context)
         return {

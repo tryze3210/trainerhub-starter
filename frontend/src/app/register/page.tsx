@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
 import { authApi } from '@/lib/api';
-import { persistTokens } from '@/lib/auth';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,7 +36,6 @@ export default function RegisterPage() {
         password,
         role,
       });
-      persistTokens(payload.access_token, payload.refresh_token);
       await refreshSession();
       setSuccess('Аккаунт успешно создан');
       const nextPath = payload.user.active_role === 'trainer' ? '/trainer/onboarding' : '/cabinet';

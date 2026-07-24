@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 from apps.access_control.permissions import IsAuditReader
 from apps.audit.api.serializers import AuditEventSerializer
 from apps.audit.models import AuditEvent
+from common.csv_safe import csv_safe_value
 
 AUDIT_EXPORT_LIMIT = 10_000
 AUDIT_RETENTION_DEFAULT_DAYS = 180
@@ -71,14 +72,14 @@ class AuditAdminCsvExportView(APIView):
                 [
                     str(event.id),
                     event.created_at.isoformat() if event.created_at else '',
-                    event.event_type,
-                    event.entity_type,
-                    event.entity_id,
+                    csv_safe_value(event.event_type),
+                    csv_safe_value(event.entity_type),
+                    csv_safe_value(event.entity_id),
                     str(event.actor_id or ''),
-                    getattr(event.actor, 'email', '') if event.actor_id else '',
-                    event.ip_address or '',
-                    event.user_agent or '',
-                    json.dumps(event.context or {}, ensure_ascii=False, sort_keys=True),
+                    csv_safe_value(getattr(event.actor, 'email', '') if event.actor_id else ''),
+                    csv_safe_value(event.ip_address or ''),
+                    csv_safe_value(event.user_agent or ''),
+                    csv_safe_value(json.dumps(event.context or {}, ensure_ascii=False, sort_keys=True)),
                 ]
             )
 

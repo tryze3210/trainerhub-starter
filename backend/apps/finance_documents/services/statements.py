@@ -4,7 +4,7 @@ from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from apps.finance_documents.services.builders import BuildContext, FinanceDocumentBuilder
 from apps.finance_documents.models import FinanceDocument
-from apps.payments.services import PaymentService
+from apps.payments.commission_policy import CommissionPolicyService
 from apps.payouts.models import BalanceEntry
 
 User = get_user_model()
@@ -24,10 +24,7 @@ class TrainerStatementService:
 
     @classmethod
     def _gross_from_net(cls, net_amount: Decimal) -> Decimal:
-        payout_ratio = Decimal("1.00") - PaymentService.PLATFORM_FEE_RATE
-        if payout_ratio <= Decimal("0.00"):
-            return net_amount
-        return (net_amount / payout_ratio).quantize(Decimal("0.01"))
+        return CommissionPolicyService.gross_from_net(net_amount=net_amount)
 
     def build_monthly_statement(self, *, trainer: User, period_start, period_end) -> FinanceDocument:
         entries = BalanceEntry.objects.filter(

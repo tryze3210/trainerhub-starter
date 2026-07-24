@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,6 +7,7 @@ from apps.workflows.services import WorkflowService
 
 
 class WorkflowDefinitionListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = WorkflowService()
 
     def get(self, request):
@@ -14,6 +15,7 @@ class WorkflowDefinitionListView(APIView):
 
 
 class WorkflowRunListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = WorkflowService()
 
     def get(self, request):
@@ -21,6 +23,7 @@ class WorkflowRunListView(APIView):
 
 
 class WorkflowStartView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = WorkflowService()
 
     def post(self, request):

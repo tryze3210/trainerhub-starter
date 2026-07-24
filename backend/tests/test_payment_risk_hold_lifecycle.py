@@ -10,11 +10,22 @@ from apps.payments.models import PaymentStatus
 from apps.payments.services import PaymentService
 from apps.payouts.models import BalanceEntry, TrainerBalance
 from apps.subscriptions.models import SubscriptionPlan
+from apps.trainers.models import TrainerProfile
+
+
+def _trainer_profile(email: str):
+    trainer_user = get_user_model().objects.create_user(email=email, password='pass12345', role='trainer')
+    return TrainerProfile.objects.create(
+        user=trainer_user,
+        slug=email.split('@', 1)[0],
+        display_name='Risk Hold Trainer',
+        status='active',
+    )
 
 
 @pytest.mark.django_db
 def test_dispute_holds_trainer_revenue_and_chargeback_won_releases_once():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('risk-hold-won-trainer@example.com').id
     user = get_user_model().objects.create_user(email='risk-hold-won@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),
@@ -27,7 +38,7 @@ def test_dispute_holds_trainer_revenue_and_chargeback_won_releases_once():
 
     PaymentService.mark_succeeded(payment=payment, provider_payload={'external_payment_id': payment.external_payment_id})
     wallet = TrainerBalance.objects.get(trainer_id=trainer_id)
-    assert wallet.available_amount == Decimal('900.00')
+    assert wallet.available_amount == Decimal('800.00')
     assert wallet.locked_amount == Decimal('0.00')
 
     PaymentService.mark_disputed(payment=payment, provider_payload={'dispute_id': 'dp-risk-001'})
@@ -37,7 +48,7 @@ def test_dispute_holds_trainer_revenue_and_chargeback_won_releases_once():
     wallet.refresh_from_db()
     assert payment.status == PaymentStatus.DISPUTED
     assert wallet.available_amount == Decimal('0.00')
-    assert wallet.locked_amount == Decimal('900.00')
+    assert wallet.locked_amount == Decimal('800.00')
     assert BalanceEntry.objects.filter(
         wallet=wallet,
         source_type='payment_dispute_hold',
@@ -51,7 +62,7 @@ def test_dispute_holds_trainer_revenue_and_chargeback_won_releases_once():
     payment.refresh_from_db()
     wallet.refresh_from_db()
     assert payment.status == PaymentStatus.SUCCEEDED
-    assert wallet.available_amount == Decimal('900.00')
+    assert wallet.available_amount == Decimal('800.00')
     assert wallet.locked_amount == Decimal('0.00')
     assert BalanceEntry.objects.filter(
         wallet=wallet,
@@ -63,7 +74,7 @@ def test_dispute_holds_trainer_revenue_and_chargeback_won_releases_once():
 
 @pytest.mark.django_db
 def test_chargeback_lost_consumes_risk_hold_without_double_debiting_available_balance():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('risk-hold-lost-trainer@example.com').id
     user = get_user_model().objects.create_user(email='risk-hold-lost@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),
@@ -79,7 +90,7 @@ def test_chargeback_lost_consumes_risk_hold_without_double_debiting_available_ba
 
     wallet = TrainerBalance.objects.get(trainer_id=trainer_id)
     assert wallet.available_amount == Decimal('0.00')
-    assert wallet.locked_amount == Decimal('450.00')
+    assert wallet.locked_amount == Decimal('400.00')
 
     PaymentService.mark_chargeback_lost(payment=payment, provider_payload={'chargeback_id': 'cb-risk-lost-001'})
     PaymentService.mark_chargeback_lost(payment=payment, provider_payload={'chargeback_id': 'cb-risk-lost-001-duplicate'})
@@ -105,7 +116,7 @@ def test_chargeback_lost_consumes_risk_hold_without_double_debiting_available_ba
 
 @pytest.mark.django_db
 def test_admin_can_read_payout_risk_hold_summary():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('risk-hold-admin-trainer@example.com').id
     buyer = get_user_model().objects.create_user(email='risk-hold-admin-buyer@example.com', password='pass12345')
     admin = get_user_model().objects.create_superuser(email='risk-hold-admin@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
@@ -127,4 +138,4 @@ def test_admin_can_read_payout_risk_hold_summary():
     payload = response.json()
     assert payload['status'] == 'attention'
     assert payload['active_hold_count'] == 1
-    assert payload['active_hold_amount'] == '900.00'
+    assert payload['active_hold_amount'] == '800.00'

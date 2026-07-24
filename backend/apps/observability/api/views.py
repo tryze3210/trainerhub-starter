@@ -1,3 +1,4 @@
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -16,6 +17,7 @@ from apps.observability.services import ObservabilityService
 
 
 class ObservabilityOverviewView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ObservabilityService()
 
     def get(self, request):
@@ -23,6 +25,7 @@ class ObservabilityOverviewView(APIView):
 
 
 class MetricListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ObservabilityService()
 
     def get(self, request):
@@ -30,6 +33,7 @@ class MetricListView(APIView):
 
 
 class LogRecordListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ObservabilityService()
 
     def get(self, request):
@@ -37,6 +41,7 @@ class LogRecordListView(APIView):
 
 
 class TraceSpanListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ObservabilityService()
 
     def get(self, request):
@@ -44,6 +49,7 @@ class TraceSpanListView(APIView):
 
 
 class CorrelationDetailView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ObservabilityService()
 
     def get(self, request, correlation_id: str):

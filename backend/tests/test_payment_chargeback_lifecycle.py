@@ -1,5 +1,4 @@
 from decimal import Decimal
-from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -11,11 +10,22 @@ from apps.payments.models import PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payouts.models import BalanceEntry, TrainerBalance
 from apps.subscriptions.models import Subscription, SubscriptionPlan, SubscriptionStatus
+from apps.trainers.models import TrainerProfile
+
+
+def _trainer_profile(email: str) -> TrainerProfile:
+    trainer_user = get_user_model().objects.create_user(email=email, password='pass12345', role='trainer')
+    return TrainerProfile.objects.create(
+        user=trainer_user,
+        slug=email.split('@', 1)[0],
+        display_name='Payment Trainer',
+        status='active',
+    )
 
 
 @pytest.mark.django_db
 def test_chargeback_lost_reverses_access_subscription_and_payout_once():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('chargeback-trainer@example.com').id
     user = get_user_model().objects.create_user(email='chargeback-buyer@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),
@@ -28,7 +38,7 @@ def test_chargeback_lost_reverses_access_subscription_and_payout_once():
 
     PaymentService.mark_succeeded(payment=payment, provider_payload={'external_payment_id': payment.external_payment_id})
     balance = TrainerBalance.objects.get(trainer_id=trainer_id)
-    assert balance.available_amount == Decimal('900.00')
+    assert balance.available_amount == Decimal('800.00')
     assert Entitlement.objects.filter(user=user, is_active=True).exists()
 
     PaymentService.mark_disputed(payment=payment, provider_payload={'dispute_id': 'dp_001'})
@@ -59,7 +69,7 @@ def test_chargeback_lost_reverses_access_subscription_and_payout_once():
 
 @pytest.mark.django_db
 def test_chargeback_webhook_is_idempotent():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('chargeback-webhook-trainer@example.com').id
     user = get_user_model().objects.create_user(email='chargeback-webhook@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),

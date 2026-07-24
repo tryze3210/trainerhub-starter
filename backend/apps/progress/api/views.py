@@ -1,7 +1,9 @@
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
+from apps.access_control.permissions import ROLE_ADMIN, ROLE_TRAINER, user_role_set
 from apps.progress.api.serializers import (
     LessonProgressSerializer,
     MarkLessonCompletedSerializer,
@@ -22,6 +24,12 @@ from apps.progress.services import ProgressService
 class MyVideoProgressViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = VideoProgressSerializer
+    throttle_scope = "progress_video_save"
+
+    def get_throttles(self):
+        if getattr(self, "action", None) == "save":
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         return get_video_progress_for_user(user=self.request.user)
@@ -37,6 +45,12 @@ class MyVideoProgressViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 class MyLessonProgressViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = LessonProgressSerializer
+    throttle_scope = "progress_lesson_complete"
+
+    def get_throttles(self):
+        if getattr(self, "action", None) == "complete":
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         return get_lesson_progress_for_user(user=self.request.user)
@@ -68,6 +82,7 @@ class TrainerStudentProgressViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
-        if getattr(request.user, 'role', None) != 'trainer' and not getattr(request.user, 'is_staff', False):
+        roles = user_role_set(request.user)
+        if not roles.intersection({ROLE_TRAINER, ROLE_ADMIN}) and not getattr(request.user, 'is_staff', False):
             return Response({'detail': 'Trainer role required.'}, status=status.HTTP_403_FORBIDDEN)
         return Response(get_trainer_student_progress(trainer_user=request.user))

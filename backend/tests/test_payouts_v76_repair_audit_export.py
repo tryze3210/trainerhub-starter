@@ -139,6 +139,21 @@ def test_admin_can_export_payout_repair_audit_xlsx(api_client, admin_user, repai
 
 
 @pytest.mark.django_db
+def test_payout_repair_audit_xlsx_escapes_formula_values(api_client, admin_user, repair_audit_event):
+    repair_audit_event.context["context"]["results"][0]["issue_code"] = "=HYPERLINK(\"https://evil.test\")"
+    repair_audit_event.save(update_fields=["context"])
+    api_client.force_authenticate(admin_user)
+
+    response = api_client.get("/api/v1/payouts/admin-ops/repair/audit/export.xlsx?limit=20")
+
+    assert response.status_code == 200
+    workbook = load_workbook(io.BytesIO(response.content), data_only=False)
+    action_headers = [cell.value for cell in workbook["actions"][1]]
+    issue_index = action_headers.index("issue_code") + 1
+    assert workbook["actions"].cell(row=2, column=issue_index).value == "'=HYPERLINK(\"https://evil.test\")"
+
+
+@pytest.mark.django_db
 def test_non_admin_cannot_export_payout_repair_audit(api_client, regular_user, repair_audit_event):
     api_client.force_authenticate(regular_user)
 

@@ -1,7 +1,6 @@
-from decimal import Decimal
 from uuid import uuid4
-from django.conf import settings
 from django.db import transaction
+from apps.payments.commission_policy import CommissionPolicyService
 from apps.payments.models import Payment, PaymentTransaction
 from apps.products.models import Product
 from apps.purchases.models import Purchase
@@ -11,9 +10,9 @@ class CreateStubCheckoutService:
     @transaction.atomic
     def execute(self, *, customer_profile, product: Product):
         gross = product.price_amount
-        commission_rate = Decimal(str(settings.GLOBAL_COMMISSION_RATE))
-        commission = (gross * commission_rate / Decimal("100")).quantize(Decimal("0.01"))
-        trainer_net = (gross - commission).quantize(Decimal("0.01"))
+        split = CommissionPolicyService.split(gross_amount=gross, currency=product.currency)
+        commission = split.platform_commission
+        trainer_net = split.trainer_net
 
         purchase = Purchase.objects.create(
             customer=customer_profile,

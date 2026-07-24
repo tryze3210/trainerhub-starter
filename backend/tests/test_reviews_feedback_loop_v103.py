@@ -2,9 +2,11 @@ from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.test import APIClient
 
 from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus, EntitlementTargetType
+from apps.reviews.api.views import TargetReviewsView, TrainerReviewReplyView
 from apps.reviews.models import Review
 from apps.trainer_cms.models import PublishStatus, TrainerCourseDraft
 
@@ -14,6 +16,14 @@ pytestmark = pytest.mark.django_db
 
 def make_user(email, *, role="customer", is_staff=False):
     return get_user_model().objects.create_user(email=email, password="pass12345", role=role, is_staff=is_staff)
+
+
+def test_review_write_endpoints_use_scoped_throttles(settings):
+    assert settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["review_write"] == "30/hour"
+    assert settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["review_reply"] == "60/hour"
+    assert TargetReviewsView.throttle_scope == "review_write"
+    assert TrainerReviewReplyView.throttle_classes == [ScopedRateThrottle]
+    assert TrainerReviewReplyView.throttle_scope == "review_reply"
 
 
 def test_course_review_moderation_aggregation_and_trainer_reply():
@@ -83,6 +93,9 @@ def test_course_review_moderation_aggregation_and_trainer_reply():
     assert public_response.data["summary"]["average_rating"] == 5.0
     assert public_response.data["summary"]["rating_distribution"]["5"] == 1
     assert public_response.data["items"][0]["trainer_reply"].startswith("Спасибо")
+    assert "moderation_note" not in public_response.data["items"][0]
+    assert "moderated_by_id" not in public_response.data["items"][0]
+    assert "trainer_reply_by_id" not in public_response.data["items"][0]
 
 
 def test_student_without_course_access_cannot_review_paid_course():
@@ -104,3 +117,61 @@ def test_student_without_course_access_cannot_review_paid_course():
 
     assert response.status_code == 400, response.data
     assert Review.objects.count() == 0
+
+
+def test_trainer_cannot_review_own_paid_course_even_with_access():
+    trainer = make_user("review-self-trainer@example.com", role="trainer")
+    course = TrainerCourseDraft.objects.create(
+        trainer_id=trainer.id,
+        title="Self Review Course",
+        slug="self-review-course",
+        status=PublishStatus.PUBLISHED,
+    )
+    Entitlement.objects.create(
+        user=trainer,
+        source_type=EntitlementSourceType.ADMIN_GRANT,
+        target_type=EntitlementTargetType.COURSE,
+        target_id=str(course.id),
+        status=EntitlementStatus.ACTIVE,
+    )
+    client = APIClient()
+    client.force_authenticate(user=trainer)
+
+    response = client.post(
+        f"/api/v1/reviews/course/{course.id}/",
+        {"rating": 5, "title": "My own course", "body": "Trying to inflate my own rating."},
+        format="json",
+    )
+
+    assert response.status_code == 400, response.data
+    assert response.data["code"] == "self_review"
+    assert Review.objects.count() == 0
+
+
+def test_trainer_cannot_reply_to_unpublished_review():
+    trainer = make_user("review-reply-pending-trainer@example.com", role="trainer")
+    student = make_user("review-reply-pending-student@example.com")
+    review = Review.objects.create(
+        target_type="course",
+        target_id=str(uuid4()),
+        author_user_id=str(student.id),
+        trainer_id=str(trainer.id),
+        rating=4,
+        title="Pending review",
+        body="This review is not published yet.",
+        status=Review.STATUS_PENDING,
+        verified_purchase=True,
+    )
+    client = APIClient()
+    client.force_authenticate(user=trainer)
+
+    response = client.post(
+        f"/api/v1/reviews/trainer/{review.id}/reply/",
+        {"reply": "Thanks, I will reply after moderation."},
+        format="json",
+    )
+
+    review.refresh_from_db()
+    assert response.status_code == 400, response.data
+    assert response.data["detail"] == "Only published reviews can receive trainer replies"
+    assert review.trainer_reply == ""

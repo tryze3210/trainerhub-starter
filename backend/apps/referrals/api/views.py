@@ -2,6 +2,7 @@ import secrets
 
 from rest_framework import permissions, response, status, views
 from rest_framework.generics import ListAPIView
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.referrals.api.serializers import (
     GenerateCodeSerializer,
@@ -59,6 +60,8 @@ class MyRewardsView(ListAPIView):
 
 class TrackReferralView(views.APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "referral_track"
 
     def post(self, request):
         serializer = TrackReferralSerializer(data=request.data)

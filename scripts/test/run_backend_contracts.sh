@@ -13,5 +13,5 @@ if ! command -v "$PYTHON_BIN" >/dev/null 2>&1 || ! "$PYTHON_BIN" --version >/dev
 fi
 
 cd "$ROOT_DIR"
-export DJANGO_SETTINGS_MODULE=config.settings_test
+export DJANGO_SETTINGS_MODULE=config.settings.test
 "$PYTHON_BIN" -m pytest backend/tests/contracts -q

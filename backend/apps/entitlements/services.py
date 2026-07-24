@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.db import transaction
@@ -8,6 +9,9 @@ from django.utils import timezone
 from apps.audit.services import AuditService
 from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus
 from apps.events.services import DomainEventService
+
+
+logger = logging.getLogger('apps.entitlements')
 
 
 class EntitlementService:
@@ -61,8 +65,19 @@ class EntitlementService:
             from apps.notifications.domain.triggers import DomainNotificationTriggers
 
             DomainNotificationTriggers().on_access_granted(user=entitlement.user, entitlement=entitlement)
-        except Exception:
-            pass
+        except Exception as exc:
+            AuditService.log(
+                actor=entitlement.user,
+                event_type='side_effect.failed',
+                entity_type='entitlement',
+                entity_id=str(entitlement.id),
+                context={
+                    **EntitlementService._activation_context(entitlement),
+                    'side_effect': 'notification.access_granted',
+                    'error': str(exc),
+                },
+            )
+            logger.exception('entitlement.access_granted_notification_failed entitlement_id=%s', entitlement.id)
 
     @staticmethod
     def _emit_revoked(*, entitlement: Entitlement, previous_status: str, reason: str, revoked_by: str) -> None:

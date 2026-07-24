@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import permissions, status
 from apps.messaging.services.media_pipeline import MessageMediaPipeline
 from apps.messaging.services.escalation import SupportEscalationService
 
 class InitiateMessageUploadAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, conversation_id):
         service = MessageMediaPipeline()
         payload = service.initiate_upload(
@@ -18,6 +20,8 @@ class InitiateMessageUploadAPIView(APIView):
         return Response(payload.__dict__, status=status.HTTP_201_CREATED)
 
 class FinalizeMessageUploadAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, upload_session_id):
         payload = MessageMediaPipeline().finalize_upload(
             upload_session_id=upload_session_id,
@@ -26,6 +30,8 @@ class FinalizeMessageUploadAPIView(APIView):
         return Response(payload)
 
 class ConversationEscalationAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, conversation_id):
         payload = SupportEscalationService().escalate_conversation(
             conversation_id=conversation_id,

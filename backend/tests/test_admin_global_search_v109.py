@@ -44,9 +44,15 @@ def _tenant_for_trainer(trainer):
 
 
 def _commerce_bundle(*, trainer, trainer_profile, student, marker):
+    plan = SubscriptionPlan.objects.create(
+        trainer_id=str(trainer.id),
+        title=f"{marker} subscription",
+        price=Decimal("100.00"),
+        currency="RUB",
+    )
     order = Order.objects.create(
         user=student,
-        order_type=OrderType.ONE_TIME,
+        order_type=OrderType.SUBSCRIPTION,
         status=OrderStatus.PAID,
         currency="RUB",
         total_amount=Decimal("100.00"),
@@ -54,13 +60,12 @@ def _commerce_bundle(*, trainer, trainer_profile, student, marker):
     )
     OrderItem.objects.create(
         order=order,
-        item_type=PurchasedItemType.PROGRAM,
-        item_id=f"program-{marker}",
-        title_snapshot=f"{marker} program",
+        item_type=PurchasedItemType.SUBSCRIPTION_PLAN,
+        item_id=str(plan.id),
+        title_snapshot=plan.title,
         quantity=1,
         unit_price=Decimal("100.00"),
         total_price=Decimal("100.00"),
-        metadata={"trainer_id": str(trainer.id)},
     )
     payment = Payment.objects.create(
         order=order,
@@ -69,7 +74,6 @@ def _commerce_bundle(*, trainer, trainer_profile, student, marker):
         amount=Decimal("100.00"),
         currency="RUB",
         external_payment_id=f"payment-{marker}",
-        provider_payload={"trainer_id": str(trainer.id)},
     )
     wallet = TrainerWallet.objects.create(trainer=trainer_profile, available_amount=Decimal("25.00"))
     payout = PayoutRequest.objects.create(
@@ -85,12 +89,6 @@ def _commerce_bundle(*, trainer, trainer_profile, student, marker):
         slug=f"{marker}-course",
         description=f"{marker} content",
         price_amount=Decimal("100.00"),
-        currency="RUB",
-    )
-    plan = SubscriptionPlan.objects.create(
-        trainer_id=str(trainer.id),
-        title=f"{marker} subscription",
-        price=Decimal("100.00"),
         currency="RUB",
     )
     subscription = Subscription.objects.create(

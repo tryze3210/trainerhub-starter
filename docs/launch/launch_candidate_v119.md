@@ -15,7 +15,7 @@ This document marks the TrainerHub v119 launch candidate package.
 - Production readiness: `cd backend && python manage.py check_production_readiness --json --fail-on-degraded`
 - Launch gate: `bash scripts/ci/launch_gate.sh`
 - Production gate: `bash scripts/ci/production_gate.sh`
-- Demo seed: `cd backend && python manage.py migrate && cd .. && python scripts/bootstrap/seed_demo.py`
+- Demo seed: `bash scripts/deploy/migrate.sh && python scripts/bootstrap/seed_demo.py`
 
 ## Production Environment Checklist
 

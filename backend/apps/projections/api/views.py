@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,6 +7,7 @@ from apps.projections.services import ProjectionService
 
 
 class ProjectionStatusListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ProjectionService()
 
     def get(self, request):
@@ -14,6 +15,7 @@ class ProjectionStatusListView(APIView):
 
 
 class ProjectionRebuildView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = ProjectionService()
 
     def post(self, request):

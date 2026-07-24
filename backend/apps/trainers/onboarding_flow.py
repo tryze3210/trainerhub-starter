@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from apps.access_control.permissions import ROLE_TRAINER, user_role_set
 from apps.trainers.models import TrainerApplication, TrainerProfile
 from apps.trainers.services.applications import TrainerApplicationService
 from apps.users.models import User
@@ -109,6 +110,14 @@ def _serialize_application(application: TrainerApplication) -> dict[str, Any]:
     }
 
 
+def _has_active_trainer_role(user: User) -> bool:
+    return ROLE_TRAINER in user_role_set(user)
+
+
+def _legacy_role_label(user: User) -> str | None:
+    return user.role
+
+
 def get_trainer_onboarding_state(*, user: User) -> dict[str, Any]:
     service = TrainerApplicationService()
     application = service.get_application(user=user)
@@ -123,7 +132,7 @@ def get_trainer_onboarding_state(*, user: User) -> dict[str, Any]:
         TrainerApplication.Status.REJECTED,
     }
     application_approved = application.status == TrainerApplication.Status.APPROVED
-    has_trainer_role = getattr(user, "role", None) == User.Roles.TRAINER
+    has_trainer_role = _has_active_trainer_role(user)
     profile_ready = bool(profile and profile.slug and profile.display_name and profile.status == "active")
     dashboard_unlocked = bool(application_approved and has_trainer_role and profile_ready)
 
@@ -175,7 +184,7 @@ def get_trainer_onboarding_state(*, user: User) -> dict[str, Any]:
         "user": {
             "id": str(user.id),
             "email": user.email,
-            "role": getattr(user, "role", None),
+            "role": _legacy_role_label(user),
             "is_staff": bool(user.is_staff),
         },
         "application": _serialize_application(application),

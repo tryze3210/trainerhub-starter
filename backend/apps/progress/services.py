@@ -29,7 +29,7 @@ def _resolve_lesson_context(*, user, lesson_id: str, content_type: str = '', pro
         course = lesson.course_draft
         return {
             'content_type': LessonProgress.ContentType.COURSE,
-            'program_id': str(program_id or course.id),
+            'program_id': str(course.id),
             'lesson_id': str(lesson.id),
             'total_lessons': course.lessons.count(),
             'access': AccessControlAuditService.check(
@@ -49,7 +49,7 @@ def _resolve_lesson_context(*, user, lesson_id: str, content_type: str = '', pro
         program = published_lesson.program
         return {
             'content_type': LessonProgress.ContentType.PROGRAM,
-            'program_id': str(program_id or program.source_draft_id),
+            'program_id': str(program.source_draft_id),
             'lesson_id': str(published_lesson.source_draft_id),
             'total_lessons': program.lessons.count(),
             'access': AccessControlAuditService.check(
@@ -63,7 +63,7 @@ def _resolve_lesson_context(*, user, lesson_id: str, content_type: str = '', pro
     lesson = get_lesson_detail(lesson_id=lesson_id, user=user)
     return {
         'content_type': LessonProgress.ContentType.PROGRAM,
-        'program_id': str(program_id or lesson['program_id']),
+        'program_id': str(lesson['program_id']),
         'lesson_id': str(lesson_id),
         'total_lessons': len(get_program_detail(program_id=lesson['program_id']).get('lesson_ids') or []),
         'access': {'allowed': user_has_lesson_access(user=user, lesson_id=lesson_id)},

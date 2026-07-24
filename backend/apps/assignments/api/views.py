@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.assignments.api.serializers import (
     AssignmentCreateSerializer,
@@ -29,6 +30,12 @@ def _error_response(exc: Exception):
 
 class StudentAssignmentViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "assignment_submit"
+
+    def get_throttles(self):
+        if self.action == "submit":
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def list(self, request):
         return Response(list_student_assignments(user=request.user))
@@ -54,6 +61,12 @@ class StudentAssignmentViewSet(viewsets.ViewSet):
 
 class TrainerAssignmentViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "assignment_create"
+
+    def get_throttles(self):
+        if self.action == "create":
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def list(self, request):
         return Response(list_trainer_assignments(trainer=request.user))
@@ -70,6 +83,12 @@ class TrainerAssignmentViewSet(viewsets.ViewSet):
 
 class TrainerSubmissionViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "assignment_review"
+
+    def get_throttles(self):
+        if self.action == "review":
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def list(self, request):
         return Response(list_trainer_submissions(trainer=request.user))

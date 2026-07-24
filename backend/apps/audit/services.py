@@ -8,6 +8,21 @@ from django.utils import timezone
 from apps.audit.models import AuditEvent
 
 
+REDACTED_VALUE = '[redacted]'
+SENSITIVE_CONTEXT_KEYS = {
+    'access_token',
+    'authorization',
+    'cookie',
+    'csrf',
+    'password',
+    'refresh',
+    'refresh_token',
+    'secret',
+    'set_cookie',
+    'token',
+}
+
+
 class AuditService:
     """Small audit service used by operator/admin actions.
 
@@ -55,9 +70,25 @@ class AuditService:
     def _json_safe(value: Any) -> Any:
         """Return value as JSON-compatible data without leaking unserializable objects."""
         try:
-            return json.loads(json.dumps(value or {}, default=str))
+            return json.loads(json.dumps(AuditService._redact_sensitive(value or {}), default=str))
         except (TypeError, ValueError):
             return {'value': str(value)}
+
+    @staticmethod
+    def _redact_sensitive(value: Any) -> Any:
+        if isinstance(value, dict):
+            redacted = {}
+            for key, item in value.items():
+                text_key = str(key)
+                normalized_key = text_key.lower().replace('-', '_')
+                if any(marker == normalized_key or marker in normalized_key for marker in SENSITIVE_CONTEXT_KEYS):
+                    redacted[text_key] = REDACTED_VALUE
+                else:
+                    redacted[text_key] = AuditService._redact_sensitive(item)
+            return redacted
+        if isinstance(value, (list, tuple, set)):
+            return [AuditService._redact_sensitive(item) for item in value]
+        return value
 
     @staticmethod
     def log(*, actor=None, event_type: str, entity_type: str, entity_id: str, context=None, request=None):

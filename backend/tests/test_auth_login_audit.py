@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
@@ -29,6 +30,10 @@ def test_successful_login_writes_audit_event(user):
     )
 
     assert response.status_code == 200
+    assert "access_token" not in response.json()
+    assert "refresh_token" not in response.json()
+    assert settings.AUTH_ACCESS_COOKIE_NAME in response.cookies
+    assert settings.AUTH_REFRESH_COOKIE_NAME in response.cookies
     audit_event = AuditEvent.objects.get(event_type="auth.login", entity_id=str(user.id))
     assert audit_event.entity_type == "user"
     assert audit_event.context["status"] == "success"
@@ -55,6 +60,10 @@ def test_successful_registration_writes_audit_event_without_password():
     )
 
     assert response.status_code == 201
+    assert "access_token" not in response.json()
+    assert "refresh_token" not in response.json()
+    assert settings.AUTH_ACCESS_COOKIE_NAME in response.cookies
+    assert settings.AUTH_REFRESH_COOKIE_NAME in response.cookies
     user = get_user_model().objects.get(email="register-audit@example.com")
     audit_event = AuditEvent.objects.get(event_type="auth.register", entity_id=str(user.id))
     assert audit_event.entity_type == "user"
@@ -79,18 +88,19 @@ def test_logout_writes_audit_event_without_token():
         format="json",
     )
     assert register_response.status_code == 201
-    refresh_token = register_response.json()["refresh_token"]
     user = get_user_model().objects.get(email="logout-audit@example.com")
 
     response = client.post(
         "/api/v1/auth/logout/",
-        {"refresh_token": refresh_token},
+        {},
         HTTP_USER_AGENT="pytest-browser",
         REMOTE_ADDR="203.0.113.13",
         format="json",
     )
 
     assert response.status_code == 200
+    assert response.cookies[settings.AUTH_ACCESS_COOKIE_NAME].value == ""
+    assert response.cookies[settings.AUTH_REFRESH_COOKIE_NAME].value == ""
     audit_event = AuditEvent.objects.get(event_type="auth.logout", entity_id=str(user.id))
     assert audit_event.context["status"] == "success"
     assert audit_event.context["ip"] == "203.0.113.13"
@@ -173,5 +183,17 @@ def test_refresh_endpoint_has_dedicated_throttle():
     for _ in range(60):
         assert client.post("/api/v1/auth/refresh/", {}, REMOTE_ADDR="203.0.113.40", format="json").status_code == 401
     throttled = client.post("/api/v1/auth/refresh/", {}, REMOTE_ADDR="203.0.113.40", format="json")
+
+    assert throttled.status_code == 429
+
+
+@pytest.mark.django_db
+def test_logout_endpoint_has_dedicated_throttle():
+    cache.clear()
+    client = APIClient()
+
+    for _ in range(60):
+        assert client.post("/api/v1/auth/logout/", {}, REMOTE_ADDR="203.0.113.50", format="json").status_code == 200
+    throttled = client.post("/api/v1/auth/logout/", {}, REMOTE_ADDR="203.0.113.50", format="json")
 
     assert throttled.status_code == 429

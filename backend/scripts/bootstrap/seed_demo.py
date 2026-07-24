@@ -1,6 +1,15 @@
 from __future__ import annotations
 
+import os
+
+from django.conf import settings
+
 DEMO_VERSION = 'v117'
+
+
+def _assert_demo_seed_allowed() -> None:
+    if getattr(settings, 'IS_PRODUCTION', False) and os.getenv('ALLOW_DEMO_SEED') != '1':
+        raise RuntimeError('Demo seed is disabled in production. Set ALLOW_DEMO_SEED=1 only for an intentional smoke dataset.')
 
 
 def build_demo_seed_payload() -> dict:

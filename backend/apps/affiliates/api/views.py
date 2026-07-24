@@ -1,8 +1,10 @@
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.affiliates.api.serializers import (
+    AffiliateClickCaptureSerializer,
     AffiliateCommissionSerializer,
     AffiliatePartnerSerializer,
     OrderAttributionSerializer,
@@ -61,15 +63,20 @@ class AffiliateOrderAttributionViewSet(mixins.ListModelMixin, viewsets.GenericVi
 
 class PublicAffiliateTrackingViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "affiliate_click"
 
     @action(detail=False, methods=["post"], url_path="click")
     def click(self, request):
+        serializer = AffiliateClickCaptureSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
         result = AffiliateTrackingService.capture_click(
-            partner_code=request.data["partner_code"],
-            client_key=request.data["client_key"],
-            landing_path=request.data.get("landing_path", ""),
-            referrer_url=request.data.get("referrer_url", ""),
-            utm=request.data.get("utm") or {},
+            partner_code=payload["partner_code"],
+            client_key=payload["client_key"],
+            landing_path=payload.get("landing_path", ""),
+            referrer_url=payload.get("referrer_url", ""),
+            utm=payload.get("utm") or {},
             user=request.user,
             ip_address=request.META.get("REMOTE_ADDR"),
             user_agent=request.META.get("HTTP_USER_AGENT", ""),

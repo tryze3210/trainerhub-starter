@@ -8,9 +8,11 @@ from apps.accounts.models import AccountRoleAssignment
 from apps.audit.models import AuditEvent
 from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus, EntitlementTargetType
 from apps.notifications.models import NotificationChannel, NotificationDelivery, NotificationStatus, NotificationType
+from apps.ops.api.operations_serializers import SupportEntitlementFixSerializer
 from apps.ops.support_console import fix_entitlement, get_support_console_snapshot, resend_notification_delivery
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderType, PurchasedItemType
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWebhookEvent
+from apps.subscriptions.models import SubscriptionPlan
 from apps.tenancy.models import Tenant, TenantMembership
 
 
@@ -43,9 +45,14 @@ def _tenant_for_trainer(trainer, operator=None):
 
 
 def _commerce(*, trainer, student, marker="v110"):
+    plan = SubscriptionPlan.objects.create(
+        trainer_id=str(trainer.id),
+        title=f"{marker} plan",
+        price=Decimal("100.00"),
+    )
     order = Order.objects.create(
         user=student,
-        order_type=OrderType.ONE_TIME,
+        order_type=OrderType.SUBSCRIPTION,
         status=OrderStatus.PAID,
         currency="RUB",
         total_amount=Decimal("100.00"),
@@ -53,13 +60,12 @@ def _commerce(*, trainer, student, marker="v110"):
     )
     OrderItem.objects.create(
         order=order,
-        item_type=PurchasedItemType.PROGRAM,
-        item_id=f"program-{marker}",
-        title_snapshot=f"{marker} program",
+        item_type=PurchasedItemType.SUBSCRIPTION_PLAN,
+        item_id=str(plan.id),
+        title_snapshot=plan.title,
         quantity=1,
         unit_price=Decimal("100.00"),
         total_price=Decimal("100.00"),
-        metadata={"trainer_id": str(trainer.id)},
     )
     payment = Payment.objects.create(
         order=order,
@@ -67,7 +73,6 @@ def _commerce(*, trainer, student, marker="v110"):
         status=PaymentStatus.SUCCEEDED,
         amount=Decimal("100.00"),
         currency="RUB",
-        provider_payload={"trainer_id": str(trainer.id)},
     )
     webhook = PaymentWebhookEvent.objects.create(
         provider=PaymentProvider.MOCK,
@@ -83,9 +88,8 @@ def _commerce(*, trainer, student, marker="v110"):
         source_type=EntitlementSourceType.ORDER,
         source_order=order,
         target_type=EntitlementTargetType.PROGRAM,
-        target_id=f"program-{marker}",
+        target_id=str(plan.id),
         status=EntitlementStatus.ACTIVE,
-        metadata={"trainer_id": str(trainer.id)},
     )
     delivery = NotificationDelivery.objects.create(
         user=student,
@@ -135,6 +139,27 @@ def test_v110_support_console_resend_notification_records_audit():
 
 
 @pytest.mark.django_db
+def test_v110_support_console_resend_notification_is_tenant_scoped():
+    support = _support("v110-resend-scope-support@example.com")
+    trainer = _trainer("v110-resend-scope-trainer@example.com")
+    _tenant_for_trainer(trainer, operator=support)
+    hidden_student = _user("v110-resend-hidden@example.com")
+    hidden_delivery = NotificationDelivery.objects.create(
+        user=hidden_student,
+        channel=NotificationChannel.IN_APP,
+        type=NotificationType.ACCESS_GRANTED,
+        template_code="access_granted",
+        subject="Hidden delivery",
+        rendered_body="Body",
+        status=NotificationStatus.FAILED,
+        error_message="provider failed",
+    )
+
+    with pytest.raises(PermissionError, match="outside the operator tenant scope"):
+        resend_notification_delivery(operator=support, delivery_id=str(hidden_delivery.id), reason="retry")
+
+
+@pytest.mark.django_db
 def test_v110_support_console_manual_entitlement_fix_records_audit():
     support = _support("v110-fix-support@example.com")
     trainer = _trainer("v110-fix-trainer@example.com")
@@ -162,6 +187,46 @@ def test_v110_support_console_manual_entitlement_fix_records_audit():
     assert revoke_payload["status"] == "completed"
     assert AuditEvent.objects.filter(event_type="admin.support.entitlement_grant", entity_id=entitlement_id).exists()
     assert AuditEvent.objects.filter(event_type="admin.support.entitlement_revoke", entity_id=entitlement_id).exists()
+
+
+@pytest.mark.django_db
+def test_v110_support_console_manual_entitlement_grant_requires_specific_target():
+    support = _support("v110-fix-target-support@example.com")
+    trainer = _trainer("v110-fix-target-trainer@example.com")
+    _tenant_for_trainer(trainer, operator=support)
+    student = _user("v110-fix-target-student@example.com")
+    _commerce(trainer=trainer, student=student, marker="v110-fix-target")
+
+    with pytest.raises(ValueError, match="target_id is required"):
+        fix_entitlement(
+            operator=support,
+            action="grant",
+            reason="support manual grant",
+            user_id=str(student.id),
+            target_type=EntitlementTargetType.VIDEO,
+            target_id="",
+        )
+
+    assert not Entitlement.objects.filter(
+        user=student,
+        source_type=EntitlementSourceType.ADMIN_GRANT,
+        target_type=EntitlementTargetType.VIDEO,
+    ).exists()
+
+
+def test_v110_support_entitlement_fix_serializer_requires_specific_target():
+    serializer = SupportEntitlementFixSerializer(
+        data={
+            "action": "grant",
+            "reason": "support manual grant",
+            "email": "student@example.com",
+            "target_type": EntitlementTargetType.VIDEO,
+            "target_id": "",
+        }
+    )
+
+    assert serializer.is_valid() is False
+    assert "target_id" in serializer.errors
 
 
 @pytest.mark.django_db

@@ -33,6 +33,12 @@ function assertNoFrontendFragment(fragment, reason) {
 }
 
 (function main() {
+  const apiClientSource = fs.readFileSync(path.join(root, 'src/lib/api-client.ts'), 'utf8');
+  assert.match(apiClientSource, /getCookie\('csrftoken'\)/);
+  assert.match(apiClientSource, /headers\.set\('X-CSRFToken'/);
+  assert.match(apiClientSource, /applyCsrfHeader\(requestHeaders, rest\.method\)/);
+  assert.match(apiClientSource, /applyCsrfHeader\(headers, 'POST'\)/);
+
   assert.equal(route('/auth/login/'), `${API_BASE_URL}/auth/login/`);
   assert.equal(route('/auth/me/'), `${API_BASE_URL}/auth/me/`);
   assert.equal(route('/content/videos/'), `${API_BASE_URL}/content/videos/`);

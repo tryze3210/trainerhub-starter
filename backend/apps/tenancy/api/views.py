@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,6 +7,7 @@ from apps.tenancy.services import TenancyService
 
 
 class TenantContextView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     service = TenancyService()
 
     def get(self, request):
@@ -15,6 +16,7 @@ class TenantContextView(APIView):
 
 
 class TenantMembershipListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     service = TenancyService()
 
     def get(self, request):
@@ -23,6 +25,7 @@ class TenantMembershipListView(APIView):
 
 
 class TenantSwitchView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     service = TenancyService()
 
     def post(self, request):

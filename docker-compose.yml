@@ -27,6 +27,7 @@ services:
       retries: 5
 
   backend:
+    image: ${BACKEND_IMAGE:-trainerhub-backend:local}
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
@@ -44,7 +45,25 @@ services:
     expose:
       - "8000"
 
+  release:
+    image: ${BACKEND_IMAGE:-trainerhub-backend:local}
+    build:
+      context: .
+      dockerfile: deploy/backend/Dockerfile
+    restart: "no"
+    command: ["/app/deploy/backend/release.sh"]
+    env_file: ${TRAINERHUB_ENV_FILE:-.env}
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   worker:
+    image: ${BACKEND_IMAGE:-trainerhub-backend:local}
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
@@ -61,6 +80,7 @@ services:
         condition: service_healthy
 
   beat:
+    image: ${BACKEND_IMAGE:-trainerhub-backend:local}
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
@@ -77,6 +97,7 @@ services:
         condition: service_healthy
 
   flower:
+    image: ${BACKEND_IMAGE:-trainerhub-backend:local}
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
@@ -95,6 +116,7 @@ services:
       - "5555"
 
   frontend:
+    image: ${FRONTEND_IMAGE:-trainerhub-frontend:local}
     build:
       context: .
       dockerfile: deploy/frontend/Dockerfile

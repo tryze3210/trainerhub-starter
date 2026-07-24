@@ -11,7 +11,7 @@
 ## Deploy
 
 1. Build backend and frontend artifacts from the release commit.
-2. Apply database migrations.
+2. Run the release job: `bash scripts/deploy/migrate.sh`.
 3. Deploy backend web process.
 4. Deploy background workers and schedulers.
 5. Deploy frontend build.

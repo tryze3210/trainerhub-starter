@@ -19,6 +19,7 @@ from apps.referrals.api.admin_serializers import (
 )
 from apps.referrals.models import ReferralAttribution, ReferralInvite, ReferralLedger, ReferralReward
 from apps.referrals.selectors.admin_ops import AdminReferralOpsSelector
+from common.csv_safe import csv_safe_value
 
 
 MAX_CSV_EXPORT_ROWS = 10_000
@@ -56,7 +57,7 @@ def _csv_value(value: Any) -> str:
         return str(value.quantize(Decimal("0.01")))
     if hasattr(value, "isoformat"):
         return value.isoformat()
-    return str(value)
+    return csv_safe_value(value)
 
 
 def _safe_getter(path: str) -> Callable[[Any], Any]:

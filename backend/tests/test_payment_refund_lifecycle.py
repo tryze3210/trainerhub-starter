@@ -1,5 +1,4 @@
 from decimal import Decimal
-from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -13,11 +12,22 @@ from apps.payments.models import PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payouts.models import BalanceEntry, TrainerBalance
 from apps.subscriptions.models import Subscription, SubscriptionPlan, SubscriptionStatus
+from apps.trainers.models import TrainerProfile
+
+
+def _trainer_profile(email: str) -> TrainerProfile:
+    trainer_user = get_user_model().objects.create_user(email=email, password='pass12345', role='trainer')
+    return TrainerProfile.objects.create(
+        user=trainer_user,
+        slug=email.split('@', 1)[0],
+        display_name='Payment Trainer',
+        status='active',
+    )
 
 
 @pytest.mark.django_db
 def test_refund_reverses_subscription_entitlement_and_payout_once():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('refund-trainer@example.com').id
     user = get_user_model().objects.create_user(email='refund-buyer@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),
@@ -31,7 +41,7 @@ def test_refund_reverses_subscription_entitlement_and_payout_once():
     PaymentService.mark_succeeded(payment=payment, provider_payload={'external_payment_id': payment.external_payment_id})
 
     balance = TrainerBalance.objects.get(trainer_id=trainer_id)
-    assert balance.available_amount == Decimal('900.00')
+    assert balance.available_amount == Decimal('800.00')
     assert Entitlement.objects.filter(user=user, is_active=True).exists()
     assert Subscription.objects.filter(source_order=order, status=SubscriptionStatus.ACTIVE).exists()
 
@@ -66,7 +76,7 @@ def test_refund_reverses_subscription_entitlement_and_payout_once():
 
 @pytest.mark.django_db
 def test_refund_webhook_is_idempotent():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('refund-webhook-trainer@example.com').id
     user = get_user_model().objects.create_user(email='refund-webhook@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),
@@ -108,7 +118,7 @@ def test_refund_webhook_is_idempotent():
 
 @pytest.mark.django_db
 def test_partial_refund_keeps_access_and_full_refund_revokes_remaining_once():
-    trainer_id = uuid4()
+    trainer_id = _trainer_profile('partial-refund-trainer@example.com').id
     user = get_user_model().objects.create_user(email='partial-refund@example.com', password='pass12345')
     plan = SubscriptionPlan.objects.create(
         trainer_id=str(trainer_id),
@@ -143,7 +153,7 @@ def test_partial_refund_keeps_access_and_full_refund_revokes_remaining_once():
     assert order.status == OrderStatus.COMPLETED
     assert payment.provider_payload['refund_status'] == 'partially_refunded'
     assert payment.provider_payload['refunded_amount'] == '250.00'
-    assert balance.available_amount == Decimal('675.00')
+    assert balance.available_amount == Decimal('600.00')
     assert Entitlement.objects.filter(user=user, is_active=True).exists()
     assert Subscription.objects.filter(source_order=order, status=SubscriptionStatus.ACTIVE).exists()
     assert BalanceEntry.objects.filter(

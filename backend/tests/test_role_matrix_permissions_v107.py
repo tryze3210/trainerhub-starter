@@ -12,16 +12,20 @@ from apps.access_control.permissions import (
     IsAdminOrSupport,
     IsAdminSupportFinanceReadonly,
     IsAuditReader,
+    CanManageTrainerCms,
+    CanUploadMedia,
     IsFinanceOps,
     IsNotificationOperator,
     user_role_set,
 )
 from apps.accounts.models import AccountRoleAssignment
+from apps.access_control.policies import PolicyService
 from apps.audit.api.views import AuditAdminViewSet
 from apps.messaging.api.views import CreateSystemMessageView
 from apps.notifications.api.views import AdminNotificationCenterView
 from apps.payments.api.views import AdminPaymentViewSet, PaymentWebhookViewSet
 from apps.payouts.api.views import AdminPayoutViewSet
+from apps.trainers.models import TrainerProfile
 
 
 @pytest.fixture
@@ -54,6 +58,43 @@ def test_v107_role_set_collects_primary_and_active_assignments():
 
     assert ROLE_STUDENT in user_role_set(student)
     assert ROLE_SUPPORT in user_role_set(support)
+
+
+@pytest.mark.django_db
+def test_v107_role_assignments_override_legacy_user_role():
+    legacy_admin = _user('v107-legacy-admin@example.com', role=ROLE_ADMIN)
+    _assign(legacy_admin, ROLE_SUPPORT)
+
+    roles = user_role_set(legacy_admin)
+
+    assert ROLE_SUPPORT in roles
+    assert ROLE_ADMIN not in roles
+
+
+def test_v107_role_assignment_errors_are_not_silently_hidden():
+    class BrokenAssignments:
+        def filter(self, **kwargs):
+            raise RuntimeError('role store unavailable')
+
+    class BrokenUser:
+        is_authenticated = True
+        is_staff = False
+        is_superuser = False
+        role = ROLE_ADMIN
+        role_assignments = BrokenAssignments()
+
+    with pytest.raises(RuntimeError, match='role store unavailable'):
+        user_role_set(BrokenUser())
+
+
+def test_v107_policy_feature_check_does_not_hide_runtime_context_errors(monkeypatch):
+    def broken_context(*, user=None):
+        raise RuntimeError('policy context unavailable')
+
+    monkeypatch.setattr('apps.access_control.selectors.get_current_account_context', broken_context)
+
+    with pytest.raises(RuntimeError, match='policy context unavailable'):
+        PolicyService().check_feature(user=object(), feature_key='cabinet')
 
 
 @pytest.mark.django_db
@@ -99,6 +140,25 @@ def test_v107_audit_and_notifications_keep_writes_admin_only(factory):
     assert notification_permission.has_permission(_request(factory, 'get', support), object()) is True
     assert notification_permission.has_permission(_request(factory, 'post', support), object()) is False
     assert notification_permission.has_permission(_request(factory, 'post', admin), object()) is True
+
+
+@pytest.mark.django_db
+def test_v107_trainer_policy_capabilities_match_permission_requirements(factory):
+    trainer = _user('v107-trainer-policy@example.com')
+    _assign(trainer, 'trainer')
+    TrainerProfile.objects.create(
+        user=trainer,
+        slug='v107-trainer-policy',
+        display_name='V107 Trainer Policy',
+        status='active',
+        is_public=True,
+    )
+
+    cms_request = _request(factory, 'post', trainer)
+    upload_request = _request(factory, 'post', trainer)
+
+    assert CanManageTrainerCms().has_permission(cms_request, object()) is True
+    assert CanUploadMedia().has_permission(upload_request, object()) is True
 
 
 def test_v107_admin_api_views_use_role_matrix_permissions():

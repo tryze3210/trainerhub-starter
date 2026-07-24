@@ -1,7 +1,8 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status, views
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
+from apps.access_control.permissions import CanUploadMedia, ROLE_TRAINER, user_role_set
 from apps.videos.models import MediaAsset, Video
 from apps.videos.services.create_upload_intent import CreateUploadIntentService
 from apps.videos.services.create_video import CreateVideoService
@@ -11,8 +12,16 @@ from common.permissions import IsTrainer
 from .serializers import UploadIntentRequestSerializer, CompleteUploadSerializer, MediaAssetSerializer, VideoSerializer
 
 
+def _trainer_profile_for(user):
+    if not getattr(user, "is_authenticated", False):
+        return None
+    if ROLE_TRAINER not in user_role_set(user):
+        return None
+    return getattr(user, "trainer_profile", None)
+
+
 class UploadIntentCreateApi(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanUploadMedia]
 
     def post(self, request):
         serializer = UploadIntentRequestSerializer(data=request.data)
@@ -32,12 +41,14 @@ class UploadIntentCreateApi(views.APIView):
 
 
 class UploadIntentCompleteApi(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanUploadMedia]
 
     def post(self, request, media_asset_id):
         serializer = CompleteUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         asset = get_object_or_404(MediaAsset, pk=media_asset_id, owner_user=request.user, is_deleted=False)
+        if asset.status != MediaAsset.Status.DRAFT:
+            raise ValidationError({"media_asset_id": f"Upload can only be completed from draft status, got {asset.status}."})
         asset.status = MediaAsset.Status.UPLOADED
         checksum = serializer.validated_data.get("checksum_sha256")
         if checksum:
@@ -60,18 +71,18 @@ class VideoListCreateApi(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        user = self.request.user
         qs = Video.objects.filter(is_deleted=False).select_related("trainer", "media_asset")
-        if user.is_authenticated and user.role == "trainer" and hasattr(user, "trainer_profile"):
-            return qs.filter(trainer=user.trainer_profile)
+        trainer_profile = _trainer_profile_for(self.request.user)
+        if trainer_profile is not None:
+            return qs.filter(trainer=trainer_profile)
         return qs.filter(status="ready")
 
     def perform_create(self, serializer):
-        user = self.request.user
-        if not user.is_authenticated or user.role != "trainer" or not hasattr(user, "trainer_profile"):
+        trainer_profile = _trainer_profile_for(self.request.user)
+        if trainer_profile is None:
             raise PermissionDenied("Only trainers can create videos.")
         video = CreateVideoService().execute(
-            trainer=user.trainer_profile,
+            trainer=trainer_profile,
             media_asset_id=serializer.validated_data["media_asset_id"],
             slug=serializer.validated_data["slug"],
             title=serializer.validated_data["title"],
@@ -86,9 +97,9 @@ class VideoDetailApi(generics.RetrieveUpdateAPIView):
     queryset = Video.objects.filter(is_deleted=False).select_related("trainer", "media_asset")
 
     def perform_update(self, serializer):
-        user = self.request.user
         video = self.get_object()
-        if not user.is_authenticated or user.role != "trainer" or not hasattr(user, "trainer_profile") or video.trainer_id != user.trainer_profile.id:
+        trainer_profile = _trainer_profile_for(self.request.user)
+        if trainer_profile is None or video.trainer_id != trainer_profile.id:
             raise PermissionDenied("You cannot update this video.")
         serializer.save()
 

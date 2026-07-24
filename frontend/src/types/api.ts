@@ -27,8 +27,8 @@ export type SessionPayload = {
 
 export type AuthResponse = {
   user: AuthUser;
-  access_token: string;
-  refresh_token: string;
+  access_token?: string;
+  refresh_token?: string;
 };
 
 export type PublicVideo = {

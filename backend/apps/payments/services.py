@@ -11,6 +11,7 @@ from apps.commerce.services import CommerceFinalizationService
 from apps.events.services import DomainEventService, emit_event
 from apps.notifications.domain.triggers import DomainNotificationTriggers
 from apps.orders.models import OrderStatus
+from apps.payments.commission_policy import CommissionPolicyService
 from apps.payments.gateway import PaymentGatewayAdapter, mock_payments_allowed
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWebhookEvent
 from apps.payments.webhook_security import NormalizedWebhookPayload, PaymentWebhookSecurity
@@ -19,20 +20,36 @@ from apps.payouts.services import PayoutService
 
 
 class PaymentService:
-    PLATFORM_FEE_RATE = Decimal('0.10')
-
     @staticmethod
-    def _safe_notify(callback):
+    def _safe_notify(
+        callback,
+        *,
+        event_type: str,
+        entity_type: str,
+        entity_id: str,
+        actor=None,
+        context: dict | None = None,
+    ) -> None:
         try:
             callback()
-        except Exception:
-            return None
+        except Exception as exc:
+            AuditService.log(
+                actor=actor,
+                event_type='side_effect.failed',
+                entity_type=entity_type,
+                entity_id=str(entity_id),
+                context={
+                    'side_effect': event_type,
+                    'error_class': exc.__class__.__name__,
+                    'error_message': str(exc)[:500],
+                    **(context or {}),
+                },
+            )
 
     @staticmethod
     def _split_amounts(amount: Decimal) -> tuple[Decimal, Decimal]:
-        platform_fee = (amount * PaymentService.PLATFORM_FEE_RATE).quantize(Decimal('0.01'))
-        trainer_net = (amount - platform_fee).quantize(Decimal('0.01'))
-        return platform_fee, trainer_net
+        split = CommissionPolicyService.split(gross_amount=amount)
+        return split.platform_commission, split.trainer_net
 
     @staticmethod
     def _money(value) -> Decimal:
@@ -121,17 +138,11 @@ class PaymentService:
         if not first_item:
             return None
 
-        metadata = first_item.metadata or {}
-        candidate = metadata.get('trainer_id')
-        if candidate:
-            try:
-                return UUID(str(candidate))
-            except (TypeError, ValueError):
-                return None
-
         from apps.content.models import PublishedBundle, PublishedProgram, PublishedVideo
         from apps.orders.models import PurchasedItemType
         from apps.subscriptions.models import SubscriptionPlan
+
+        metadata = first_item.metadata or {}
 
         if first_item.item_type == PurchasedItemType.SUBSCRIPTION_PLAN:
             plan = SubscriptionPlan.objects.filter(id=first_item.item_id).first()
@@ -261,8 +272,22 @@ class PaymentService:
                     context={'order_id': str(order.id), 'provider': payment.provider},
                     request=request,
                 )
-                cls._safe_notify(lambda: DomainNotificationTriggers().on_order_paid(user=order.user, order=order))
-                cls._safe_notify(lambda: DomainNotificationTriggers().on_payment_succeeded(user=order.user, payment=payment))
+                cls._safe_notify(
+                    lambda: DomainNotificationTriggers().on_order_paid(user=order.user, order=order),
+                    event_type='notification.order_paid',
+                    entity_type='payment',
+                    entity_id=str(payment.id),
+                    actor=order.user,
+                    context={'order_id': str(order.id), 'provider': payment.provider},
+                )
+                cls._safe_notify(
+                    lambda: DomainNotificationTriggers().on_payment_succeeded(user=order.user, payment=payment),
+                    event_type='notification.payment_succeeded',
+                    entity_type='payment',
+                    entity_id=str(payment.id),
+                    actor=order.user,
+                    context={'order_id': str(order.id), 'provider': payment.provider},
+                )
                 cls._emit_payment_event(
                     event_type='payment.succeeded',
                     payment=payment,
@@ -497,7 +522,18 @@ class PaymentService:
                     refund_id=refund_id,
                     refund_kind=refund_kind,
                     amount=refund_amount,
-                )
+                ),
+                event_type='notification.payment_refunded',
+                entity_type='payment',
+                entity_id=str(payment.id),
+                actor=order.user,
+                context={
+                    'order_id': str(order.id),
+                    'provider': payment.provider,
+                    'refund_id': refund_id,
+                    'refund_kind': refund_kind,
+                    'refund_amount': str(refund_amount),
+                },
             )
             if is_full_refund:
                 emit_event(
@@ -818,7 +854,14 @@ class PaymentService:
                 context={'order_id': str(order.id), 'provider': payment.provider},
                 request=request,
             )
-            cls._safe_notify(lambda: DomainNotificationTriggers().on_payment_failed(user=order.user, payment=payment))
+            cls._safe_notify(
+                lambda: DomainNotificationTriggers().on_payment_failed(user=order.user, payment=payment),
+                event_type='notification.payment_failed',
+                entity_type='payment',
+                entity_id=str(payment.id),
+                actor=order.user,
+                context={'order_id': str(order.id), 'provider': payment.provider},
+            )
             cls._emit_payment_event(event_type='payment.failed', payment=payment, extra_payload={'provider_payload': payment.provider_payload or {}})
             return payment
 
@@ -890,10 +933,15 @@ class PaymentWebhookService:
             .first()
         )
 
+    @staticmethod
+    def _provider_event_id(normalized: NormalizedWebhookPayload) -> str:
+        return f'{normalized.provider}:{normalized.external_event_id}'
+
     @classmethod
     def _upsert_received_event(cls, normalized: NormalizedWebhookPayload) -> PaymentWebhookEvent:
+        provider_event_id = cls._provider_event_id(normalized)
         event, _created = PaymentWebhookEvent.objects.get_or_create(
-            external_event_id=normalized.external_event_id,
+            provider_event_id=provider_event_id,
             defaults={
                 'provider': normalized.provider,
                 'event_type': normalized.event_type,
@@ -901,6 +949,7 @@ class PaymentWebhookService:
                 'headers': normalized.headers,
                 'signature': normalized.signature,
                 'raw_payload_hash': normalized.raw_payload_hash,
+                'external_event_id': normalized.external_event_id,
                 'status': PaymentWebhookEvent.Status.RECEIVED,
             },
         )
@@ -970,7 +1019,9 @@ class PaymentWebhookService:
     def process_normalized(cls, *, normalized: NormalizedWebhookPayload) -> PaymentWebhookEvent:
         with transaction.atomic():
             cls._upsert_received_event(normalized)
-            event = PaymentWebhookEvent.objects.select_for_update().get(external_event_id=normalized.external_event_id)
+            event = PaymentWebhookEvent.objects.select_for_update().get(
+                provider_event_id=cls._provider_event_id(normalized),
+            )
 
             if event.processed_at or event.status == PaymentWebhookEvent.Status.PROCESSED:
                 cls._emit_webhook_event(event=event, emitted_type='payment.webhook_duplicate', payment=event.payment)
@@ -990,6 +1041,8 @@ class PaymentWebhookService:
                 event.headers = normalized.headers
                 event.signature = normalized.signature
                 event.raw_payload_hash = normalized.raw_payload_hash
+                event.external_event_id = normalized.external_event_id
+                event.provider_event_id = cls._provider_event_id(normalized)
                 event.payment = raw_duplicate.payment
                 event.status = PaymentWebhookEvent.Status.DUPLICATE
                 event.error_message = f'Duplicate webhook raw payload hash for event {raw_duplicate.external_event_id}.'
@@ -1001,6 +1054,8 @@ class PaymentWebhookService:
                     'headers',
                     'signature',
                     'raw_payload_hash',
+                    'external_event_id',
+                    'provider_event_id',
                     'payment',
                     'status',
                     'error_message',
@@ -1026,6 +1081,8 @@ class PaymentWebhookService:
             event.headers = normalized.headers
             event.signature = normalized.signature
             event.raw_payload_hash = normalized.raw_payload_hash
+            event.external_event_id = normalized.external_event_id
+            event.provider_event_id = cls._provider_event_id(normalized)
             event.status = PaymentWebhookEvent.Status.PROCESSING
             event.error_message = ''
             event.attempts = event.attempts + 1
@@ -1036,6 +1093,8 @@ class PaymentWebhookService:
                 'headers',
                 'signature',
                 'raw_payload_hash',
+                'external_event_id',
+                'provider_event_id',
                 'status',
                 'error_message',
                 'attempts',

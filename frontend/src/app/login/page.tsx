@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuthSession } from '@/components/auth-provider';
 import { authApi } from '@/lib/api';
-import { persistTokens } from '@/lib/auth';
 import { isAdminUser } from '@/lib/authz';
 
 function LoginPageContent() {
@@ -31,7 +30,6 @@ function LoginPageContent() {
       setLoading(true);
       setMsg('');
       const payload = await authApi.login({ email, password });
-      persistTokens(payload.access_token, payload.refresh_token);
       await refreshSession();
       const nextPath =
         nextPathFromQuery ||

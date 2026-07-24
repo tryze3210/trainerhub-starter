@@ -1,14 +1,23 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
+from apps.access_control.permissions import ROLE_TRAINER, user_role_set
 from apps.messaging.models import Conversation, ConversationParticipant, Message, MessageEvent
 
 
+logger = logging.getLogger('apps.messaging')
+
+
+def _has_trainer_role(user) -> bool:
+    return ROLE_TRAINER in user_role_set(user)
+
+
 def _role_for_user(user) -> str:
-    role = getattr(user, "role", "") or ""
-    if role == "trainer":
+    if _has_trainer_role(user):
         return ConversationParticipant.ROLE_TRAINER
     return ConversationParticipant.ROLE_CLIENT
 
@@ -48,7 +57,7 @@ def _notify_recipient(*, recipient, sender, conversation: Conversation, message:
             cta_url="/messages",
         )
     except Exception:
-        return
+        logger.exception('messaging.notification_side_effect_failed message_id=%s recipient_id=%s', message.id, recipient.id)
 
 
 def _emit_domain_event(*, conversation: Conversation, message: Message, sender=None) -> None:
@@ -73,7 +82,7 @@ def _emit_domain_event(*, conversation: Conversation, message: Message, sender=N
             metadata={"source": "messaging"},
         )
     except Exception:
-        return
+        logger.exception('messaging.domain_event_side_effect_failed message_id=%s conversation_id=%s', message.id, conversation.id)
 
 
 class ConversationService:
@@ -84,7 +93,7 @@ class ConversationService:
             raise ValidationError({"recipient_id": "Recipient not found."})
         if recipient.id == sender.id:
             raise ValidationError({"recipient_id": "Cannot start a conversation with yourself."})
-        trainer_id = sender.id if getattr(sender, "role", "") == "trainer" else recipient.id if getattr(recipient, "role", "") == "trainer" else None
+        trainer_id = sender.id if _has_trainer_role(sender) else recipient.id if _has_trainer_role(recipient) else None
         client_id = recipient.id if trainer_id == sender.id else sender.id
 
         conversation = (

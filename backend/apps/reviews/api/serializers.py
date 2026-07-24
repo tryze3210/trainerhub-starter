@@ -25,6 +25,26 @@ class ReviewSerializer(serializers.Serializer):
     updated_at = serializers.CharField(required=False, allow_null=True)
 
 
+class PublicReviewSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    target_type = serializers.CharField()
+    target_id = serializers.CharField()
+    target_title = serializers.CharField(required=False, allow_blank=True)
+    target_slug = serializers.CharField(required=False, allow_blank=True)
+    trainer_id = serializers.CharField(required=False, allow_blank=True)
+    author_name = serializers.CharField()
+    rating = serializers.IntegerField()
+    title = serializers.CharField()
+    body = serializers.CharField()
+    status = serializers.CharField()
+    verified_purchase = serializers.BooleanField(required=False)
+    quality_flags = serializers.ListField(child=serializers.CharField(), required=False)
+    trainer_reply = serializers.CharField(required=False, allow_blank=True)
+    trainer_replied_at = serializers.CharField(required=False, allow_null=True)
+    created_at = serializers.CharField(allow_null=True)
+    updated_at = serializers.CharField(required=False, allow_null=True)
+
+
 class ReviewSummarySerializer(serializers.Serializer):
     target_type = serializers.CharField()
     target_id = serializers.CharField()
@@ -59,6 +79,6 @@ class ReviewReplySerializer(serializers.Serializer):
 
 class TargetReviewPayloadSerializer(serializers.Serializer):
     summary = ReviewSummarySerializer()
-    items = ReviewSerializer(many=True)
-    viewer_review = ReviewSerializer(allow_null=True, required=False)
+    items = PublicReviewSerializer(many=True)
+    viewer_review = PublicReviewSerializer(allow_null=True, required=False)
     eligibility = ReviewEligibilitySerializer(required=False)

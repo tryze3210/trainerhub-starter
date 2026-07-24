@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.access_control.permissions import IsAdminOrSupport, IsAdminSupportFinanceReadonly
@@ -91,14 +92,21 @@ from apps.observability.api.serializers import ObservabilityRuntimeQuerySerializ
 from apps.observability.runtime import get_observability_runtime_snapshot
 
 
-class DiagnosticsSnapshotView(APIView):
+class AdminOpsThrottledAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'admin_ops'
+
+
+class DiagnosticsSnapshotView(AdminOpsThrottledAPIView):
+    permission_classes = [IsAdminSupportFinanceReadonly]
     service = DiagnosticsService()
 
     def get(self, request):
         return Response(DiagnosticsSnapshotSerializer(self.service.snapshot()).data)
 
 
-class RunDiagnosticsView(APIView):
+class RunDiagnosticsView(AdminOpsThrottledAPIView):
+    permission_classes = [IsAdminSupportFinanceReadonly]
     service = DiagnosticsService()
 
     def post(self, request):
@@ -111,7 +119,7 @@ class RunDiagnosticsView(APIView):
         )
 
 
-class AdminOperationsDashboardView(APIView):
+class AdminOperationsDashboardView(AdminOpsThrottledAPIView):
     """Single admin view for money risk, webhook health and outbox health."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -123,7 +131,7 @@ class AdminOperationsDashboardView(APIView):
 
 
 
-class AdminOperationsHubView(APIView):
+class AdminOperationsHubView(AdminOpsThrottledAPIView):
     """Unified admin operations command center for async infra, money risk and reconciliation."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -135,7 +143,7 @@ class AdminOperationsHubView(APIView):
         return Response(AdminOperationsHubSerializer(payload).data)
 
 
-class AdminCommerceReadinessView(APIView):
+class AdminCommerceReadinessView(AdminOpsThrottledAPIView):
     """Read-only commerce readiness report for trainer monetization and public storefront surfaces."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -147,7 +155,7 @@ class AdminCommerceReadinessView(APIView):
         return Response(AdminCommerceReadinessSerializer(payload).data)
 
 
-class AdminOperationsReadinessView(APIView):
+class AdminOperationsReadinessView(AdminOpsThrottledAPIView):
     """Read-only production readiness report for the ops/reconciliation surface."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -159,7 +167,7 @@ class AdminOperationsReadinessView(APIView):
         return Response(AdminOperationsReadinessSerializer(payload).data)
 
 
-class AdminObservabilityRuntimeView(APIView):
+class AdminObservabilityRuntimeView(AdminOpsThrottledAPIView):
     """Production observability snapshot for webhooks, payments, payout repairs and background jobs."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -171,7 +179,7 @@ class AdminObservabilityRuntimeView(APIView):
         return Response(ObservabilityRuntimeSnapshotSerializer(payload).data)
 
 
-class AdminProductionReadinessView(APIView):
+class AdminProductionReadinessView(AdminOpsThrottledAPIView):
     """Read-only v95 production readiness gate for the full platform surface."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -183,7 +191,7 @@ class AdminProductionReadinessView(APIView):
         return Response(AdminProductionReadinessSerializer(payload).data)
 
 
-class AdminLaunchCandidateView(APIView):
+class AdminLaunchCandidateView(AdminOpsThrottledAPIView):
     """Read-only v119 launch candidate pack with release notes and launch checklists."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -195,7 +203,7 @@ class AdminLaunchCandidateView(APIView):
         return Response(AdminLaunchCandidateSerializer(payload).data)
 
 
-class AdminProductionLaunchPackView(APIView):
+class AdminProductionLaunchPackView(AdminOpsThrottledAPIView):
     """Read-only v120 production launch documentation and handoff pack."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -207,7 +215,7 @@ class AdminProductionLaunchPackView(APIView):
         return Response(AdminProductionLaunchPackSerializer(payload).data)
 
 
-class AdminOpsRunbookIndexView(APIView):
+class AdminOpsRunbookIndexView(AdminOpsThrottledAPIView):
     permission_classes = [IsAdminSupportFinanceReadonly]
 
     def get(self, request):
@@ -217,7 +225,7 @@ class AdminOpsRunbookIndexView(APIView):
         return Response(AdminOpsRunbookIndexSerializer(payload).data)
 
 
-class AdminOpsRunbookDetailView(APIView):
+class AdminOpsRunbookDetailView(AdminOpsThrottledAPIView):
     permission_classes = [IsAdminSupportFinanceReadonly]
 
     def get(self, request, key: str):
@@ -228,7 +236,7 @@ class AdminOpsRunbookDetailView(APIView):
         return Response(AdminOpsRunbookDetailSerializer(payload).data)
 
 
-class AdminEntityDetailView(APIView):
+class AdminEntityDetailView(AdminOpsThrottledAPIView):
     """Unified admin detail resolver for operations/audit drill-down pages."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -243,7 +251,7 @@ class AdminEntityDetailView(APIView):
         return Response(AdminEntityDetailSerializer(payload).data)
 
 
-class AdminGlobalSearchView(APIView):
+class AdminGlobalSearchView(AdminOpsThrottledAPIView):
     """Tenant-aware global search across core admin entities."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -260,7 +268,7 @@ class AdminGlobalSearchView(APIView):
         return Response(AdminGlobalSearchSerializer(payload).data)
 
 
-class SupportConsoleView(APIView):
+class SupportConsoleView(AdminOpsThrottledAPIView):
     """Support operator console for user commerce/access investigations."""
 
     permission_classes = [IsAdminOrSupport]
@@ -277,7 +285,7 @@ class SupportConsoleView(APIView):
         return Response(SupportConsoleSnapshotSerializer(payload).data)
 
 
-class SupportNotificationResendView(APIView):
+class SupportNotificationResendView(AdminOpsThrottledAPIView):
     permission_classes = [IsAdminOrSupport]
 
     def post(self, request):
@@ -296,7 +304,7 @@ class SupportNotificationResendView(APIView):
         return Response(payload, status=status.HTTP_202_ACCEPTED)
 
 
-class SupportEntitlementFixView(APIView):
+class SupportEntitlementFixView(AdminOpsThrottledAPIView):
     permission_classes = [IsAdminOrSupport]
 
     def post(self, request):
@@ -317,7 +325,7 @@ class SupportEntitlementFixView(APIView):
         return Response(payload, status=status.HTTP_202_ACCEPTED)
 
 
-class AdminReconciliationReportView(APIView):
+class AdminReconciliationReportView(AdminOpsThrottledAPIView):
     """Read-only reconciliation report for money, access and async pipeline drift."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -329,7 +337,7 @@ class AdminReconciliationReportView(APIView):
         return Response(payload)
 
 
-class AdminPaymentReconciliationView(APIView):
+class AdminPaymentReconciliationView(AdminOpsThrottledAPIView):
     """Read-only payment reconciliation across provider webhooks, internal payments and access grants."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -341,7 +349,7 @@ class AdminPaymentReconciliationView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationRepairView(APIView):
+class AdminReconciliationRepairView(AdminOpsThrottledAPIView):
     """Audited repair actions for concrete reconciliation issues."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -363,7 +371,7 @@ class AdminReconciliationRepairView(APIView):
         return Response(AdminReconciliationRepairResultSerializer(payload).data, status=status.HTTP_202_ACCEPTED)
 
 
-class AdminReconciliationRepairPolicyView(APIView):
+class AdminReconciliationRepairPolicyView(AdminOpsThrottledAPIView):
     """Return workflow/risk metadata for a reconciliation repair action before execution."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -378,7 +386,7 @@ class AdminReconciliationRepairPolicyView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationSnapshotListView(APIView):
+class AdminReconciliationSnapshotListView(AdminOpsThrottledAPIView):
     """List persisted reconciliation snapshots for trend/history analysis."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -390,7 +398,7 @@ class AdminReconciliationSnapshotListView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationSnapshotCaptureView(APIView):
+class AdminReconciliationSnapshotCaptureView(AdminOpsThrottledAPIView):
     """Capture a persisted reconciliation report snapshot on demand."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -405,7 +413,7 @@ class AdminReconciliationSnapshotCaptureView(APIView):
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
-class AdminReconciliationSnapshotLatestView(APIView):
+class AdminReconciliationSnapshotLatestView(AdminOpsThrottledAPIView):
     """Return the latest reconciliation snapshot, optionally filtered by source."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -417,7 +425,7 @@ class AdminReconciliationSnapshotLatestView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationSnapshotTrendView(APIView):
+class AdminReconciliationSnapshotTrendView(AdminOpsThrottledAPIView):
     """Trend endpoint for reconciliation issue counts over recent snapshots."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -429,7 +437,7 @@ class AdminReconciliationSnapshotTrendView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationSnapshotMetricsView(APIView):
+class AdminReconciliationSnapshotMetricsView(AdminOpsThrottledAPIView):
     """Compact dashboard metrics for reconciliation snapshot health and repair effectiveness."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -441,7 +449,7 @@ class AdminReconciliationSnapshotMetricsView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationSnapshotAlertView(APIView):
+class AdminReconciliationSnapshotAlertView(AdminOpsThrottledAPIView):
     """Evaluate and optionally emit reconciliation snapshot alerts for admins."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -465,7 +473,7 @@ class AdminReconciliationSnapshotAlertView(APIView):
         return Response(payload, status=status.HTTP_202_ACCEPTED)
 
 
-class AdminReconciliationSnapshotRetentionView(APIView):
+class AdminReconciliationSnapshotRetentionView(AdminOpsThrottledAPIView):
     """Preview or execute reconciliation snapshot retention pruning."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -489,7 +497,7 @@ class AdminReconciliationSnapshotRetentionView(APIView):
         return Response(payload, status=status.HTTP_200_OK)
 
 
-class AdminReconciliationSnapshotScheduleView(APIView):
+class AdminReconciliationSnapshotScheduleView(AdminOpsThrottledAPIView):
     """Read scheduled reconciliation snapshot freshness state for ops dashboard/beat checks."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -501,7 +509,7 @@ class AdminReconciliationSnapshotScheduleView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationIssueRegistryView(APIView):
+class AdminReconciliationIssueRegistryView(AdminOpsThrottledAPIView):
     """Return normalized reconciliation issues from the latest or selected snapshot."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]
@@ -513,7 +521,7 @@ class AdminReconciliationIssueRegistryView(APIView):
         return Response(payload)
 
 
-class AdminReconciliationSnapshotCompareView(APIView):
+class AdminReconciliationSnapshotCompareView(AdminOpsThrottledAPIView):
     """Compare two reconciliation snapshots and expose resolved/introduced issue diffs."""
 
     permission_classes = [IsAdminSupportFinanceReadonly]

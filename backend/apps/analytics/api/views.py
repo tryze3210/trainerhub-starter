@@ -6,6 +6,7 @@ from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.analytics.api.serializers import (
@@ -58,6 +59,8 @@ class AnalyticsEventCollectView(generics.CreateAPIView):
     serializer_class = AnalyticsEventIngestSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'analytics_collect'
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

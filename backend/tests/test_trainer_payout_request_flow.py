@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from apps.audit.models import AuditEvent
 from apps.legal_compliance.models import LegalDocumentTemplate, TrainerContractArtifact, TrainerKYCProfile
 from apps.payouts.models import BalanceEntry, PayoutRequest, TrainerWallet
+from apps.payouts.services import PayoutService
 from apps.trainers.models import TrainerProfile
 
 
@@ -106,6 +109,19 @@ def test_trainer_can_request_payout_and_balance_is_reserved(trainer_user):
         entry_type=BalanceEntry.EntryType.RESERVE,
         direction="debit",
     ).exists()
+
+
+@pytest.mark.django_db
+def test_payout_accrual_rejects_missing_trainer_profile_without_synthetic_user():
+    missing_trainer_id = uuid4()
+
+    with pytest.raises(ValidationError) as exc_info:
+        PayoutService.get_or_create_balance(trainer_id=missing_trainer_id)
+
+    assert "Trainer profile not found" in str(exc_info.value)
+    assert not get_user_model().objects.filter(email__endswith="@example.invalid").exists()
+    assert not TrainerProfile.objects.filter(id=missing_trainer_id).exists()
+    assert not TrainerWallet.objects.exists()
 
 
 @pytest.mark.django_db

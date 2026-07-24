@@ -17,6 +17,7 @@ import django
 django.setup()
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 
 from apps.accounts.models import AccountProfile, AccountRoleAssignment, AccountSettings
@@ -24,6 +25,11 @@ from apps.onboarding.models import OnboardingStepState
 from scripts.bootstrap.seed_demo import build_demo_seed_payload
 
 User = get_user_model()
+
+
+def _assert_demo_seed_allowed() -> None:
+    if getattr(settings, 'IS_PRODUCTION', False) and os.getenv('ALLOW_DEMO_SEED') != '1':
+        raise RuntimeError('Demo seed is disabled in production. Set ALLOW_DEMO_SEED=1 only for an intentional smoke dataset.')
 
 
 def _upsert_user(*, email: str, password: str, display_name: str):
@@ -311,6 +317,7 @@ def _run_optional_seed(label: str, fn, *args) -> None:
 
 
 def main() -> None:
+    _assert_demo_seed_allowed()
     payload = build_demo_seed_payload()
     users = _seed_accounts(payload)
     _seed_onboarding(users['trainer_anna'])

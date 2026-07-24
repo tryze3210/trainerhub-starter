@@ -9,10 +9,10 @@ class RuntimeService:
 
     def readiness(self) -> dict:
         checks = [
-            {'name': 'database', 'status': 'pass', 'details': 'postgres configured'},
-            {'name': 'cache', 'status': 'pass', 'details': 'redis configured'},
-            {'name': 'broker', 'status': 'pass', 'details': 'celery broker configured'},
-            {'name': 'storage', 'status': 'pass', 'details': 'vk cloud storage configured'},
+            {'name': 'database', 'status': 'pass', 'details': 'configured'},
+            {'name': 'cache', 'status': 'pass', 'details': 'configured'},
+            {'name': 'broker', 'status': 'pass', 'details': 'configured'},
+            {'name': 'storage', 'status': 'pass', 'details': 'configured'},
         ]
         return {
             'status': 'ready' if all(c['status'] == 'pass' for c in checks) else 'degraded',

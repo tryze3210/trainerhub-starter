@@ -15,5 +15,5 @@ fi
 cd "$ROOT_DIR"
 docker compose -f docker-compose.test.yml up -d
 trap 'docker compose -f docker-compose.test.yml down -v' EXIT
-export DJANGO_SETTINGS_MODULE=config.settings_test
+export DJANGO_SETTINGS_MODULE=config.settings.test
 "$PYTHON_BIN" -m pytest backend/tests/integration -q

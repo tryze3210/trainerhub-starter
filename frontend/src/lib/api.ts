@@ -90,9 +90,9 @@ export const privateApi = {
   simulatePaymentSuccess: paymentsApi.simulatePaymentSuccess,
   confirmMockPayment: (paymentId: string) => apiRequest<Payment>(`/payments/${paymentId}/confirm-mock/`, { auth: true, method: 'POST' }),
   cancelMockPayment: (paymentId: string) => apiRequest<Payment>(`/payments/${paymentId}/cancel-mock/`, { auth: true, method: 'POST' }),
-  providerReturn: (paymentId: string, statusValue: string) =>
+  providerReturn: (paymentId: string) =>
     apiRequest<{ payment_id: string; order_id: string; payment_status: string; order_status: string; redirect_path: string }>(
-      `/payments/provider-return/?payment_id=${paymentId}&status=${statusValue}`
+      `/payments/provider-return/?payment_id=${paymentId}`
     ),
   createReview: (targetType: string, targetId: string, payload: { rating: number; title: string; body: string }): Promise<Review> =>
     apiRequest<Review>(`/reviews/${targetType}/${targetId}/`, {

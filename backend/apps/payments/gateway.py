@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import os
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
 
 from apps.payments.models import PaymentProvider
 from apps.platform_settings.selectors import get_payment_provider_settings
+
+LOCAL_URL_HOSTS = {'localhost', '127.0.0.1', '0.0.0.0'}
+API_PREFIXES = ('/api/v1', '/api')
 
 
 def mock_payments_allowed() -> bool:
@@ -18,20 +21,33 @@ def unverified_provider_return_allowed() -> bool:
 
 
 class PaymentGatewayAdapter:
+    def _normalize_public_base_url(self, value: str, *, setting_name: str, strip_api_prefix: bool = False) -> str:
+        base_url = (value or '').strip().rstrip('/')
+        if strip_api_prefix:
+            for suffix in API_PREFIXES:
+                if base_url.endswith(suffix):
+                    base_url = base_url[: -len(suffix)].rstrip('/')
+                    break
+
+        parsed = urlparse(base_url)
+        if bool(getattr(settings, 'IS_PRODUCTION', False)):
+            host = (parsed.hostname or '').lower()
+            if parsed.scheme != 'https' or not parsed.netloc or host in LOCAL_URL_HOSTS:
+                raise ValueError(f'{setting_name} must be a public https:// URL in production.')
+        return base_url
+
     def _frontend_base_url(self) -> str:
-        return (
-            os.getenv('FRONTEND_BASE_URL')
+        base_url = (
+            getattr(settings, 'FRONTEND_BASE_URL', '')
+            or os.getenv('FRONTEND_BASE_URL')
             or os.getenv('NEXT_PUBLIC_APP_URL')
             or 'http://localhost:3000'
-        ).rstrip('/')
+        )
+        return self._normalize_public_base_url(base_url, setting_name='FRONTEND_BASE_URL')
 
     def _api_base_url(self) -> str:
-        candidates = getattr(settings, 'ALLOWED_HOSTS', [])
-        if '127.0.0.1' in candidates:
-            host = '127.0.0.1'
-        else:
-            host = 'localhost'
-        return f'http://{host}:8000'
+        base_url = getattr(settings, 'API_BASE_URL', '') or os.getenv('API_BASE_URL') or 'http://localhost:8000'
+        return self._normalize_public_base_url(base_url, setting_name='API_BASE_URL', strip_api_prefix=True)
 
     def _read_provider_settings(self) -> dict:
         return get_payment_provider_settings()
@@ -46,9 +62,7 @@ class PaymentGatewayAdapter:
     def _contract_urls(self, *, payment, provider: str, provider_config: dict | None = None) -> dict:
         frontend_base = self._frontend_base_url()
         api_base = self._api_base_url()
-        success_qs = urlencode({'payment_id': str(payment.id), 'status': 'succeeded'})
-        cancel_qs = urlencode({'payment_id': str(payment.id), 'status': 'cancelled'})
-        failed_qs = urlencode({'payment_id': str(payment.id), 'status': 'failed'})
+        return_qs = urlencode({'payment_id': str(payment.id)})
         provider_config = provider_config or {}
         return_url_override = (provider_config.get('return_url_override') or '').rstrip('/')
         frontend_return_url = return_url_override or f'{frontend_base}/checkout/success?payment_id={payment.id}&provider={provider}'
@@ -57,9 +71,9 @@ class PaymentGatewayAdapter:
             'provider': provider,
             'frontend_return_url': frontend_return_url,
             'frontend_cancel_url': frontend_cancel_url,
-            'provider_return_url_success': f'{api_base}/api/v1/payments/provider-return/?{success_qs}',
-            'provider_return_url_cancel': f'{api_base}/api/v1/payments/provider-return/?{cancel_qs}',
-            'provider_return_url_failed': f'{api_base}/api/v1/payments/provider-return/?{failed_qs}',
+            'provider_return_url_success': f'{api_base}/api/v1/payments/provider-return/?{return_qs}',
+            'provider_return_url_cancel': f'{api_base}/api/v1/payments/provider-return/?{return_qs}',
+            'provider_return_url_failed': f'{api_base}/api/v1/payments/provider-return/?{return_qs}',
             'webhook_url': f'{api_base}/api/v1/payments-webhooks/receive/',
         }
 

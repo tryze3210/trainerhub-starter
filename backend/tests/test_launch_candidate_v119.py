@@ -19,6 +19,9 @@ def test_launch_candidate_pack_contains_release_contract_sections():
     assert payload["production_env_checklist"]
     assert payload["known_limitations"]
     assert payload["release_decision"]["next_step"] == "v120 Production Launch Pack"
+    demo_seed = next(item for item in payload["smoke_checklist"] if item["key"] == "demo_seed")
+    assert demo_seed["command"] == "bash scripts/deploy/migrate.sh && python scripts/bootstrap/seed_demo.py"
+    assert "manage.py migrate" not in demo_seed["command"]
 
 
 def test_project_version_is_read_from_version_file():

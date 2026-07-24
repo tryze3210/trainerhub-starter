@@ -6,6 +6,8 @@ from decimal import Decimal
 from django.apps import apps
 from django.db.models import Count, Max, Sum
 from django.db.models.functions import Coalesce
+
+from apps.payments.commission_policy import CommissionPolicyService
 from django.utils import timezone
 
 from apps.finance_reporting.models import (
@@ -80,7 +82,9 @@ class FinanceReconciliationService:
             refund_count = Payment.objects.filter(order__trainer_id=trainer_id, status="refunded", created_at__date__gte=period_start, created_at__date__lte=period_end).count()
             paid_amount = Payout.objects.filter(order__trainer_id=trainer_id, status="paid", created_at__date__gte=period_start, created_at__date__lte=period_end).aggregate(v=Coalesce(Sum("amount"), Decimal("0")))["v"]
             payout_count = Payout.objects.filter(order__trainer_id=trainer_id, created_at__date__gte=period_start, created_at__date__lte=period_end).count()
-            commission_amount = (row["gross_amount"] * Decimal("0.20")).quantize(Decimal("0.01"))
+            commission_amount = CommissionPolicyService.split(
+                gross_amount=row["gross_amount"],
+            ).platform_commission
             payout_amount = row["gross_amount"] - refund_amount - commission_amount
             pending_amount = payout_amount - paid_amount
 

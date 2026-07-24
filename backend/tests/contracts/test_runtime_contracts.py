@@ -11,3 +11,8 @@ def test_readiness_contract():
     payload = services.get_readiness_status()
     assert 'checks' in payload
     assert isinstance(payload['checks'], list)
+    serialized = str(payload).lower()
+    assert 'postgres' not in serialized
+    assert 'redis' not in serialized
+    assert 'celery' not in serialized
+    assert 'vk cloud' not in serialized

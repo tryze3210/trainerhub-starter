@@ -8,9 +8,14 @@ from typing import Any
 from django.conf import settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from apps.access_control.permissions import ROLE_ADMIN, ROLE_TRAINER, user_role_set
 from apps.entitlements.access_audit import AccessControlAuditService
 from common.storage.client import storage_service
 from apps.videos.models import Video, VideoAccessLog
+
+
+DEFAULT_MEDIA_READ_TTL_SECONDS = 300
+DEFAULT_MEDIA_READ_MAX_TTL_SECONDS = 900
 
 
 def _client_ip(request) -> str | None:
@@ -74,17 +79,35 @@ def _sign_token(*, video_id: str, user_id: str, expires_at) -> str:
     return f"{payload}:{signature}"
 
 
+def _authenticated_roles(user) -> set[str]:
+    if not getattr(user, "is_authenticated", False):
+        return set()
+    return user_role_set(user)
+
+
+def _media_read_ttl_seconds() -> int:
+    ttl_seconds = int(getattr(settings, "MEDIA_READ_TTL_SECONDS", DEFAULT_MEDIA_READ_TTL_SECONDS) or 0)
+    max_ttl_seconds = int(getattr(settings, "MEDIA_READ_MAX_TTL_SECONDS", DEFAULT_MEDIA_READ_MAX_TTL_SECONDS) or 0)
+    if ttl_seconds <= 0:
+        ttl_seconds = DEFAULT_MEDIA_READ_TTL_SECONDS
+    if max_ttl_seconds <= 0:
+        max_ttl_seconds = DEFAULT_MEDIA_READ_MAX_TTL_SECONDS
+    return min(ttl_seconds, max_ttl_seconds)
+
+
 class IssueVideoAccessUrlService:
     def execute(self, *, user, video: Video, request=None) -> dict[str, Any]:
-        ttl_seconds = int(getattr(settings, "MEDIA_READ_TTL_SECONDS", 300))
+        ttl_seconds = _media_read_ttl_seconds()
         expires_at = timezone.now() + timezone.timedelta(seconds=ttl_seconds)
         anti_leech = _anti_leech_payload(request)
         entitlement_decision: dict[str, Any] = {}
         reason = VideoAccessLog.AccessReason.DENIED
+        roles = _authenticated_roles(user)
+        trainer_profile = getattr(user, "trainer_profile", None) if ROLE_TRAINER in roles else None
 
-        if user.is_authenticated and (getattr(user, "role", "") == "admin" or getattr(user, "is_staff", False)):
+        if user.is_authenticated and (ROLE_ADMIN in roles or getattr(user, "is_staff", False)):
             reason = VideoAccessLog.AccessReason.ADMIN
-        elif user.is_authenticated and user.role == "trainer" and hasattr(user, "trainer_profile") and video.trainer_id == user.trainer_profile.id:
+        elif trainer_profile is not None and video.trainer_id == trainer_profile.id:
             reason = VideoAccessLog.AccessReason.TRAINER_OWNER
         elif video.is_free:
             reason = VideoAccessLog.AccessReason.FREE_VIDEO

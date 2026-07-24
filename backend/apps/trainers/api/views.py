@@ -37,6 +37,7 @@ from common.permissions import IsTrainer
 
 
 class TrainerCatalogApi(generics.ListAPIView):
+    permission_classes = [permissions.AllowAny]
     serializer_class = TrainerProfileSerializer
     queryset = TrainerProfile.objects.none()
     search_fields = ("display_name", "headline", "bio")
@@ -47,6 +48,7 @@ class TrainerCatalogApi(generics.ListAPIView):
 
 
 class TrainerDetailApi(generics.RetrieveAPIView):
+    permission_classes = [permissions.AllowAny]
     serializer_class = TrainerProfileSerializer
     lookup_field = "slug"
     queryset = TrainerProfile.objects.filter(is_public=True, is_deleted=False)

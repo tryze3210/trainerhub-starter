@@ -7,7 +7,17 @@ from apps.tenancy import selectors as tenancy_selectors
 
 ROLE_CAPABILITIES = {
     'user': ['cabinet.view_self', 'accounts.manage_self', 'learning.view', 'assignments.submit', 'messaging.use'],
-    'trainer': ['cabinet.view_self', 'accounts.manage_self', 'trainer_cms.manage', 'media_assets.upload', 'assignments.review', 'messaging.use', 'reviews.reply'],
+    'trainer': [
+        'cabinet.view_self',
+        'accounts.manage_self',
+        'trainer_cms.manage',
+        'trainer_cms.manage_content',
+        'media.upload',
+        'media_assets.upload',
+        'assignments.review',
+        'messaging.use',
+        'reviews.reply',
+    ],
     'admin': ['cabinet.view_self', 'accounts.manage_self', 'moderation.review', 'payments.manage', 'payouts.manage', 'audit.view', 'ops.manage', 'notifications.manage'],
     'support': ['cabinet.view_self', 'accounts.manage_self', 'payments.view', 'orders.view', 'entitlements.view', 'audit.view', 'notifications.resend', 'messaging.support'],
     'finance': ['cabinet.view_self', 'accounts.manage_self', 'payments.view', 'payouts.view', 'payouts.manage', 'finance.view', 'finance.export'],

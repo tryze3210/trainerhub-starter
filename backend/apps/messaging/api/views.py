@@ -1,6 +1,7 @@
 from django.core.exceptions import PermissionDenied, ValidationError
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from apps.access_control.permissions import IsAdminOrSupport
@@ -24,6 +25,13 @@ def _error_response(exc):
     return Response({"detail": detail}, status=status_code)
 
 
+def _require_participant(*, conversation, user) -> ConversationParticipant:
+    try:
+        return ConversationParticipant.objects.get(conversation=conversation, user=user)
+    except ConversationParticipant.DoesNotExist as exc:
+        raise PermissionDenied("Conversation participant required.") from exc
+
+
 class MyInboxView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -34,6 +42,8 @@ class MyInboxView(APIView):
 
 class StartConversationView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "messaging_start"
 
     def post(self, request):
         serializer = StartConversationSerializer(data=request.data)
@@ -60,12 +70,14 @@ class ConversationMessagesView(generics.ListAPIView):
 
     def get_queryset(self):
         conversation = get_object_or_404(Conversation, pk=self.kwargs["conversation_id"])
-        ConversationParticipant.objects.get(conversation=conversation, user=self.request.user)
+        _require_participant(conversation=conversation, user=self.request.user)
         return conversation.messages.select_related("sender").order_by("created_at")
 
 
 class SendMessageView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "messaging_send"
 
     def post(self, request, conversation_id):
         conversation = get_object_or_404(Conversation, pk=conversation_id)
@@ -87,7 +99,7 @@ class MarkReadView(APIView):
 
     def post(self, request, conversation_id):
         conversation = get_object_or_404(Conversation, pk=conversation_id)
-        participant = get_object_or_404(ConversationParticipant, conversation=conversation, user=request.user)
+        participant = _require_participant(conversation=conversation, user=request.user)
         last_message = conversation.messages.order_by("-created_at").first()
         participant.unread_count = 0
         participant.last_read_message_id = getattr(last_message, "id", None)

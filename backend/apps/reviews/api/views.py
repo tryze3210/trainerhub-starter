@@ -1,5 +1,6 @@
 from rest_framework import permissions, response, status, views
 from rest_framework.exceptions import NotFound
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.access_control.permissions import IsAdminSupportFinanceReadonly
 from apps.reviews import selectors
@@ -16,6 +17,12 @@ from apps.reviews.services import ReviewService, build_target_reviews
 
 class TargetReviewsView(views.APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'review_write'
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def get(self, request, target_type: str, target_id: str):
         payload = build_target_reviews(target_type, target_id, user=request.user)
@@ -87,6 +94,8 @@ class TrainerReviewQualityView(views.APIView):
 
 class TrainerReviewReplyView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'review_reply'
 
     def post(self, request, review_id: str):
         serializer = ReviewReplySerializer(data=request.data)

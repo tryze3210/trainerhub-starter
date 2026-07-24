@@ -237,6 +237,26 @@ def _validate_source(entitlement: Entitlement, *, now=None) -> tuple[bool, list[
     return True, rules, None
 
 
+def _first_source_valid_entitlement(queryset, *, now=None) -> tuple[
+    Entitlement | None,
+    list[dict[str, Any]],
+    Entitlement | None,
+    str | None,
+]:
+    fallback_entitlement = None
+    fallback_rules: list[dict[str, Any]] = []
+    fallback_code = None
+    for entitlement in queryset:
+        source_ok, source_rules, source_code = _validate_source(entitlement, now=now)
+        if source_ok:
+            return entitlement, source_rules, entitlement, None
+        if fallback_entitlement is None:
+            fallback_entitlement = entitlement
+            fallback_rules = source_rules
+            fallback_code = source_code
+    return None, fallback_rules, fallback_entitlement, fallback_code
+
+
 class AccessControlAuditService:
     """Read-only access decision service for buyer/admin content access checks.
 
@@ -264,7 +284,11 @@ class AccessControlAuditService:
             .order_by("-created_at")
         )
         direct_queryset = base_queryset.filter(target_id__in=target_ids) if target_ids else base_queryset.none()
-        direct_active = direct_queryset.filter(_active_entitlement_filter(now)).first()
+        direct_active_queryset = direct_queryset.filter(_active_entitlement_filter(now))
+        direct_active, direct_source_rules, direct_invalid, direct_source_code = _first_source_valid_entitlement(
+            direct_active_queryset,
+            now=now,
+        )
         direct_latest = direct_queryset.first()
 
         library_queryset = (
@@ -272,7 +296,11 @@ class AccessControlAuditService:
             .select_related("source_order", "source_subscription")
             .order_by("-created_at")
         )
-        library_active = library_queryset.filter(_active_entitlement_filter(now)).first()
+        library_active_queryset = library_queryset.filter(_active_entitlement_filter(now))
+        library_active, library_source_rules, library_invalid, library_source_code = _first_source_valid_entitlement(
+            library_active_queryset,
+            now=now,
+        )
         library_latest = library_queryset.first()
 
         rules: list[dict[str, Any]] = []
@@ -285,6 +313,9 @@ class AccessControlAuditService:
         if direct_active is not None:
             selected = direct_active
             source_kind = "direct"
+            allowed = True
+            code = "access_granted"
+            reason = "active_entitlement"
             rules.append(
                 _pass_rule(
                     code="direct_entitlement_active",
@@ -292,9 +323,13 @@ class AccessControlAuditService:
                     reason="matching active entitlement exists",
                 )
             )
+            rules.extend(direct_source_rules)
         elif library_active is not None:
             selected = library_active
             source_kind = "library"
+            allowed = True
+            code = "access_granted"
+            reason = "active_library_entitlement"
             rules.append(
                 _pass_rule(
                     code="library_entitlement_active",
@@ -302,9 +337,10 @@ class AccessControlAuditService:
                     reason="active library entitlement covers this target",
                 )
             )
+            rules.extend(library_source_rules)
         else:
             if direct_latest is not None:
-                reason = f"direct_entitlement_{direct_latest.status}"
+                reason = direct_source_code or f"direct_entitlement_{direct_latest.status}"
                 rules.append(
                     _deny_rule(
                         code="direct_entitlement_not_active",
@@ -312,8 +348,14 @@ class AccessControlAuditService:
                         reason=f"latest matching entitlement status is {direct_latest.status}",
                     )
                 )
+                if direct_invalid is not None:
+                    selected = direct_invalid
+                    source_kind = "direct"
+                    rules.extend(direct_source_rules)
+                    code = direct_source_code or code
+                    reason = direct_source_code or reason
             elif library_latest is not None:
-                reason = f"library_entitlement_{library_latest.status}"
+                reason = library_source_code or f"library_entitlement_{library_latest.status}"
                 rules.append(
                     _deny_rule(
                         code="library_entitlement_not_active",
@@ -321,6 +363,12 @@ class AccessControlAuditService:
                         reason=f"latest library entitlement status is {library_latest.status}",
                     )
                 )
+                if library_invalid is not None:
+                    selected = library_invalid
+                    source_kind = "library"
+                    rules.extend(library_source_rules)
+                    code = library_source_code or code
+                    reason = library_source_code or reason
             else:
                 rules.append(
                     _deny_rule(
@@ -329,18 +377,6 @@ class AccessControlAuditService:
                         reason="user has no direct or library entitlement for the target",
                     )
                 )
-
-        if selected is not None:
-            source_ok, source_rules, source_code = _validate_source(selected, now=now)
-            rules.extend(source_rules)
-            if source_ok:
-                allowed = True
-                code = "access_granted"
-                reason = "active_entitlement" if source_kind == "direct" else "active_library_entitlement"
-            else:
-                allowed = False
-                code = source_code or "source_invalid"
-                reason = source_code or "source_invalid"
 
         if not allowed and include_admin_override and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
             allowed = True

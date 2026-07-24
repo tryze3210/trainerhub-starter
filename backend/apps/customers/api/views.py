@@ -2,6 +2,7 @@ from rest_framework import permissions, response, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 
+from apps.access_control.permissions import ROLE_ADMIN, ROLE_TRAINER, user_role_set
 from apps.customers.models import CustomerNote, CustomerProfile, CustomerSegment
 from apps.customers.selectors import CustomerMarketplaceHubSelector, TrainerCRMSelector
 
@@ -40,7 +41,8 @@ class TrainerCRMViewSet(viewsets.ViewSet):
     selector = TrainerCRMSelector()
 
     def _require_trainer(self, request):
-        if request.user.is_staff or getattr(request.user, "role", "") == "trainer":
+        roles = user_role_set(request.user)
+        if request.user.is_staff or roles.intersection({ROLE_TRAINER, ROLE_ADMIN}):
             return
         raise PermissionDenied("Trainer CRM is available only for trainers.")
 

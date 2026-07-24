@@ -106,6 +106,7 @@ class PaymentWebhookEventSerializer(serializers.ModelSerializer):
             'provider',
             'event_type',
             'external_event_id',
+            'provider_event_id',
             'payment_id',
             'status',
             'payload',

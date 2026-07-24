@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from apps.access_control.permissions import IsAdminSupportFinanceReadonly, IsAdminOrSupport
 from apps.audit.services import AuditService
 from apps.payments.api.serializers import AdminPaymentSerializer, PaymentRefundSerializer, PaymentSerializer, PaymentWebhookEventSerializer, PaymentWebhookSerializer
-from apps.payments.gateway import mock_payments_allowed, unverified_provider_return_allowed
+from apps.payments.gateway import mock_payments_allowed
 from apps.payments.models import Payment, PaymentStatus, PaymentWebhookEvent
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payments.webhook_security import PaymentWebhookPayloadError, PaymentWebhookSecurity, PaymentWebhookSignatureError
@@ -91,33 +91,14 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     @action(detail=False, methods=['get'], permission_classes=[AllowAny], url_path='provider-return')
     def provider_return(self, request):
         payment_id = request.query_params.get('payment_id')
-        status_value = (request.query_params.get('status') or '').strip().lower()
         if not payment_id:
             return Response({'detail': 'payment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-        if status_value and not unverified_provider_return_allowed():
-            raise PermissionDenied('Unverified payment return status changes are disabled for this environment.')
         payment = Payment.objects.get(pk=payment_id)
-        if status_value in {'success', 'succeeded', 'paid'}:
-            payment = PaymentService.mark_succeeded(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
+
+        if payment.status == PaymentStatus.SUCCEEDED:
             redirect_path = f'/checkout/success?order_id={payment.order_id}&payment_id={payment.id}'
-        elif status_value in {'cancel', 'cancelled'}:
-            payment = PaymentService.mark_cancelled(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
+        elif payment.status in {PaymentStatus.CANCELLED, PaymentStatus.FAILED}:
             redirect_path = f'/checkout/cancel?order_id={payment.order_id}&payment_id={payment.id}'
-        elif status_value in {'failed', 'error'}:
-            payment = PaymentService.mark_failed(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
-            redirect_path = f'/checkout/cancel?order_id={payment.order_id}&payment_id={payment.id}'
-        elif status_value in {'refund', 'refunded'}:
-            payment = PaymentService.mark_refunded(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
-            redirect_path = f'/payments/{payment.id}'
-        elif status_value in {'dispute', 'disputed', 'chargeback_opened'}:
-            payment = PaymentService.mark_disputed(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
-            redirect_path = f'/payments/{payment.id}'
-        elif status_value in {'chargeback', 'charged_back', 'chargeback_lost'}:
-            payment = PaymentService.mark_chargeback_lost(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
-            redirect_path = f'/payments/{payment.id}'
-        elif status_value in {'chargeback_won', 'dispute_won'}:
-            payment = PaymentService.mark_chargeback_won(payment=payment, provider_payload={**(payment.provider_payload or {}), 'return_status': status_value})
-            redirect_path = f'/payments/{payment.id}'
         else:
             redirect_path = f'/payments/{payment.id}'
         return Response({
@@ -198,17 +179,19 @@ class PaymentWebhookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
             queryset = queryset.filter(payload__external_payment_id=external_payment_id)
         return queryset
 
-    def _audit_rejected_webhook(self, request, *, reason: str) -> None:
-        raw_body = request.body or json.dumps(request.data).encode('utf-8')
-        provider = request.query_params.get('provider') or request.headers.get('X-Payment-Provider') or request.data.get('provider') or ''
+    def _audit_rejected_webhook(self, request, *, reason: str, raw_body: bytes | None = None, provider: str | None = None) -> None:
+        body = raw_body if raw_body is not None else request.body
+        if not body:
+            body = json.dumps(request.data).encode('utf-8')
+        provider_value = provider or request.query_params.get('provider') or request.headers.get('X-Payment-Provider') or ''
         AuditService.log(
             event_type='payment.webhook_rejected',
             entity_type='payment_webhook',
-            entity_id=PaymentWebhookSecurity.raw_hash(raw_body)[:32],
+            entity_id=PaymentWebhookSecurity.raw_hash(body)[:32],
             context={
-                'provider': provider,
+                'provider': provider_value,
                 'reason': reason,
-                'raw_payload_hash': PaymentWebhookSecurity.raw_hash(raw_body),
+                'raw_payload_hash': PaymentWebhookSecurity.raw_hash(body),
                 'headers': {
                     key: value
                     for key, value in dict(request.headers).items()
@@ -220,26 +203,24 @@ class PaymentWebhookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
 
     @action(detail=False, methods=['post'], url_path='receive')
     def receive(self, request):
+        raw_body = b''
+        provider = None
         try:
-            if {'provider', 'event_type', 'external_event_id', 'payload'}.issubset(set(request.data.keys())):
-                serializer = PaymentWebhookSerializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                event = PaymentWebhookService.handle(**serializer.validated_data)
-            else:
-                raw_body = request.body or json.dumps(request.data).encode('utf-8')
-                provider = request.query_params.get('provider') or request.headers.get('X-Payment-Provider')
-                event = PaymentWebhookService.handle_raw(
-                    provider=provider,
-                    payload=request.data,
-                    raw_body=raw_body,
-                    headers=dict(request.headers),
-                    verify_signature=True,
-                )
+            raw_body = request.body
+            PaymentWebhookSecurity.validate_body_size(raw_body)
+            provider = request.query_params.get('provider') or request.headers.get('X-Payment-Provider')
+            event = PaymentWebhookService.handle_raw(
+                provider=provider,
+                payload=request.data,
+                raw_body=raw_body,
+                headers=dict(request.headers),
+                verify_signature=True,
+            )
         except PaymentWebhookSignatureError as exc:
-            self._audit_rejected_webhook(request, reason=str(exc))
+            self._audit_rejected_webhook(request, reason=str(exc), raw_body=raw_body, provider=provider)
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PaymentWebhookPayloadError as exc:
-            self._audit_rejected_webhook(request, reason=str(exc))
+            self._audit_rejected_webhook(request, reason=str(exc), raw_body=raw_body, provider=provider)
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         data = PaymentWebhookEventSerializer(event).data

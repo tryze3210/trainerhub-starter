@@ -196,8 +196,8 @@ def test_v112_trainer_statement_uses_real_payout_ledger_amounts():
     )
 
     assert document.document_type == FinanceDocument.DOC_STATEMENT
-    assert document.gross_amount == Decimal("900.00")
-    assert document.commission_amount == Decimal("90.00")
+    assert document.gross_amount == Decimal("1012.50")
+    assert document.commission_amount == Decimal("202.50")
     assert document.net_amount == Decimal("810.00")
     assert document.payload["source"] == "payout_ledger"
     assert document.payload["summary"] == {

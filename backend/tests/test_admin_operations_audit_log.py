@@ -33,6 +33,37 @@ def test_audit_service_records_json_safe_admin_action(rf):
 
 
 @pytest.mark.django_db
+def test_audit_service_redacts_sensitive_context_values(rf):
+    admin = get_user_model().objects.create_superuser(email='audit-redaction@example.com', password='pass12345')
+    request = rf.post('/api/v1/events/outbox/dispatch/', HTTP_X_CORRELATION_ID='corr-audit-redaction')
+    request.user = admin
+
+    event = AuditService.log_admin_action(
+        request=request,
+        action='outbox.dispatch',
+        target_type='outbox_batch',
+        target_id='dispatch',
+        context={
+            'password': 'plain-password',
+            'Authorization': 'Bearer jwt',
+            'nested': {
+                'refresh_token': 'refresh-jwt',
+                'items': [{'api_secret': 'secret-value'}, {'safe': 'visible'}],
+            },
+            'safe_note': 'visible',
+        },
+    )
+
+    payload = event.context['context']
+    assert payload['password'] == '[redacted]'
+    assert payload['Authorization'] == '[redacted]'
+    assert payload['nested']['refresh_token'] == '[redacted]'
+    assert payload['nested']['items'][0]['api_secret'] == '[redacted]'
+    assert payload['nested']['items'][1]['safe'] == 'visible'
+    assert payload['safe_note'] == 'visible'
+
+
+@pytest.mark.django_db
 def test_operator_outbox_retry_writes_audit_log():
     admin = get_user_model().objects.create_superuser(email='outbox-audit@example.com', password='pass12345')
     emitted = DomainEventService().emit(

@@ -4,16 +4,17 @@
 services:
   celery-outbox-worker:
     build:
-      context: ./backend
-      dockerfile: docker/celery/Dockerfile
+      context: .
+      dockerfile: deploy/backend/Dockerfile
     command: >
+      sh -c "cd /app/backend &&
       celery -A config.celery worker
       --loglevel=INFO
       --queues=outbox,default
       --concurrency=${CELERY_OUTBOX_WORKER_CONCURRENCY:-2}
-      --hostname=outbox-worker@%h
+      --hostname=outbox-worker@%h"
     env_file:
-      - ./backend/.env
+      - ${TRAINERHUB_ENV_FILE:-.env}
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.local}
       CELERY_OUTBOX_QUEUE: ${CELERY_OUTBOX_QUEUE:-outbox}
@@ -26,11 +27,11 @@ services:
 
   celery-beat:
     build:
-      context: ./backend
-      dockerfile: docker/celery/Dockerfile
-    command: celery -A config.celery beat --loglevel=INFO
+      context: .
+      dockerfile: deploy/backend/Dockerfile
+    command: sh -c "cd /app/backend && celery -A config.celery beat --loglevel=INFO"
     env_file:
-      - ./backend/.env
+      - ${TRAINERHUB_ENV_FILE:-.env}
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.local}
       CELERY_OUTBOX_QUEUE: ${CELERY_OUTBOX_QUEUE:-outbox}

@@ -179,6 +179,15 @@ def get_review_eligibility(*, user, target_type: str, target_id: Any) -> dict[st
             'entitlement_id': None,
             'verified_purchase': False,
         }
+    if target.get('trainer_id') and str(target.get('trainer_id')) == str(getattr(user, 'id', '') or ''):
+        return {
+            'can_review': False,
+            'code': 'self_review',
+            'reason': 'Trainers cannot review their own paid content.',
+            'target': target,
+            'entitlement_id': None,
+            'verified_purchase': False,
+        }
     try:
         from apps.entitlements.models import Entitlement, EntitlementTargetType
         from apps.entitlements.selectors import _active_filter, has_active_entitlement

@@ -38,7 +38,7 @@ SMOKE_CHECKLIST = [
     {
         "key": "demo_seed",
         "title": "Demo seed scenarios",
-        "command": "cd backend && python manage.py migrate && cd .. && python scripts/bootstrap/seed_demo.py",
+        "command": "bash scripts/deploy/migrate.sh && python scripts/bootstrap/seed_demo.py",
     },
 ]
 

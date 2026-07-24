@@ -75,3 +75,11 @@ class AffiliateCommissionSerializer(serializers.ModelSerializer):
             "order_attribution",
             "created_at",
         ]
+
+
+class AffiliateClickCaptureSerializer(serializers.Serializer):
+    partner_code = serializers.CharField(max_length=64)
+    client_key = serializers.CharField(max_length=128)
+    landing_path = serializers.CharField(max_length=512, required=False, allow_blank=True)
+    referrer_url = serializers.CharField(max_length=1024, required=False, allow_blank=True)
+    utm = serializers.DictField(required=False)

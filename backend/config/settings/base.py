@@ -6,6 +6,7 @@ import dj_database_url
 from dotenv import load_dotenv
 
 from config.env import is_production_env, validate_production_environment
+from config.error_tracking import configure_error_tracking
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
@@ -22,6 +23,20 @@ def _bool_env(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _first_non_placeholder_env(*names: str) -> str | None:
+    fallback = None
+    placeholders = {"", "change-me", "change-me-in-production", "replace-me"}
+    for name in names:
+        value = os.getenv(name)
+        if value is None:
+            continue
+        if fallback is None:
+            fallback = value
+        if value.strip() not in placeholders:
+            return value
+    return fallback
+
+
 APP_ENV_NAME = os.getenv("APP_ENV", os.getenv("DJANGO_ENV", "local")).strip().lower()
 IS_PRODUCTION = is_production_env(APP_ENV_NAME)
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
@@ -36,6 +51,27 @@ CSRF_TRUSTED_ORIGINS = _csv_env(
     "http://localhost:3000,http://127.0.0.1:3000",
 )
 CORS_ALLOW_CREDENTIALS = True
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"))
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend" if IS_PRODUCTION else "django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "TrainerHub <no-reply@localhost>")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+VK_S3_ENDPOINT_URL = _first_non_placeholder_env("VK_S3_ENDPOINT_URL", "VK_CLOUD_ENDPOINT") or ""
+VK_S3_ACCESS_KEY_ID = _first_non_placeholder_env("VK_S3_ACCESS_KEY_ID", "VK_CLOUD_ACCESS_KEY") or ""
+VK_S3_SECRET_ACCESS_KEY = _first_non_placeholder_env("VK_S3_SECRET_ACCESS_KEY", "VK_CLOUD_SECRET_KEY") or ""
+VK_PRIVATE_BUCKET = os.getenv("VK_PRIVATE_BUCKET", "trainerhub-private")
+VK_PUBLIC_BUCKET = os.getenv("VK_PUBLIC_BUCKET", "trainerhub-public")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CACHE_URL = os.getenv("CACHE_URL", REDIS_URL if IS_PRODUCTION else "")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
+CELERY_TASK_ALWAYS_EAGER = _bool_env("CELERY_TASK_ALWAYS_EAGER", False)
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+SENTRY_RELEASE = os.getenv("SENTRY_RELEASE", os.getenv("APP_VERSION", ""))
+SENTRY_TRACES_SAMPLE_RATE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0"))
 
 validate_production_environment(
     env=APP_ENV_NAME,
@@ -44,8 +80,29 @@ validate_production_environment(
     allowed_hosts=ALLOWED_HOSTS,
     csrf_trusted_origins=CSRF_TRUSTED_ORIGINS,
     cors_allowed_origins=CORS_ALLOWED_ORIGINS,
-    storage_access_key=os.getenv("VK_S3_ACCESS_KEY_ID") or os.getenv("VK_CLOUD_ACCESS_KEY"),
-    storage_secret_key=os.getenv("VK_S3_SECRET_ACCESS_KEY") or os.getenv("VK_CLOUD_SECRET_KEY"),
+    api_base_url=API_BASE_URL,
+    frontend_base_url=FRONTEND_BASE_URL,
+    email_backend=EMAIL_BACKEND,
+    default_from_email=DEFAULT_FROM_EMAIL,
+    email_host=EMAIL_HOST,
+    storage_endpoint_url=VK_S3_ENDPOINT_URL,
+    redis_url=REDIS_URL,
+    cache_url=CACHE_URL,
+    celery_broker_url=CELERY_BROKER_URL,
+    celery_result_backend=CELERY_RESULT_BACKEND,
+    celery_task_always_eager=CELERY_TASK_ALWAYS_EAGER,
+    sentry_dsn=SENTRY_DSN,
+    database_url=os.getenv("DATABASE_URL"),
+    storage_access_key=VK_S3_ACCESS_KEY_ID,
+    storage_secret_key=VK_S3_SECRET_ACCESS_KEY,
+    storage_private_bucket=VK_PRIVATE_BUCKET,
+    storage_public_bucket=VK_PUBLIC_BUCKET,
+)
+SENTRY_CONFIGURED = configure_error_tracking(
+    dsn=SENTRY_DSN,
+    environment=APP_ENV_NAME,
+    release=SENTRY_RELEASE or None,
+    traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
 )
 
 INSTALLED_APPS = [
@@ -58,6 +115,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "apps.core",
     "apps.users",
@@ -177,8 +235,6 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-CACHE_URL = os.getenv("CACHE_URL", REDIS_URL if IS_PRODUCTION else "")
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -190,8 +246,6 @@ CACHES = {
         "LOCATION": "trainerhub-local",
     }
 }
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
@@ -201,7 +255,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -220,6 +274,20 @@ REST_FRAMEWORK = {
         "auth_login": os.getenv("AUTH_LOGIN_THROTTLE_RATE", "10/minute"),
         "auth_register": os.getenv("AUTH_REGISTER_THROTTLE_RATE", "20/hour"),
         "auth_refresh": os.getenv("AUTH_REFRESH_THROTTLE_RATE", "60/minute"),
+        "auth_logout": os.getenv("AUTH_LOGOUT_THROTTLE_RATE", "60/minute"),
+        "analytics_collect": os.getenv("ANALYTICS_COLLECT_THROTTLE_RATE", "300/minute"),
+        "affiliate_click": os.getenv("AFFILIATE_CLICK_THROTTLE_RATE", "120/minute"),
+        "referral_track": os.getenv("REFERRAL_TRACK_THROTTLE_RATE", "120/minute"),
+        "admin_ops": os.getenv("ADMIN_OPS_THROTTLE_RATE", "60/minute"),
+        "messaging_start": os.getenv("MESSAGING_START_THROTTLE_RATE", "30/minute"),
+        "messaging_send": os.getenv("MESSAGING_SEND_THROTTLE_RATE", "120/minute"),
+        "review_write": os.getenv("REVIEW_WRITE_THROTTLE_RATE", "30/hour"),
+        "review_reply": os.getenv("REVIEW_REPLY_THROTTLE_RATE", "60/hour"),
+        "assignment_submit": os.getenv("ASSIGNMENT_SUBMIT_THROTTLE_RATE", "120/hour"),
+        "assignment_create": os.getenv("ASSIGNMENT_CREATE_THROTTLE_RATE", "60/hour"),
+        "assignment_review": os.getenv("ASSIGNMENT_REVIEW_THROTTLE_RATE", "120/hour"),
+        "progress_video_save": os.getenv("PROGRESS_VIDEO_SAVE_THROTTLE_RATE", "600/hour"),
+        "progress_lesson_complete": os.getenv("PROGRESS_LESSON_COMPLETE_THROTTLE_RATE", "120/hour"),
     },
 }
 
@@ -227,7 +295,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 AUTH_ACCESS_COOKIE_NAME = os.getenv("AUTH_ACCESS_COOKIE_NAME", "trainerhub_access")
@@ -282,26 +350,20 @@ LOGGING = {
     },
 }
 
-VK_S3_ENDPOINT_URL = os.getenv("VK_S3_ENDPOINT_URL", "")
-VK_S3_ACCESS_KEY_ID = os.getenv("VK_S3_ACCESS_KEY_ID", "")
-VK_S3_SECRET_ACCESS_KEY = os.getenv("VK_S3_SECRET_ACCESS_KEY", "")
-VK_PRIVATE_BUCKET = os.getenv("VK_PRIVATE_BUCKET", "trainerhub-private")
-VK_PUBLIC_BUCKET = os.getenv("VK_PUBLIC_BUCKET", "trainerhub-public")
 MEDIA_UPLOAD_TTL_SECONDS = int(os.getenv("MEDIA_UPLOAD_TTL_SECONDS", "900"))
 MEDIA_READ_TTL_SECONDS = int(os.getenv("MEDIA_READ_TTL_SECONDS", "300"))
+MEDIA_READ_MAX_TTL_SECONDS = int(os.getenv("MEDIA_READ_MAX_TTL_SECONDS", "900"))
+MEDIA_MAX_UPLOAD_BYTES = int(os.getenv("MEDIA_MAX_UPLOAD_BYTES", str(5 * 1024 * 1024 * 1024)))
 GLOBAL_COMMISSION_RATE = os.getenv("GLOBAL_COMMISSION_RATE", "20.00")
 PAYMENTS_ALLOW_MOCK_PROVIDER = _bool_env("PAYMENTS_ALLOW_MOCK_PROVIDER", not IS_PRODUCTION)
 PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN = _bool_env(
     "PAYMENTS_ALLOW_UNVERIFIED_PROVIDER_RETURN",
     not IS_PRODUCTION,
 )
+PAYMENTS_WEBHOOK_REQUIRE_TIMESTAMP = _bool_env("PAYMENTS_WEBHOOK_REQUIRE_TIMESTAMP", IS_PRODUCTION)
+PAYMENTS_WEBHOOK_REPLAY_TOLERANCE_SECONDS = int(os.getenv("PAYMENTS_WEBHOOK_REPLAY_TOLERANCE_SECONDS", "300"))
+PAYMENTS_WEBHOOK_MAX_BODY_BYTES = int(os.getenv("PAYMENTS_WEBHOOK_MAX_BODY_BYTES", str(256 * 1024)))
 PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY = _bool_env("PAYOUTS_REQUIRE_LEGAL_ELIGIBILITY", IS_PRODUCTION)
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.smtp.EmailBackend" if IS_PRODUCTION else "django.core.mail.backends.console.EmailBackend",
-)
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "TrainerHub <no-reply@localhost>")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")

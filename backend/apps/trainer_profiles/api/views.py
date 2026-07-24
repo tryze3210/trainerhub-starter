@@ -1,3 +1,4 @@
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,7 +8,7 @@ from apps.trainer_profiles.api.serializers import PublicTrainerDetailSerializer,
 
 class PublicTrainerListView(APIView):
     authentication_classes = []
-    permission_classes = []
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         data = selectors.list_public_trainers()
@@ -16,7 +17,7 @@ class PublicTrainerListView(APIView):
 
 class PublicTrainerDetailView(APIView):
     authentication_classes = []
-    permission_classes = []
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug: str):
         trainer = services.build_public_trainer_profile(slug)

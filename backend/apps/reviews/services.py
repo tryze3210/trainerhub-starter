@@ -115,6 +115,8 @@ class ReviewService:
             raise ValidationError({'reply': 'Reply text is required'})
         if str(getattr(trainer, 'id', '') or '') != str(review.trainer_id) and not getattr(trainer, 'is_staff', False):
             raise ValidationError({'detail': 'Only the owning trainer can reply to this review'})
+        if review.status != Review.STATUS_PUBLISHED:
+            raise ValidationError({'detail': 'Only published reviews can receive trainer replies'})
         review.trainer_reply = text
         review.trainer_reply_by_id = str(getattr(trainer, 'id', '') or '')
         review.trainer_replied_at = timezone.now()

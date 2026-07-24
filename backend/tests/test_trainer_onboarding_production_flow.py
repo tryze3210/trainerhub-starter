@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from apps.accounts.models import AccountRoleAssignment
 from apps.trainers.models import TrainerApplication, TrainerProfile
 
 pytestmark = pytest.mark.django_db
@@ -90,6 +91,36 @@ def test_admin_can_approve_application_and_unlock_trainer_dashboard():
     profile = TrainerProfile.objects.get(user=candidate)
     assert profile.status == "active"
     assert profile.is_public is True
+
+
+def test_onboarding_unlock_uses_active_trainer_assignment_not_legacy_role():
+    candidate = _create_user("candidate-assignment-unlock@example.com")
+    application = TrainerApplication.objects.create(
+        user=candidate,
+        status=TrainerApplication.Status.APPROVED,
+        **_application_payload(brand_name="Assigned Coach"),
+    )
+    TrainerProfile.objects.create(
+        user=candidate,
+        slug="assigned-coach",
+        display_name="Assigned Coach",
+        status="active",
+        is_public=True,
+    )
+    AccountRoleAssignment.objects.create(
+        user=candidate,
+        role=AccountRoleAssignment.ROLE_TRAINER,
+        is_active=True,
+    )
+
+    client = APIClient()
+    client.force_authenticate(user=candidate)
+    response = client.get(reverse("trainer-me-onboarding-status"))
+
+    assert application.user.role == get_user_model().Roles.CUSTOMER
+    assert response.status_code == 200
+    assert response.json()["dashboard_unlocked"] is True
+    assert response.json()["can_access_content_studio"] is True
 
 
 def test_admin_reject_requires_reviewer_note():

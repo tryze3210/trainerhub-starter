@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit.services import AuditService
-from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus
+from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus, EntitlementTargetType
 from apps.entitlements.services import EntitlementService
 from apps.notifications.models import NotificationDelivery, NotificationStatus
 from apps.orders.models import Order
@@ -16,6 +16,7 @@ from apps.payments.models import Payment, PaymentWebhookEvent
 from apps.tenancy.scoping import (
     is_global_operator,
     scope_entitlements_for_user,
+    scope_notification_deliveries_for_user,
     scope_orders_for_user,
     scope_payment_webhooks_for_user,
     scope_payments_for_user,
@@ -28,6 +29,14 @@ class SupportConsoleTargetNotFound(ValueError):
 
 class SupportConsoleAccessDenied(PermissionError):
     pass
+
+
+def _validate_entitlement_target(*, target_type: str, target_id: str) -> None:
+    allowed_target_types = {choice[0] for choice in EntitlementTargetType.choices}
+    if target_type not in allowed_target_types:
+        raise ValueError("Unsupported entitlement target_type.")
+    if not str(target_id or "").strip():
+        raise ValueError("target_id is required.")
 
 
 def _user_payload(user) -> dict[str, Any]:
@@ -171,7 +180,10 @@ def get_support_console_snapshot(*, operator, user_id: str = "", email: str = ""
         ).order_by("-received_at", "-created_at"),
         operator,
     )[:limit]
-    deliveries = NotificationDelivery.objects.filter(user=target).order_by("-created_at")[:limit]
+    deliveries = scope_notification_deliveries_for_user(
+        NotificationDelivery.objects.filter(user=target).order_by("-created_at"),
+        operator,
+    )[:limit]
     return {
         "user": _user_payload(target),
         "orders": [_order_payload(item) for item in orders],
@@ -192,7 +204,7 @@ def get_support_console_snapshot(*, operator, user_id: str = "", email: str = ""
 
 def _delivery_for_operator(*, operator, delivery_id: str) -> NotificationDelivery:
     delivery = NotificationDelivery.objects.select_related("user").get(pk=delivery_id)
-    if not _operator_can_view_user(operator=operator, target_user=delivery.user):
+    if not scope_notification_deliveries_for_user(NotificationDelivery.objects.filter(pk=delivery.pk), operator).exists():
         raise SupportConsoleAccessDenied("Notification delivery is outside the operator tenant scope.")
     return delivery
 
@@ -249,6 +261,7 @@ def fix_entitlement(
 ) -> dict[str, Any]:
     action = action.strip().lower()
     if action == "grant":
+        _validate_entitlement_target(target_type=target_type, target_id=target_id)
         target = resolve_support_user(user_id=user_id, email=email)
         if not _operator_can_view_user(operator=operator, target_user=target):
             raise SupportConsoleAccessDenied("User is outside the operator tenant scope.")
@@ -269,6 +282,7 @@ def fix_entitlement(
         if entitlement_id:
             entitlement = _entitlement_for_operator(operator=operator, entitlement_id=entitlement_id)
         else:
+            _validate_entitlement_target(target_type=target_type, target_id=target_id)
             target = resolve_support_user(user_id=user_id, email=email)
             if not _operator_can_view_user(operator=operator, target_user=target):
                 raise SupportConsoleAccessDenied("User is outside the operator tenant scope.")

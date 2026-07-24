@@ -1,5 +1,6 @@
 from rest_framework import mixins, permissions, viewsets
 
+from apps.access_control.permissions import ROLE_TRAINER, user_role_set
 from apps.promotions.api.serializers import PromoCampaignSerializer, PromoCodeSerializer
 from apps.promotions.models import PromoCampaign, PromoCode
 from apps.promotions.selectors import PromoSelector
@@ -12,7 +13,12 @@ class IsAdminUserStrict(permissions.BasePermission):
 
 class IsTrainerUser(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and hasattr(request.user, "trainer_profile"))
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and ROLE_TRAINER in user_role_set(request.user)
+            and hasattr(request.user, "trainer_profile")
+        )
 
 
 class AdminPromoCampaignViewSet(viewsets.ModelViewSet):

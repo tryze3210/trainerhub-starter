@@ -66,6 +66,19 @@ class PaymentWebhookSecurity:
         return hashlib.sha256(raw_body or b'').hexdigest()
 
     @staticmethod
+    def max_body_bytes() -> int:
+        value = getattr(settings, 'PAYMENTS_WEBHOOK_MAX_BODY_BYTES', 256 * 1024)
+        try:
+            return max(1, int(value))
+        except (TypeError, ValueError):
+            return 256 * 1024
+
+    @classmethod
+    def validate_body_size(cls, raw_body: bytes) -> None:
+        if len(raw_body or b'') > cls.max_body_bytes():
+            raise PaymentWebhookPayloadError('Payment webhook payload exceeds maximum size.')
+
+    @staticmethod
     def json_bytes(payload: Mapping[str, Any]) -> bytes:
         return json.dumps(payload, separators=(',', ':'), sort_keys=True).encode('utf-8')
 
@@ -202,6 +215,7 @@ class PaymentWebhookSecurity:
         headers_dict = {str(k): str(v) for k, v in dict(headers or {}).items()}
         body = raw_body if raw_body is not None else cls.json_bytes(payload_dict)
         signature_value = signature if signature is not None else cls.signature_from_headers(headers_dict)
+        cls.validate_body_size(body)
 
         if verify_signature:
             cls.validate_replay_window(provider=provider_value, headers=headers_dict)

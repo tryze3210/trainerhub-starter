@@ -46,7 +46,8 @@ class PaymentWebhookEvent(UUIDModel):
 
     provider = models.CharField(max_length=64, db_index=True)
     event_type = models.CharField(max_length=96, db_index=True)
-    external_event_id = models.CharField(max_length=160, unique=True)
+    external_event_id = models.CharField(max_length=160, db_index=True)
+    provider_event_id = models.CharField(max_length=240, unique=True, null=True, blank=True)
     payment = models.ForeignKey(
         Payment,
         on_delete=models.SET_NULL,

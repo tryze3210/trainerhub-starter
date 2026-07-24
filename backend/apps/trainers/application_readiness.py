@@ -7,6 +7,7 @@ from typing import Any
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.access_control.permissions import ROLE_TRAINER, user_role_set
 from apps.trainers.models import TrainerApplication, TrainerProfile
 from apps.trainers.onboarding_flow import serialize_admin_application
 from apps.users.models import User
@@ -117,6 +118,10 @@ def _has_active_trainer_assignment(user: User) -> bool | None:
         return bool(user.role_assignments.filter(role="trainer", is_active=True).exists())
     except Exception:
         return None
+
+
+def _has_runtime_trainer_role(user: User) -> bool:
+    return ROLE_TRAINER in user_role_set(user)
 
 
 def _issue(
@@ -326,11 +331,10 @@ def build_trainer_application_readiness(
 
     approved_queryset = queryset.filter(status=TrainerApplication.Status.APPROVED)
     dashboard_ready_count = 0
-    trainer_role = _trainer_role_value()
     for application in approved_queryset:
         profile = getattr(application.user, "trainer_profile", None)
         if (
-            getattr(application.user, "role", None) == trainer_role
+            _has_runtime_trainer_role(application.user)
             and profile is not None
             and profile.status == "active"
             and profile.slug

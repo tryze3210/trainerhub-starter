@@ -5,9 +5,9 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
-from django.conf import settings
 from django.utils import timezone
 
+from apps.payments.commission_policy import CommissionPolicyService
 from apps.payouts.models import BalanceEntry, PayoutRequest, TrainerWallet
 from apps.trainers.models import TrainerProfile
 
@@ -57,15 +57,7 @@ def _is_debit(entry: BalanceEntry) -> bool:
 
 
 def _commission_rate() -> Decimal:
-    raw = getattr(settings, "TRAINERHUB_DEFAULT_PLATFORM_COMMISSION_RATE", None)
-    if raw is None:
-        raw = getattr(settings, "GLOBAL_COMMISSION_RATE", Decimal("20.00"))
-    rate = Decimal(str(raw))
-    if rate > 1:
-        rate = rate / Decimal("100.00")
-    if rate < 0 or rate >= 1:
-        return Decimal("0.20")
-    return rate.quantize(Decimal("0.0001"))
+    return CommissionPolicyService.rate()
 
 
 def _trainer_profile_for_user(user: Any) -> TrainerProfile:

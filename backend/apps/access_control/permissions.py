@@ -18,18 +18,19 @@ ROLE_READONLY_AUDITOR = 'readonly_auditor'
 def user_role_set(user) -> set[str]:
     if not user or not getattr(user, 'is_authenticated', False):
         return set()
-    roles = set()
-    primary = getattr(user, 'role', None)
-    if primary:
-        roles.add(str(primary))
-        if primary in {'customer', ROLE_USER}:
-            roles.add(ROLE_USER)
-            roles.add(ROLE_STUDENT)
-    try:
-        assignments = user.role_assignments.filter(is_active=True).values_list('role', flat=True)
-        roles.update(str(role) for role in assignments)
-    except Exception:
-        pass
+    assignment_manager = getattr(user, 'role_assignments', None)
+    roles = (
+        {str(role) for role in assignment_manager.filter(is_active=True).values_list('role', flat=True)}
+        if assignment_manager is not None
+        else set()
+    )
+    if not roles:
+        primary = getattr(user, 'role', None)
+        if primary:
+            roles.add(str(primary))
+            if primary in {'customer', ROLE_USER}:
+                roles.add(ROLE_USER)
+                roles.add(ROLE_STUDENT)
     if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
         roles.add(ROLE_ADMIN)
     return roles
@@ -117,6 +118,7 @@ class PolicyPermission(BasePermission):
         decision = self.policy_service.require_feature(
             self.required_feature or 'cabinet',
             capability=self.required_capability,
+            user=request.user,
         )
         if not decision.allowed:
             required = decision.required_capability or decision.feature_key or 'policy'

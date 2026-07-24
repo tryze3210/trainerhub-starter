@@ -24,6 +24,7 @@ from apps.payouts.ops_selectors import (
     build_payout_repair_preview,
 )
 from apps.payouts.services import PayoutService
+from common.csv_safe import csv_safe_value, spreadsheet_safe_value
 
 EXPORT_LIMIT = 10_000
 
@@ -92,7 +93,7 @@ def _csv_response(*, filename: str, header: list[str], rows: Iterable[list[str]]
     buffer.write("\ufeff")
     writer = csv.writer(buffer)
     writer.writerow(header)
-    writer.writerows(rows)
+    writer.writerows([[csv_safe_value(value) for value in row] for row in rows])
 
     response = HttpResponse(buffer.getvalue(), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -108,6 +109,10 @@ def _xlsx_response(*, filename: str, workbook: Workbook) -> HttpResponse:
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def _xlsx_safe_row(values: Iterable[Any]) -> list[Any]:
+    return [spreadsheet_safe_value(value) for value in values]
 
 
 def _filters_from_params(params) -> dict[str, str]:
@@ -561,7 +566,7 @@ class AdminPayoutOpsReconciliationReportExportXlsxAPIView(APIView):
             worksheet.title = sheet_name[:31]
             worksheet.append(RECONCILIATION_EXPORT_HEADER)
             for row in section_rows:
-                worksheet.append([row.get(column, "") for column in RECONCILIATION_EXPORT_HEADER])
+                worksheet.append(_xlsx_safe_row(row.get(column, "") for column in RECONCILIATION_EXPORT_HEADER))
         _audit_reconciliation_export(
             request=request,
             export_format="xlsx",
@@ -609,13 +614,13 @@ class AdminPayoutOpsRepairAuditExportXlsxAPIView(APIView):
         repairs_sheet.title = "repairs"
         repairs_sheet.append(REPAIR_AUDIT_EXPORT_HEADER)
         for row in [_repair_event_row(event) for event in events]:
-            repairs_sheet.append([row.get(column, "") for column in REPAIR_AUDIT_EXPORT_HEADER])
+            repairs_sheet.append(_xlsx_safe_row(row.get(column, "") for column in REPAIR_AUDIT_EXPORT_HEADER))
 
         actions_sheet = workbook.create_sheet("actions")
         actions_sheet.append(REPAIR_AUDIT_ACTION_HEADER)
         for event in events:
             for row in _repair_action_rows(event):
-                actions_sheet.append([row.get(column, "") for column in REPAIR_AUDIT_ACTION_HEADER])
+                actions_sheet.append(_xlsx_safe_row(row.get(column, "") for column in REPAIR_AUDIT_ACTION_HEADER))
 
         _audit_repair_audit_export(
             request=request,

@@ -1,4 +1,8 @@
-from django.core.management.base import BaseCommand
+import os
+
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+
 from apps.users.models import User
 from apps.customers.models import CustomerProfile
 from apps.trainers.models import TrainerProfile
@@ -8,6 +12,9 @@ class Command(BaseCommand):
     help = "Create demo customer and trainer users for local bootstrap"
 
     def handle(self, *args, **options):
+        if getattr(settings, "IS_PRODUCTION", False) and os.getenv("ALLOW_DEMO_SEED") != "1":
+            raise CommandError("Demo users are disabled in production. Set ALLOW_DEMO_SEED=1 only for an intentional smoke dataset.")
+
         customer, _ = User.objects.get_or_create(
             email="customer@example.com",
             defaults={"role": User.Roles.CUSTOMER, "first_name": "Demo", "last_name": "Customer"},

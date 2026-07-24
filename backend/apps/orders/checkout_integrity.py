@@ -5,12 +5,12 @@ from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 from typing import Any
 
-from django.conf import settings
 from django.db import transaction
 
 from apps.events.services import DomainEventService
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderType, PurchasedItemType
 from apps.orders.services import CheckoutCatalogResolver, CheckoutItemSnapshot
+from apps.payments.commission_policy import CommissionPolicyService
 from apps.payments.models import PaymentProvider
 from apps.payments.services import PaymentService
 from apps.subscriptions.models import SubscriptionPlan
@@ -51,33 +51,11 @@ def _normalize_provider(provider: str | None) -> str:
     return value or PaymentProvider.MOCK
 
 
-def _safe_rate_from_settings() -> Decimal:
-    raw = getattr(settings, 'GLOBAL_COMMISSION_RATE', None)
-    if raw is None:
-        raw = getattr(settings, 'PLATFORM_COMMISSION_RATE', None)
-    if raw is None:
-        raw = getattr(PaymentService, 'PLATFORM_FEE_RATE', Decimal('0.10'))
-        return _decimal(raw, default=Decimal('0.10'))
-    rate = _decimal(raw, default=Decimal('0.10'))
-    # Env values in this project are sometimes stored as 20.00 meaning percent.
-    if rate > Decimal('1.00'):
-        return (rate / Decimal('100')).quantize(Decimal('0.0001'))
-    return rate.quantize(Decimal('0.0001'))
-
-
 def _commission_snapshot(*, gross_amount: Decimal, currency: str) -> dict[str, str]:
-    rate = _safe_rate_from_settings()
-    platform_commission = (gross_amount * rate).quantize(Decimal('0.01'))
-    trainer_net = (gross_amount - platform_commission).quantize(Decimal('0.01'))
-    return {
-        'rate': str(rate),
-        'rate_percent': str((rate * Decimal('100')).quantize(Decimal('0.01'))),
-        'currency': currency,
-        'gross_amount': str(gross_amount),
-        'platform_commission': str(platform_commission),
-        'trainer_net': str(trainer_net),
-        'source': 'checkout_integrity_v8_45',
-    }
+    return CommissionPolicyService.split(
+        gross_amount=gross_amount,
+        currency=currency,
+    ).as_snapshot(source='checkout_integrity_v8_45')
 
 
 def _fingerprint(payload: dict[str, Any]) -> str:

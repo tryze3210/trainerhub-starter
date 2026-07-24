@@ -26,6 +26,7 @@ jobs:
           script: |
             set -euo pipefail
             cd ${{ secrets.DEPLOY_PATH }}
+            export REGISTRY=${{ vars.REGISTRY_URL }}
             export IMAGE_TAG=${{ github.event.inputs.image_tag }}
             git fetch --all --tags
             git checkout ${{ github.sha }}

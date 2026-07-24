@@ -3,6 +3,8 @@ import csv
 
 from openpyxl import Workbook
 
+from common.csv_safe import csv_safe_value, spreadsheet_safe_value
+
 
 def settlement_report_to_csv(report):
     output = StringIO()
@@ -21,7 +23,7 @@ def settlement_report_to_csv(report):
         "last_order_at",
     ])
     for line in report.lines.select_related("trainer").all():
-        writer.writerow([
+        writer.writerow([csv_safe_value(value) for value in [
             line.trainer_id,
             line.gross_amount,
             line.refund_amount,
@@ -33,7 +35,7 @@ def settlement_report_to_csv(report):
             line.refund_count,
             line.payout_count,
             line.last_order_at.isoformat() if line.last_order_at else "",
-        ])
+        ]])
     return output.getvalue().encode("utf-8")
 
 
@@ -55,7 +57,7 @@ def settlement_report_to_xlsx(report):
         "last_order_at",
     ])
     for line in report.lines.select_related("trainer").all():
-        ws.append([
+        ws.append([spreadsheet_safe_value(value) for value in [
             str(line.trainer_id),
             float(line.gross_amount),
             float(line.refund_amount),
@@ -67,7 +69,7 @@ def settlement_report_to_xlsx(report):
             line.refund_count,
             line.payout_count,
             line.last_order_at.isoformat() if line.last_order_at else "",
-        ])
+        ]])
     bio = BytesIO()
     wb.save(bio)
     return bio.getvalue()

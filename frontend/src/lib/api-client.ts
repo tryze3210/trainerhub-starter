@@ -30,6 +30,27 @@ export function normalizeListResponse<T>(data: T[] | PaginatedResponse<T> | null
   return [];
 }
 
+function getCookie(name: string): string {
+  if (typeof document === 'undefined') return '';
+  const cookies = document.cookie ? document.cookie.split('; ') : [];
+  const prefix = `${encodeURIComponent(name)}=`;
+  const match = cookies.find((cookie) => cookie.startsWith(prefix));
+  return match ? decodeURIComponent(match.slice(prefix.length)) : '';
+}
+
+function isUnsafeMethod(method?: string): boolean {
+  const normalized = (method || 'GET').toUpperCase();
+  return !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(normalized);
+}
+
+function applyCsrfHeader(headers: Headers, method?: string): void {
+  if (!isUnsafeMethod(method) || headers.has('X-CSRFToken')) return;
+  const csrfToken = getCookie('csrftoken');
+  if (csrfToken) {
+    headers.set('X-CSRFToken', csrfToken);
+  }
+}
+
 export async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
@@ -52,9 +73,11 @@ async function refreshAccessToken(): Promise<boolean> {
   ];
 
   for (const body of variants) {
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    applyCsrfHeader(headers, 'POST');
     const response = await fetch(`${API_BASE_URL}/auth/refresh/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
       cache: 'no-store',
       credentials: 'include',
@@ -65,13 +88,13 @@ async function refreshAccessToken(): Promise<boolean> {
     }
 
     const payload = await parseResponse<Record<string, unknown>>(response);
-    const access = String(payload.access_token || payload.access || '');
-    const refresh = String(payload.refresh_token || payload.refresh || refreshToken);
+    const access = String(payload?.access_token || payload?.access || '');
+    const refresh = String(payload?.refresh_token || payload?.refresh || refreshToken);
 
     if (access) {
       persistTokens(access, refresh);
-      return true;
     }
+    return true;
   }
 
   clearTokens();
@@ -92,6 +115,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   if (!requestHeaders.has('Content-Type') && !(rest.body instanceof FormData)) {
     requestHeaders.set('Content-Type', 'application/json');
   }
+  applyCsrfHeader(requestHeaders, rest.method);
 
   if (auth) {
     const token = getAccessToken();

@@ -3,6 +3,7 @@ from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from apps.access_control.permissions import ROLE_ADMIN, ROLE_TRAINER, user_role_set
 from apps.trainer_cms.api.serializers import (
     BundleItemDraftSerializer,
     CourseLessonDraftSerializer,
@@ -26,7 +27,6 @@ from apps.trainer_cms.selectors import TrainerCMSSelector
 from apps.trainer_cms.services import TrainerCMSService
 from apps.trainer_profiles.services import ensure_trainer_public_profile
 from apps.trainers.models import TrainerApplication
-from apps.users.models import User
 
 
 def _has_approved_trainer_application(user) -> bool:
@@ -37,9 +37,10 @@ def _has_approved_trainer_application(user) -> bool:
 def _can_access_trainer_cms(user) -> bool:
     if not user or not user.is_authenticated:
         return False
-    if user.is_staff or user.is_superuser:
+    roles = user_role_set(user)
+    if user.is_staff or user.is_superuser or ROLE_ADMIN in roles:
         return True
-    if getattr(user, "role", None) == User.Roles.TRAINER:
+    if ROLE_TRAINER in roles:
         return True
     return _has_approved_trainer_application(user)
 

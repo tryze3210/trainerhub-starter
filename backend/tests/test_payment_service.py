@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
@@ -12,16 +13,35 @@ from apps.events.models import DomainEvent
 from apps.orders.models import OrderStatus
 from apps.orders.services import OrderService
 from apps.payments.models import PaymentStatus
+from apps.payments.commission_policy import CommissionPolicyService
 from apps.payments.services import PaymentService, PaymentWebhookService
 from apps.payouts.models import PayoutLedgerEntry, TrainerBalance
 from apps.subscriptions.models import Subscription, SubscriptionPlan
+from apps.trainers.models import TrainerProfile
 
 
 class PaymentServiceTest(TestCase):
+    def _create_trainer_profile(self, *, email: str = 'payment-trainer@example.com'):
+        trainer_user = get_user_model().objects.create_user(email=email, password='pass12345', role='trainer')
+        return TrainerProfile.objects.create(
+            user=trainer_user,
+            slug=email.split('@', 1)[0],
+            display_name='Payment Trainer',
+            status='active',
+        )
+
     def test_split_amounts(self):
         platform_fee, trainer_net = PaymentService._split_amounts(Decimal('1000.00'))
-        self.assertEqual(platform_fee, Decimal('100.00'))
-        self.assertEqual(trainer_net, Decimal('900.00'))
+        self.assertEqual(platform_fee, Decimal('200.00'))
+        self.assertEqual(trainer_net, Decimal('800.00'))
+
+    def test_commission_policy_uses_global_percent_setting(self):
+        split = CommissionPolicyService.split(gross_amount=Decimal('1000.00'), currency='RUB')
+
+        self.assertEqual(split.rate, Decimal('0.2000'))
+        self.assertEqual(split.rate_percent, Decimal('20.00'))
+        self.assertEqual(split.platform_commission, Decimal('200.00'))
+        self.assertEqual(split.trainer_net, Decimal('800.00'))
 
     def test_create_checkout_payment_reuses_existing_pending_payment(self):
         user = get_user_model().objects.create_user(email='reuse@example.com', password='pass12345')
@@ -78,8 +98,42 @@ class PaymentServiceTest(TestCase):
             ).exists()
         )
 
+    def test_notification_side_effect_failure_is_audited_without_rolling_back_payment(self):
+        user = get_user_model().objects.create_user(email='side-effect-failure@example.com', password='pass12345')
+        order = OrderService.create_one_time_order(
+            user=user,
+            item_type='video',
+            item_id=uuid4(),
+            title='Side Effect Audit',
+            amount=Decimal('499.00'),
+        )
+        payment = PaymentService.create_checkout_payment(order=order)
+
+        with patch(
+            'apps.notifications.domain.triggers.DomainNotificationTriggers.on_payment_succeeded',
+            side_effect=RuntimeError('notification provider unavailable'),
+        ):
+            PaymentService.mark_succeeded(
+                payment=payment,
+                provider_payload={'external_payment_id': payment.external_payment_id},
+            )
+
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(payment.status, PaymentStatus.SUCCEEDED)
+        self.assertEqual(order.status, OrderStatus.COMPLETED)
+        audit_event = AuditEvent.objects.get(
+            event_type='side_effect.failed',
+            entity_type='payment',
+            entity_id=str(payment.id),
+        )
+        self.assertEqual(audit_event.actor, user)
+        self.assertEqual(audit_event.context['side_effect'], 'notification.payment_succeeded')
+        self.assertEqual(audit_event.context['error_class'], 'RuntimeError')
+
     def test_webhook_success_for_subscription_is_idempotent_and_accrues_balance_once(self):
-        trainer_id = uuid4()
+        trainer = self._create_trainer_profile(email='subscription-trainer@example.com')
+        trainer_id = trainer.id
         user = get_user_model().objects.create_user(email='subscriber@example.com', password='pass12345')
         plan = SubscriptionPlan.objects.create(
             trainer_id=str(trainer_id),
@@ -124,7 +178,7 @@ class PaymentServiceTest(TestCase):
         access = EntitlementAccessCenterSelector().check(user=user, target_type='video', target_id=str(uuid4()))
         self.assertTrue(access['allowed'])
         self.assertEqual(access['source'], 'library')
-        self.assertEqual(balance.available_amount, Decimal('900.00'))
+        self.assertEqual(balance.available_amount, Decimal('800.00'))
         self.assertEqual(
             PayoutLedgerEntry.objects.filter(
                 trainer_id=trainer_id,
@@ -141,8 +195,29 @@ class PaymentServiceTest(TestCase):
             1,
         )
 
+    def test_subscription_payout_uses_plan_owner_not_order_metadata_trainer_id(self):
+        real_trainer = self._create_trainer_profile(email='real-plan-owner@example.com')
+        injected_trainer = self._create_trainer_profile(email='metadata-injected-owner@example.com')
+        user = get_user_model().objects.create_user(email='metadata-buyer@example.com', password='pass12345')
+        plan = SubscriptionPlan.objects.create(
+            trainer_id=str(real_trainer.id),
+            title='Metadata Injection Guard',
+            price=Decimal('1000.00'),
+            billing_period=SubscriptionPlan.BillingPeriod.MONTH,
+        )
+        order = OrderService.create_subscription_order(user=user, plan=plan)
+        order.items.update(metadata={'trainer_id': str(injected_trainer.id)})
+        payment = PaymentService.create_checkout_payment(order=order)
+
+        PaymentService.mark_succeeded(payment=payment, provider_payload={'external_payment_id': payment.external_payment_id})
+
+        real_balance = TrainerBalance.objects.get(trainer_id=real_trainer.id)
+        self.assertEqual(real_balance.available_amount, Decimal('800.00'))
+        self.assertFalse(TrainerBalance.objects.filter(trainer_id=injected_trainer.id).exists())
+
     def test_already_succeeded_payment_reconciles_missing_effects_once(self):
-        trainer_id = uuid4()
+        trainer = self._create_trainer_profile(email='reconcile-trainer@example.com')
+        trainer_id = trainer.id
         user = get_user_model().objects.create_user(email='succeeded-reconcile@example.com', password='pass12345')
         plan = SubscriptionPlan.objects.create(
             trainer_id=str(trainer_id),
@@ -177,7 +252,7 @@ class PaymentServiceTest(TestCase):
             ).count(),
             1,
         )
-        self.assertEqual(balance.available_amount, Decimal('900.00'))
+        self.assertEqual(balance.available_amount, Decimal('800.00'))
         self.assertEqual(
             PayoutLedgerEntry.objects.filter(
                 trainer_id=trainer_id,

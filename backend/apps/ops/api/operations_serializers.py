@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.entitlements.models import EntitlementTargetType
+
 
 SOURCE_CHOICES = (
     ('', 'Any'),
@@ -108,7 +110,12 @@ class SupportEntitlementFixSerializer(serializers.Serializer):
     user_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
     email = serializers.EmailField(required=False, allow_blank=True, default="")
     entitlement_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
-    target_type = serializers.CharField(required=False, allow_blank=True, max_length=32, default="")
+    target_type = serializers.ChoiceField(
+        choices=EntitlementTargetType.choices,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
     target_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
 
     def validate(self, attrs):
@@ -118,11 +125,15 @@ class SupportEntitlementFixSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"user": "user_id or email is required for grants."})
             if not attrs.get("target_type"):
                 raise serializers.ValidationError({"target_type": "target_type is required for grants."})
+            if not attrs.get("target_id"):
+                raise serializers.ValidationError({"target_id": "target_id is required for grants."})
         if action == "revoke" and not attrs.get("entitlement_id"):
             if not (attrs.get("user_id") or attrs.get("email")):
                 raise serializers.ValidationError({"user": "user_id/email or entitlement_id is required for revoke."})
             if not attrs.get("target_type"):
                 raise serializers.ValidationError({"target_type": "target_type is required when entitlement_id is omitted."})
+            if not attrs.get("target_id"):
+                raise serializers.ValidationError({"target_id": "target_id is required when entitlement_id is omitted."})
         return attrs
 
 

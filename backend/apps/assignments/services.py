@@ -13,11 +13,13 @@ from apps.assignments.models import (
     AssignmentSubmission,
     SubmissionStatus,
 )
+from apps.access_control.permissions import ROLE_ADMIN, ROLE_TRAINER, user_role_set
 from apps.entitlements.access_audit import AccessControlAuditService
 
 
 def _is_trainer(user) -> bool:
-    return getattr(user, "role", None) == "trainer" or getattr(user, "is_staff", False)
+    roles = user_role_set(user)
+    return bool(roles.intersection({ROLE_TRAINER, ROLE_ADMIN}) or getattr(user, "is_staff", False))
 
 
 def _can_review(user, assignment: Assignment) -> bool:
@@ -33,6 +35,30 @@ def _access_decision(*, user, assignment: Assignment) -> dict[str, Any]:
     )
 
 
+def _validate_assignment_target_ownership(*, trainer, content_type: str, content_id: str) -> None:
+    target_model = None
+    target_label = ""
+    if content_type == AssignmentContentType.COURSE:
+        from apps.trainer_cms.models import TrainerCourseDraft as target_model
+
+        target_label = "Course"
+    elif content_type == AssignmentContentType.PROGRAM:
+        from apps.trainer_cms.models import TrainerProgramDraft as target_model
+
+        target_label = "Program"
+    if target_model is None:
+        return
+
+    try:
+        target = target_model.objects.filter(id=content_id).first()
+    except ValidationError:
+        target = None
+    if target is None:
+        raise ValidationError({"content_id": f"{target_label} not found."})
+    if str(target.trainer_id) != str(getattr(trainer, "id", "") or "") and not getattr(trainer, "is_staff", False):
+        raise PermissionDenied(f"Only the content owner can create assignments for this {target_label.lower()}.")
+
+
 class AssignmentService:
     @staticmethod
     def create_assignment(*, trainer, data: dict[str, Any]) -> Assignment:
@@ -41,12 +67,14 @@ class AssignmentService:
         content_type = data.get("content_type")
         if content_type not in AssignmentContentType.values:
             raise ValidationError({"content_type": "Unsupported assignment content type."})
+        content_id = str(data.get("content_id", "")).strip()
+        _validate_assignment_target_ownership(trainer=trainer, content_type=content_type, content_id=content_id)
         return Assignment.objects.create(
             trainer=trainer,
             title=data.get("title", "").strip(),
             description=data.get("description", "").strip(),
             content_type=content_type,
-            content_id=str(data.get("content_id", "")).strip(),
+            content_id=content_id,
             lesson_id=str(data.get("lesson_id", "")).strip(),
             due_at=data.get("due_at"),
             status=data.get("status") or AssignmentStatus.PUBLISHED,

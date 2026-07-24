@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,6 +12,7 @@ from apps.runtime.services import RuntimeService
 
 
 class RuntimeHealthView(APIView):
+    permission_classes = [permissions.AllowAny]
     service = RuntimeService()
 
     def get(self, request):
@@ -19,6 +20,7 @@ class RuntimeHealthView(APIView):
 
 
 class RuntimeReadinessView(APIView):
+    permission_classes = [permissions.AllowAny]
     service = RuntimeService()
 
     def get(self, request):
@@ -26,6 +28,7 @@ class RuntimeReadinessView(APIView):
 
 
 class RuntimeConfigView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = RuntimeService()
 
     def get(self, request):
@@ -33,6 +36,7 @@ class RuntimeConfigView(APIView):
 
 
 class CachePingView(APIView):
+    permission_classes = [permissions.IsAdminUser]
     service = RuntimeService()
 
     def post(self, request):

@@ -26,11 +26,30 @@ ACTIVE_PAYOUT_STATUSES = {
 
 class PayoutService:
     @staticmethod
-    def _safe_notify(callback):
+    def _safe_notify(
+        callback,
+        *,
+        event_type: str,
+        entity_type: str,
+        entity_id: str,
+        actor=None,
+        context: dict | None = None,
+    ) -> None:
         try:
             callback()
-        except Exception:
-            pass
+        except Exception as exc:
+            AuditService.log(
+                actor=actor,
+                event_type="side_effect.failed",
+                entity_type=entity_type,
+                entity_id=str(entity_id),
+                context={
+                    "side_effect": event_type,
+                    "error_class": exc.__class__.__name__,
+                    "error_message": str(exc)[:500],
+                    **(context or {}),
+                },
+            )
 
     @staticmethod
     def _uuid_or_none(value):
@@ -48,30 +67,7 @@ class PayoutService:
         if trainer:
             return trainer
 
-        # Compatibility for imported/subscription-plan trainer ids in legacy tests
-        # and data imports. Production onboarding still creates real profiles first,
-        # but ledger accrual must not crash when an already-paid order references
-        # a known external trainer UUID.
-        from django.contrib.auth import get_user_model
-
-        User = get_user_model()
-        user, _ = User.objects.get_or_create(
-            id=uid,
-            defaults={
-                "email": f"trainer-{uid}@example.invalid",
-                "role": "trainer",
-            },
-        )
-        trainer, _ = TrainerProfile.objects.get_or_create(
-            id=uid,
-            defaults={
-                "user": user,
-                "slug": f"trainer-{str(uid)[:8]}",
-                "display_name": "Trainer",
-                "status": "active",
-            },
-        )
-        return trainer
+        raise ValidationError({"trainer_id": "Trainer profile not found."})
 
     @staticmethod
     def _canonical_status(status: str) -> str:
@@ -308,7 +304,14 @@ class PayoutService:
         )
         AuditService.log(actor=actor, event_type="payout.paid", entity_type="payout_request", entity_id=str(payout.id), request=request)
         payout = PayoutRequest.objects.select_related("trainer", "trainer__user").get(pk=payout.pk)
-        cls._safe_notify(lambda: DomainNotificationTriggers().on_payout_paid(user=payout.trainer.user, payout=payout))
+        cls._safe_notify(
+            lambda: DomainNotificationTriggers().on_payout_paid(user=payout.trainer.user, payout=payout),
+            event_type="notification.payout_paid",
+            entity_type="payout_request",
+            entity_id=str(payout.id),
+            actor=payout.trainer.user,
+            context={"trainer_id": str(payout.trainer_id), "amount": str(payout.amount), "currency": payout.currency},
+        )
         return payout
 
     @classmethod

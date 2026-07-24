@@ -3,11 +3,14 @@ from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.test import APIClient
 
 from apps.content.models import PublishedLesson, PublishedProgram
 from apps.entitlements.models import Entitlement, EntitlementSourceType, EntitlementStatus, EntitlementTargetType
 from apps.orders.models import Order, OrderStatus, OrderType
+from apps.progress.api.views import MyLessonProgressViewSet, MyVideoProgressViewSet
 from apps.progress.models import LessonProgress, ProgramProgress
 from apps.trainer_profiles.models import TrainerPublicProfile
 
@@ -106,6 +109,49 @@ def test_student_marks_lesson_completed_and_learning_area_updates_progress():
     assert learning_response.data["next_lesson"]["lesson_id"] == str(second.source_draft_id)
 
 
+def test_lesson_completion_ignores_spoofed_program_id():
+    student = make_user("progress-spoof-student@example.com")
+    _, program, first, _second = make_program()
+    grant_program_access(user=student, program=program)
+    spoofed_program_id = str(uuid4())
+    client = APIClient()
+    client.force_authenticate(user=student)
+
+    response = client.post(
+        "/api/v1/progress/lessons/complete/",
+        {
+            "lesson_id": str(first.source_draft_id),
+            "content_type": "program",
+            "program_id": spoofed_program_id,
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200, response.data
+    assert response.data["program_id"] == str(program.source_draft_id)
+    assert not ProgramProgress.objects.filter(user=student, program_id=spoofed_program_id).exists()
+
+
+def test_progress_write_actions_use_scoped_throttles():
+    rates = settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]
+
+    assert rates["progress_video_save"] == "600/hour"
+    assert MyVideoProgressViewSet.throttle_scope == "progress_video_save"
+    assert "ScopedRateThrottle" in MyVideoProgressViewSet.get_throttles.__code__.co_names
+
+    video_view = MyVideoProgressViewSet()
+    video_view.action = "save"
+    assert isinstance(video_view.get_throttles()[0], ScopedRateThrottle)
+
+    assert rates["progress_lesson_complete"] == "120/hour"
+    assert MyLessonProgressViewSet.throttle_scope == "progress_lesson_complete"
+    assert "ScopedRateThrottle" in MyLessonProgressViewSet.get_throttles.__code__.co_names
+
+    lesson_view = MyLessonProgressViewSet()
+    lesson_view.action = "complete"
+    assert isinstance(lesson_view.get_throttles()[0], ScopedRateThrottle)
+
+
 def test_trainer_can_see_student_progress_for_owned_program():
     student = make_user("progress-visible-student@example.com")
     trainer_user, program, first, _ = make_program()
@@ -133,5 +179,6 @@ def test_trainer_can_see_student_progress_for_owned_program():
 
     assert response.status_code == 200, response.data
     assert response.data["summary"]["students_count"] == 1
-    assert response.data["items"][0]["student_email"] == student.email
+    assert response.data["items"][0]["student_email"] == "p***@example.com"
+    assert response.data["items"][0]["student_email_masked"] is True
     assert response.data["items"][0]["completion_percent"] == "50.00"

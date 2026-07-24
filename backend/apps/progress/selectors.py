@@ -3,6 +3,20 @@ from django.db.models import Sum
 from apps.progress.models import LessonProgress, ProgramProgress, VideoProgress
 
 
+def _mask_student_email(email: str) -> str:
+    email = str(email or '').strip()
+    if '@' not in email:
+        return ''
+    local, domain = email.split('@', 1)
+    if not local or not domain:
+        return ''
+    visible = local[:1]
+    return f'{visible}***@{domain}'
+
+
+def _can_view_student_email(user) -> bool:
+    return bool(getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False))
+
 
 def get_video_progress_for_user(*, user):
     return VideoProgress.objects.filter(user=user).order_by('-updated_at')
@@ -57,6 +71,7 @@ def get_trainer_student_progress(*, trainer_user):
     records_count = rows.count()
     completed_count = rows.filter(is_completed=True).count()
     page = rows.select_related('user').order_by('-last_activity_at', '-updated_at')[:200]
+    can_view_student_email = _can_view_student_email(trainer_user)
 
     return {
         'summary': {
@@ -67,7 +82,12 @@ def get_trainer_student_progress(*, trainer_user):
         'items': [
             {
                 'student_id': str(row.user_id),
-                'student_email': getattr(row.user, 'email', ''),
+                'student_email': (
+                    getattr(row.user, 'email', '')
+                    if can_view_student_email
+                    else _mask_student_email(getattr(row.user, 'email', ''))
+                ),
+                'student_email_masked': not can_view_student_email,
                 'content_type': row.content_type,
                 'program_id': row.program_id,
                 'total_lessons': row.total_lessons,
